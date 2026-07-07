@@ -66,5 +66,5 @@ echo json_encode([
     'pratica' => $pratica,
     'record' => $record,
     'eventi' => $eventi,
-    'allegato_url' => !empty($record['allegato_path']) ? 'iscrizioniPrimeCambioScuolaAllegato.php?id=' . intval($id) : '',
+    'allegato_url' => (!empty($record['allegato_path']) || !empty($record['allegato_drive_file_id'])) ? 'iscrizioniPrimeCambioScuolaAllegato.php?id=' . intval($id) : '',
 ], JSON_UNESCAPED_UNICODE);

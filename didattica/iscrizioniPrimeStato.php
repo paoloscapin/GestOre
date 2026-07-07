@@ -9,7 +9,7 @@ header('Content-Type: application/json; charset=utf-8');
 $id = intval($_POST['id'] ?? 0);
 $stato = trim((string)($_POST['stato'] ?? ''));
 $note = trim((string)($_POST['note'] ?? ''));
-$allowed = ['inviata', 'verifica_iniziale_ok', 'verificata', 'da_integrare', 'annullata'];
+$allowed = ['bozza', 'inviata', 'verifica_iniziale_ok', 'verificata', 'da_integrare', 'annullata'];
 
 if ($id <= 0 || !in_array($stato, $allowed, true)) {
     http_response_code(400);

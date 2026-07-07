@@ -1957,7 +1957,7 @@ function iscrizioniPrimeRenderCambioScuolaStorico(praticaId, eventi) {
         return;
     }
     box.innerHTML = eventi.map((evento, index) => {
-        const allegato = evento.allegato_path
+        const allegato = (evento.allegato_path || evento.allegato_drive_file_id)
             ? '<a class="btn btn-xs btn-primary" target="_blank" rel="noopener" href="iscrizioniPrimeCambioScuolaAllegato.php?id=' + encodeURIComponent(praticaId) + '&evento_id=' + encodeURIComponent(evento.id) + '"><span class="glyphicon glyphicon-file"></span> Apri PDF</a> <span class="text-muted">' + iscrizioniPrimeEscape(evento.allegato_original_name || '') + '</span>'
             : '<span class="text-muted">Nessun PDF allegato a questo aggiornamento</span>';
         const undo = index === 0 && Number(evento.id || 0) > 0

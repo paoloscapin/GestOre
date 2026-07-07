@@ -12,7 +12,7 @@ if (!in_array($format, ['xls', 'pdf'], true)) {
     $format = 'xls';
 }
 $activeSection = trim((string)($_GET['sezione'] ?? 'uscite'));
-if (!in_array($activeSection, ['uscite', 'entrate'], true)) {
+if (!in_array($activeSection, ['uscite', 'entrate', 'tutte'], true)) {
     $activeSection = 'uscite';
 }
 $activeYear = intval($_GET['anno'] ?? 1);
@@ -52,7 +52,11 @@ function mse_lower(string $value): string
 
 function mse_filter_blob(array $row, array $tipi, array $stati): string
 {
+    $sectionWords = (string)($row['tipo_pratica'] ?? '') === 'entrata'
+        ? ['entrata', 'entrate']
+        : ['uscita', 'uscite'];
     $parts = [
+        ...$sectionWords,
         mse_practice_name($row),
         $row['codice_fiscale'] ?? '',
         $row['studente_cf'] ?? '',
@@ -95,6 +99,13 @@ function mse_matches_filters(array $row, string $filterText, string $filterState
     return strpos(mse_filter_blob($row, $tipi, $stati), mse_lower($filterText)) !== false;
 }
 
+$where = [];
+if ($activeSection !== 'tutte') {
+    $where[] = "p.tipo_pratica = " . dbQ($activeSection === 'entrate' ? 'entrata' : 'uscita');
+    $where[] = "p.anno_corso = " . dbI($activeYear);
+} else {
+    $where[] = "COALESCE(p.anno_corso, 0) BETWEEN 1 AND 5";
+}
 $pratiche = dbGetAll("
     SELECT p.*,
            s.cognome AS studente_cognome,
@@ -116,8 +127,7 @@ $pratiche = dbGetAll("
     LEFT JOIN classi c ON c.id = sf.id_classe
     LEFT JOIN indirizzo ind_gestore ON ind_gestore.id = p.id_indirizzo_gestore
     LEFT JOIN studenti_movimenti_allegati a ON a.id_pratica = p.id
-    WHERE p.tipo_pratica = " . dbQ($activeSection === 'entrate' ? 'entrata' : 'uscita') . "
-      AND p.anno_corso = " . dbI($activeYear) . "
+    WHERE " . implode("\n      AND ", $where) . "
     GROUP BY p.id
     ORDER BY COALESCE(p.cognome, s.cognome, '') ASC,
              COALESCE(p.nome, s.nome, '') ASC,
@@ -142,7 +152,9 @@ if ($canSeeColloqui && !empty($rows) && dbGetValue("SHOW TABLES LIKE 'genitori_c
     }
 }
 
-$title = 'Movimenti studenti - ' . ($activeSection === 'entrate' ? 'entrate' : 'uscite') . ' future ' . mse_year_label($activeYear);
+$title = $activeSection === 'tutte'
+    ? 'Movimenti studenti - tutte le pratiche'
+    : 'Movimenti studenti - ' . ($activeSection === 'entrate' ? 'entrate' : 'uscite') . ' future ' . mse_year_label($activeYear);
 
 ob_start();
 ?>
@@ -191,7 +203,8 @@ ob_start();
     <?php foreach ($rows as $row): ?>
         <?php
         $classe = trim((string)($row['classe_origine'] ?: $row['classe_corrente'] ?: ''));
-        $scuola = $activeSection === 'entrate'
+        $rowSection = (string)($row['tipo_pratica'] ?? '') === 'entrata' ? 'entrate' : 'uscite';
+        $scuola = $rowSection === 'entrate'
             ? trim((string)($row['scuola_provenienza'] ?: ''))
             : trim((string)($row['scuola_destinazione'] ?: ''));
         $segnalazioni = [];
@@ -221,9 +234,9 @@ ob_start();
             <td><?php echo mse_h($stati[$row['stato_pratica']] ?? $row['stato_pratica']); ?></td>
             <td>
                 <?php echo mse_h($scuola !== '' ? $scuola : '-'); ?>
-                <?php if ($activeSection === 'uscite' && trim((string)($row['indirizzo_destinazione'] ?? '')) !== ''): ?>
+                <?php if ($rowSection === 'uscite' && trim((string)($row['indirizzo_destinazione'] ?? '')) !== ''): ?>
                     <br><span class="muted"><?php echo mse_h($row['indirizzo_destinazione']); ?></span>
-                <?php elseif ($activeSection === 'entrate' && trim((string)($row['indirizzo_provenienza'] ?? '')) !== ''): ?>
+                <?php elseif ($rowSection === 'entrate' && trim((string)($row['indirizzo_provenienza'] ?? '')) !== ''): ?>
                     <br><span class="muted"><?php echo mse_h($row['indirizzo_provenienza']); ?></span>
                 <?php endif; ?>
             </td>

@@ -43,6 +43,29 @@ try {
                 (string)($_POST['tipo_allegato'] ?? 'documento')
             );
             $message = $uploaded ? 'Allegato aggiunto alla riga storico.' : 'Allegato non caricato.';
+        } elseif ($action === 'add_event') {
+            $practiceId = (int)($_POST['id'] ?? 0);
+            $description = trim((string)($_POST['event_descrizione'] ?? ''));
+            $note = trim((string)($_POST['event_note'] ?? ''));
+            if ($practiceId <= 0 || $description === '') {
+                throw new RuntimeException('Scrivi almeno una descrizione per aggiungere un evento.');
+            }
+            $eventId = studentiMovimentiAddEvent($practiceId, 'nota_segreteria', $description, [
+                'note' => $note,
+                'tipo_pratica' => (string)($_POST['tipo_pratica'] ?? ''),
+                'stato_pratica' => (string)($_POST['stato_pratica'] ?? ''),
+            ], studentiMovimentiCurrentActor());
+            if ($eventId > 0 && !empty($_FILES['event_allegato'])) {
+                studentiMovimentiAttachFileToEvent($eventId, $_FILES['event_allegato'], (string)($_POST['tipo_allegato'] ?? 'altro'));
+            }
+            $message = 'Evento aggiunto allo storico.';
+        } elseif ($action === 'add_practice_attachment') {
+            $uploaded = studentiMovimentiAttachFiles(
+                (int)($_POST['id'] ?? 0),
+                $_FILES['allegato'] ?? [],
+                trim((string)($_POST['tipo_allegato'] ?? 'altro'))
+            );
+            $message = $uploaded > 0 ? 'Documento caricato.' : 'Documento non caricato.';
         } elseif ($action === 'delete_attachment') {
             $deleted = studentiMovimentiDeleteAttachment((int)($_POST['attachment_id'] ?? 0));
             $message = $deleted ? 'Allegato eliminato.' : 'Allegato non trovato.';
@@ -220,6 +243,7 @@ $currentStudents = dbGetAll("
     WHERE COALESCE(s.attivo, 1) = 1
     ORDER BY c.classe ASC, s.cognome ASC, s.nome ASC
 ") ?: [];
+$realEnrollmentSummary = [];
 
 $grouped = [
     'uscite' => [1 => [], 2 => [], 3 => [], 4 => [], 5 => []],
@@ -305,7 +329,10 @@ function ms_lower(string $value): string
 
 function ms_filter_blob(array $row, array $tipi, array $stati): string
 {
-    $parts = [
+    $sectionWords = (string)($row['tipo_pratica'] ?? '') === 'entrata'
+        ? ['entrata', 'entrate']
+        : ['uscita', 'uscite'];
+    $parts = array_merge($sectionWords, [
         ms_practice_name($row),
         $row['codice_fiscale'] ?? '',
         $row['studente_cf'] ?? '',
@@ -326,7 +353,7 @@ function ms_filter_blob(array $row, array $tipi, array $stati): string
         $tipi[$row['tipo_pratica'] ?? ''] ?? '',
         $row['stato_pratica'] ?? '',
         $stati[$row['stato_pratica'] ?? ''] ?? '',
-    ];
+    ]);
     if (!empty($row['doppio_bocciato'])) {
         $parts[] = 'doppio bocciato';
     }
@@ -605,6 +632,73 @@ function ms_matches_filters(array $row, string $filterText, string $filterState,
             color: #60718a;
             font-size: 12px;
         }
+        .ms-real-summary {
+            margin: 10px 0 14px;
+            border: 1px solid #c7d8ea;
+            border-radius: 4px;
+            background: #f8fbff;
+            overflow: hidden;
+        }
+        .ms-real-summary-head {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            border-bottom: 1px solid #dbe7f3;
+            background: #eef6ff;
+        }
+        .ms-real-summary-title {
+            color: #102a43;
+            font-weight: 800;
+        }
+        .ms-real-summary-note {
+            color: #60718a;
+            font-size: 12px;
+        }
+        .ms-real-grid {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(170px, 1fr));
+            gap: 0;
+        }
+        .ms-real-card {
+            padding: 12px;
+            border-right: 1px solid #dbe7f3;
+            background: #fff;
+        }
+        .ms-real-card:last-child {
+            border-right: 0;
+        }
+        .ms-real-card-title {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            color: #102a43;
+            font-weight: 800;
+            margin-bottom: 8px;
+        }
+        .ms-real-total {
+            color: #0f4c81;
+            font-size: 24px;
+            font-weight: 900;
+            line-height: 1;
+        }
+        .ms-real-line {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 3px 0;
+            color: #42536a;
+            font-size: 12px;
+            border-top: 1px solid #edf2f7;
+        }
+        .ms-real-line strong {
+            color: #17202f;
+        }
+        .ms-real-negative strong {
+            color: #b91c1c;
+        }
         .ms-table-wrap {
             border: 1px solid #d8dee8;
             border-radius: 4px;
@@ -638,23 +732,191 @@ function ms_matches_filters(array $row, string $filterText, string $filterState,
             grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 10px;
         }
+        .ms-modal-main {
+            border: 1px solid #dbe4ef;
+            border-radius: 8px;
+            background: #fff;
+            padding: 12px;
+        }
         #msPracticeModal .modal-dialog {
-            width: 95%;
-            max-width: 1180px;
+            width: calc(100vw - 28px);
+            max-width: none;
+            margin: 14px auto;
+        }
+        #msPracticeModal .modal-content {
+            border: 0;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 28px);
+            overflow: hidden;
+        }
+        #msPracticeModal .modal-header {
+            background: #f8fafc;
+            border-bottom-color: #dbe4ef;
+        }
+        #msPracticeModal .modal-title {
+            font-weight: 750;
+            color: #17202f;
+        }
+        #msPracticeModal .modal-body {
+            background: #f3f6fa;
+            flex: 1 1 auto;
+            overflow: auto;
+            padding: 12px;
+        }
+        #msPracticeModal .modal-footer {
+            background: #fff;
         }
         .ms-modal-layout {
             display: grid;
-            grid-template-columns: minmax(0, 1.1fr) minmax(330px, .9fr);
+            grid-template-columns: minmax(680px, 1.18fr) minmax(720px, .82fr);
             gap: 14px;
             align-items: start;
         }
         .ms-history {
             border: 1px solid #d8dee8;
-            border-radius: 4px;
-            background: #f8fafc;
-            padding: 10px;
-            max-height: calc(100vh - 240px);
+            border-radius: 8px;
+            background: #fff;
+            padding: 12px;
+            max-height: 320px;
             overflow: auto;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+        }
+        .ms-side-panel {
+            display: grid;
+            gap: 10px;
+            position: sticky;
+            top: 8px;
+        }
+        .ms-docs-panel {
+            border: 1px solid #d8dee8;
+            border-radius: 8px;
+            background: #fff;
+            padding: 12px;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+        }
+        .ms-panel-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0 0 10px;
+            color: #17202f;
+            font-size: 16px;
+            font-weight: 750;
+        }
+        .ms-panel-title .glyphicon {
+            color: #2f80ed;
+        }
+        .ms-panel-title .btn {
+            margin-left: auto;
+        }
+        .ms-history-add-box {
+            border: 1px solid #dbe4ef;
+            border-radius: 8px;
+            background: #f8fafc;
+            display: none;
+            margin-bottom: 10px;
+            padding: 10px;
+        }
+        .ms-history-add-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+            gap: 6px;
+            align-items: end;
+        }
+        .ms-history-add-box textarea {
+            margin-top: 6px;
+        }
+        .ms-doc-list {
+            max-height: none;
+            overflow: auto;
+            margin-bottom: 10px;
+        }
+        .ms-doc-table {
+            width: 100%;
+            margin-bottom: 0;
+            table-layout: fixed;
+        }
+        .ms-doc-table th {
+            background: #f8fafc;
+            border-bottom: 1px solid #dbe4ef;
+            color: #17202f;
+            font-size: 12px;
+            font-weight: 750;
+            padding: 6px;
+        }
+        .ms-doc-table td {
+            border-top: 1px solid #edf2f7;
+            padding: 6px;
+            vertical-align: middle;
+        }
+        .ms-doc-table .ms-doc-name {
+            color: #17202f;
+            font-weight: 600;
+        }
+        .ms-doc-table .ms-doc-file {
+            overflow-wrap: anywhere;
+            word-break: break-word;
+        }
+        .ms-doc-table .ms-doc-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 3px;
+        }
+        .ms-doc-inline-upload {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin-top: 4px;
+        }
+        .ms-doc-inline-upload input[type="file"] {
+            flex: 1 1 190px;
+            min-width: 0;
+        }
+        .ms-doc-extra-title {
+            color: #60718a;
+            font-size: 12px;
+            font-weight: 700;
+            margin: 8px 0 4px;
+            text-transform: uppercase;
+        }
+        .ms-doc-empty {
+            color: #9aa6b2;
+            font-size: 12px;
+        }
+        .ms-wait-overlay {
+            position: fixed;
+            z-index: 3000;
+            inset: 0;
+            background: rgba(15, 23, 42, .28);
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        .ms-wait-overlay.is-visible {
+            display: flex;
+        }
+        .ms-wait-box {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 18px 45px rgba(15, 23, 42, .22);
+            min-width: 280px;
+            padding: 22px 26px;
+            text-align: center;
+        }
+        .ms-wait-spinner {
+            animation: msSpin .8s linear infinite;
+            border: 4px solid #dbeafe;
+            border-top-color: #2f80ed;
+            border-radius: 999px;
+            height: 34px;
+            margin: 0 auto 12px;
+            width: 34px;
+        }
+        @keyframes msSpin {
+            to { transform: rotate(360deg); }
         }
         .ms-history-event {
             border: 1px solid #dbe4ef;
@@ -772,6 +1034,19 @@ function ms_matches_filters(array $row, string $filterText, string $filterState,
             .ms-history {
                 max-height: none;
             }
+            .ms-history-add-grid {
+                grid-template-columns: 1fr;
+            }
+            .ms-real-grid {
+                grid-template-columns: 1fr;
+            }
+            .ms-real-card {
+                border-right: 0;
+                border-bottom: 1px solid #dbe7f3;
+            }
+            .ms-side-panel {
+                position: static;
+            }
             .ms-modal-wide {
                 grid-column: span 1;
             }
@@ -847,6 +1122,47 @@ function ms_matches_filters(array $row, string $filterText, string $filterState,
                     </a>
                 </div>
             </div>
+
+            <?php if (!empty($realEnrollmentSummary)): ?>
+            <div class="ms-real-summary">
+                <div class="ms-real-summary-head">
+                    <div class="ms-real-summary-title">
+                        <span class="glyphicon glyphicon-education"></span>
+                        Iscritti reali ad oggi
+                    </div>
+                    <div class="ms-real-summary-note">
+                        Prime/terze: pratiche iniziali + entrate nuove - uscite/cambi scuola. Seconde/quarte/quinte: iscritti attuali anno precedente + entrate - uscite. I doppi bocciati sono conteggiati tra gli usciti anche se il cambio scuola non e ancora concluso.
+                    </div>
+                </div>
+                <div class="ms-real-grid">
+                    <?php foreach ([1, 2, 3, 4, 5] as $summaryYear): ?>
+                        <?php $summaryRow = $realEnrollmentSummary[$summaryYear] ?? []; ?>
+                        <div class="ms-real-card">
+                            <div class="ms-real-card-title">
+                                <span><?php echo studentiMovimentiH($summaryRow['label'] ?? ms_year_label($summaryYear)); ?></span>
+                                <span class="ms-real-total"><?php echo intval($summaryRow['totale_reale'] ?? 0); ?></span>
+                            </div>
+                            <div class="ms-real-line">
+                                <span><?php echo studentiMovimentiH($summaryRow['base_label'] ?? 'Base'); ?></span>
+                                <strong><?php echo intval($summaryRow['base'] ?? 0); ?></strong>
+                            </div>
+                            <div class="ms-real-line">
+                                <span>In arrivo</span>
+                                <strong>+<?php echo intval($summaryRow['in_arrivo'] ?? 0); ?></strong>
+                            </div>
+                            <div class="ms-real-line ms-real-negative">
+                                <span>Usciti / cambio scuola</span>
+                                <strong>-<?php echo intval($summaryRow['usciti'] ?? 0); ?></strong>
+                            </div>
+                            <div class="ms-real-line">
+                                <span>di cui doppi bocciati</span>
+                                <strong><?php echo intval($summaryRow['doppi_bocciati'] ?? 0); ?></strong>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+            <?php endif; ?>
 
             <ul class="nav nav-tabs ms-tabs">
                 <li class="<?php echo ms_active($activeSection, 'uscite'); ?>">
@@ -1035,7 +1351,7 @@ function ms_matches_filters(array $row, string $filterText, string $filterState,
                                     <span class="text-muted">nessuno</span>
                                 <?php else: ?>
                                     <?php foreach ($allegati[$id] as $allegato): ?>
-                                        <a class="ms-attachment-link" target="_blank" href="<?php echo studentiMovimentiH(studentiMovimentiPublicPath((string)$allegato['path_file'])); ?>">
+                                        <a class="ms-attachment-link" target="_blank" href="movimentiStudentiAllegato.php?id=<?php echo intval($allegato['id'] ?? 0); ?>">
                                             <span class="glyphicon glyphicon-file"></span>
                                             <?php echo studentiMovimentiH($allegato['nome_file']); ?>
                                         </a>
@@ -1135,7 +1451,7 @@ function ms_matches_filters(array $row, string $filterText, string $filterState,
             </div>
             <div class="modal-body">
                 <div class="ms-modal-layout">
-                    <div>
+                    <div class="ms-modal-main">
                 <div class="ms-modal-grid">
                     <div class="form-group">
                         <label>Tipo pratica</label>
@@ -1192,7 +1508,7 @@ function ms_matches_filters(array $row, string $filterText, string $filterState,
                         <label>Codice fiscale</label>
                         <input type="text" name="codice_fiscale" id="ms_codice_fiscale" class="form-control input-sm">
                     </div>
-                    <div class="form-group">
+                    <div class="form-group ms-field-year">
                         <label>Anno</label>
                         <select name="anno_corso" id="ms_anno_corso" class="form-control input-sm">
                             <option value="">Seleziona anno</option>
@@ -1201,15 +1517,26 @@ function ms_matches_filters(array $row, string $filterText, string $filterState,
                             <?php endforeach; ?>
                         </select>
                     </div>
-                    <div class="form-group">
+                    <div class="form-group ms-field-origin-class">
                         <label>Classe origine</label>
                         <input type="text" name="classe_origine" id="ms_classe_origine" class="form-control input-sm">
                     </div>
-                    <div class="form-group">
+                    <div class="form-group ms-field-requested-class">
                         <label>Classe richiesta</label>
                         <input type="text" name="classe_richiesta" id="ms_classe_richiesta" class="form-control input-sm">
                     </div>
-                    <div class="form-group ms-only-entrata">
+                    <div class="form-group ms-address-gestore"></div>
+                    <div class="form-group ms-address-gestore">
+                        <label>Indirizzo GestOre</label>
+                        <select name="id_indirizzo_gestore" id="ms_id_indirizzo_gestore" class="form-control input-sm">
+                            <option value="">Da ricavare dal testo</option>
+                            <?php foreach ($indirizziGestore as $indirizzoRow): ?>
+                                <option value="<?php echo intval($indirizzoRow['id']); ?>"><?php echo studentiMovimentiH($indirizzoRow['nome'] ?? ''); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <span class="help-block">Usato nella formazione classi per filtrare bocciati, entrate e reiscrizioni.</span>
+                    </div>
+                    <div class="form-group ms-field-source-school">
                         <label>Scuola provenienza</label>
                         <input type="hidden" name="scuola_provenienza" id="ms_scuola_provenienza">
                         <select name="id_istituto_provenienza" id="ms_id_istituto_provenienza" class="form-control input-sm">
@@ -1285,7 +1612,7 @@ function ms_matches_filters(array $row, string $filterText, string $filterState,
                         <label>Telefono genitore 2</label>
                         <input type="text" name="telefono_genitore_2" id="ms_telefono_genitore_2" class="form-control input-sm">
                     </div>
-                    <div class="form-group ms-only-uscita">
+                    <div class="form-group ms-field-destination-school">
                         <label>Scuola destinazione</label>
                         <input type="hidden" name="scuola_destinazione" id="ms_scuola_destinazione">
                         <select name="id_istituto_destinazione" id="ms_id_istituto_destinazione" class="form-control input-sm">
@@ -1298,19 +1625,9 @@ function ms_matches_filters(array $row, string $filterText, string $filterState,
                         <input type="text" id="ms_scuola_destinazione_altro" class="form-control input-sm" style="display:none;margin-top:6px;" placeholder="Scrivi scuola destinazione">
                         <div id="ms_scuola_destinazione_libera" class="help-block" style="display:none;"></div>
                     </div>
-                    <div class="form-group ms-only-uscita">
+                    <div class="form-group ms-field-destination-address">
                         <label>Indirizzo di studio di destinazione</label>
                         <input type="text" name="indirizzo_destinazione" id="ms_indirizzo_destinazione" class="form-control input-sm" placeholder="Es. informatica, liceo scientifico...">
-                    </div>
-                    <div class="form-group ms-address-gestore">
-                        <label>Indirizzo GestOre</label>
-                        <select name="id_indirizzo_gestore" id="ms_id_indirizzo_gestore" class="form-control input-sm">
-                            <option value="">Da ricavare dal testo</option>
-                            <?php foreach ($indirizziGestore as $indirizzoRow): ?>
-                                <option value="<?php echo intval($indirizzoRow['id']); ?>"><?php echo studentiMovimentiH($indirizzoRow['nome'] ?? ''); ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                        <span class="help-block">Usato nella formazione classi per filtrare bocciati, entrate e reiscrizioni.</span>
                     </div>
                     <div class="ms-section-title ms-only-uscita">Colloqui</div>
                     <div class="form-group ms-only-uscita ms-modal-wide">
@@ -1360,31 +1677,43 @@ function ms_matches_filters(array $row, string $filterText, string $filterState,
                         </div>
                         <input type="hidden" name="carenze_note" id="ms_carenze_note" value="">
                     </div>
-                    <div class="form-group">
-                        <label>Tipo allegato</label>
-                        <select name="tipo_allegato" id="ms_tipo_allegato" class="form-control input-sm">
-                            <option value="mail_genitori">PDF mail genitori</option>
-                            <option value="richiesta_nulla_osta">Richiesta nulla osta</option>
-                            <option value="nulla_osta_entrata">Nulla osta in entrata</option>
-                            <option value="nulla_osta_uscita">Nulla osta in uscita</option>
-                            <option value="modulo_ritiro">Modulo ritiro</option>
-                            <option value="documenti_entrata">Documenti entrata</option>
-                            <option value="altro">Altro</option>
-                        </select>
-                    </div>
-                    <div class="form-group ms-modal-wide">
-                        <label>Aggiungi allegato</label>
-                        <input type="file" name="allegato[]" class="form-control input-sm" accept="application/pdf,image/jpeg,image/png" multiple>
-                    </div>
                     <div class="form-group ms-modal-wide ms-only-entrata">
                         <label>Note colloqui / comunicazioni</label>
                         <textarea id="ms_note_entrata" class="form-control input-sm ms-note-field" rows="5"></textarea>
                     </div>
                 </div>
                     </div>
-                    <div class="ms-history">
-                        <h4 style="margin-top:0;">Storico pratica</h4>
-                        <div id="ms_history_content" class="ms-muted">Nessuno storico disponibile.</div>
+                    <div class="ms-side-panel">
+                        <div class="ms-docs-panel" id="ms_docs_panel">
+                            <h4 class="ms-panel-title"><span class="glyphicon glyphicon-folder-open"></span> Documenti pratica</h4>
+                            <div id="ms_docs_content" class="ms-doc-list ms-muted">Nessun documento caricato.</div>
+                        </div>
+                        <div class="ms-history">
+                            <h4 class="ms-panel-title">
+                                <span class="glyphicon glyphicon-time"></span> Storico pratica
+                                <button type="button" class="btn btn-success btn-xs" onclick="msToggleAddHistoryEvent(true)">
+                                    <span class="glyphicon glyphicon-plus"></span> Evento
+                                </button>
+                            </h4>
+                            <div class="ms-history-add-box" id="ms_history_add_box">
+                                <div class="ms-history-add-grid">
+                                    <div>
+                                        <label>Descrizione evento</label>
+                                        <input type="text" class="form-control input-sm" id="ms_new_history_desc" placeholder="Es. Contatto telefonico, nota segreteria...">
+                                    </div>
+                                    <div>
+                                        <label>Allegato eventuale</label>
+                                        <input type="file" class="form-control input-sm" id="ms_new_history_file" accept="application/pdf,image/jpeg,image/png">
+                                    </div>
+                                    <div>
+                                        <button type="button" class="btn btn-primary btn-sm" onclick="msSubmitNewHistoryEvent()">Salva evento</button>
+                                        <button type="button" class="btn btn-default btn-sm" onclick="msToggleAddHistoryEvent(false)">Annulla</button>
+                                    </div>
+                                </div>
+                                <textarea class="form-control input-sm" rows="3" id="ms_new_history_note" placeholder="Note evento..."></textarea>
+                            </div>
+                            <div id="ms_history_content" class="ms-muted">Nessuno storico disponibile.</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1396,12 +1725,47 @@ function ms_matches_filters(array $row, string $filterText, string $filterState,
     </div>
 </div>
 
+<div class="ms-wait-overlay" id="msWaitOverlay">
+    <div class="ms-wait-box">
+        <div class="ms-wait-spinner"></div>
+        <strong id="msWaitTitle">Caricamento in corso</strong>
+        <div class="ms-muted" id="msWaitText">Attendere qualche secondo...</div>
+    </div>
+</div>
+
 <script>
 const msHistory = <?php echo json_encode($storico, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
 const msAttachments = <?php echo json_encode($allegati, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
 const msOpenMovementId = <?php echo intval($openMovementId); ?>;
 const msStatesByType = <?php echo json_encode(studentiMovimentiStatiPerTipo(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
 const msStateLabels = <?php echo json_encode($stati, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+const msPracticeDocumentTypesBase = [
+    {key: 'pagella', label: 'Pagella', aliases: ['pagella_precedente']},
+    {key: 'documento_identita_studente', label: 'Documento di identita dello studente'},
+    {key: 'codice_fiscale_studente', label: 'Codice fiscale dello studente'},
+    {key: 'documento_identita_genitore_1', label: 'Documento di identita del responsabile 1'},
+    {key: 'codice_fiscale_genitore_1', label: 'Codice fiscale del responsabile 1'},
+    {key: 'documento_identita_genitore_2', label: 'Documento di identita del responsabile 2'},
+    {key: 'codice_fiscale_genitore_2', label: 'Codice fiscale del responsabile 2'},
+    {key: 'nulla_osta_entrata', label: 'Nulla osta', aliases: ['richiesta_nulla_osta']},
+    {key: 'altro', label: 'Altri documenti', optional: true}
+];
+const msPracticeDocumentTypesByType = {
+    entrata: msPracticeDocumentTypesBase.concat([
+        {key: 'ok_colloqui', label: 'OK dai colloqui', checkOnly: true}
+    ]),
+    uscita: [
+        {key: 'domanda_nulla_osta', label: 'Domanda di nulla osta', aliases: ['richiesta_nulla_osta']},
+        {key: 'ricevuta_papiro', label: 'Ricevuta libreria Il Papiro restituzione libri', optional: true},
+        {key: 'ok_colloqui', label: 'OK dai colloqui', checkOnly: true},
+        {key: 'altro', label: 'Altri documenti', optional: true}
+    ],
+    ritiro: [
+        {key: 'domanda_ritiro_firmata', label: 'Domanda/mail di ritiro firmata'},
+        {key: 'altro', label: 'Altri documenti', optional: true}
+    ],
+    bocciato_reiscrizione: []
+};
 const msFilterSection = <?php echo json_encode($activeSection, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
 const msFilterYear = <?php echo intval($activeYear); ?>;
 let msParentsExpanded = false;
@@ -1423,8 +1787,9 @@ function msTextLower(value) {
 
 function msExportUrl(format, q, stato) {
     const params = new URLSearchParams();
-    params.set('sezione', msFilterSection);
-    params.set('anno', String(msFilterYear));
+    const global = String(q || '').trim() !== '' || String(stato || '') !== '';
+    params.set('sezione', global ? 'tutte' : msFilterSection);
+    params.set('anno', global ? '0' : String(msFilterYear));
     params.set('q', q || '');
     params.set('stato', stato || '');
     params.set('format', format);
@@ -1472,6 +1837,8 @@ function msApplyInstantFilters() {
     const q = msTextLower(qInput ? qInput.value : '').trim();
     const state = stateInput ? String(stateInput.value || '') : '';
     let visible = 0;
+    let visibleEntrate = 0;
+    let visibleUscite = 0;
     const addressSummary = {};
     const globalSearch = q !== '' || state !== '';
     rows.forEach(function (row) {
@@ -1486,6 +1853,11 @@ function msApplyInstantFilters() {
         row.style.display = show ? '' : 'none';
         if (show) {
             visible++;
+            if (rowSection === 'entrate') {
+                visibleEntrate++;
+            } else if (rowSection === 'uscite') {
+                visibleUscite++;
+            }
             if (!globalSearch && String(row.dataset.summaryInclude || '') === '1') {
                 const address = String(row.dataset.summaryAddress || 'Senza indirizzo');
                 addressSummary[address] = (addressSummary[address] || 0) + 1;
@@ -1496,7 +1868,7 @@ function msApplyInstantFilters() {
         emptyRow.style.display = visible === 0 ? '' : 'none';
     }
     if (countBox) {
-        countBox.textContent = visible + ' righe' + (globalSearch ? ' trovate in tutte le pratiche' : '');
+        countBox.textContent = visible + ' righe' + (globalSearch ? ' trovate in tutte le pratiche (' + visibleEntrate + ' entrate, ' + visibleUscite + ' uscite)' : '');
     }
     const xls = document.getElementById('ms_export_xls');
     const pdf = document.getElementById('ms_export_pdf');
@@ -1695,7 +2067,10 @@ function msFormatDateTimeIt(value) {
     return match[3] + '/' + match[2] + '/' + match[1] + (match[4] ? ' ' + match[4] + ':' + match[5] : '');
 }
 
-function msAttachmentHref(path) {
+function msAttachmentHref(path, id) {
+    if (id) {
+        return 'movimentiStudentiAllegato.php?id=' + encodeURIComponent(id);
+    }
     const normalized = String(path || '').replace(/\\/g, '/');
     if (!normalized) return '';
     const dataIndex = normalized.indexOf('/data/');
@@ -1780,8 +2155,194 @@ function msAttachmentLinks(attachments, allowDelete) {
         const deleteButton = allowDelete && attachment.id
             ? ' <button type="button" class="btn btn-xs btn-danger" onclick="msDeleteAttachment(' + Number(attachment.id) + ')">Elimina</button>'
             : '';
-        return '<div class="ms-history-attachment-row"><a class="btn btn-xs btn-default ms-history-attachment-link" target="_blank" download href="' + msEscape(msAttachmentHref(attachment.path)) + '"><span class="glyphicon glyphicon-paperclip"></span> Scarica allegato: ' + msEscape(label) + '</a>' + deleteButton + '</div>';
+        return '<div class="ms-history-attachment-row"><a class="btn btn-xs btn-default ms-history-attachment-link" target="_blank" download href="' + msEscape(msAttachmentHref(attachment.path, attachment.id)) + '"><span class="glyphicon glyphicon-paperclip"></span> Scarica allegato: ' + msEscape(label) + '</a>' + deleteButton + '</div>';
     }).join('') + '</div>';
+}
+
+function msCurrentPracticeType() {
+    const select = document.getElementById('ms_tipo_pratica');
+    return select ? String(select.value || 'uscita') : 'uscita';
+}
+
+function msPracticeDocumentsForType(type) {
+    return msPracticeDocumentTypesByType[type] || msPracticeDocumentTypesByType.uscita;
+}
+
+function msHistoryHasColloquiOk(practiceId) {
+    const rows = msHistory[String(practiceId)] || msHistory[Number(practiceId)] || [];
+    return rows.some(function (row) {
+        const text = [
+            row.tipo_evento || '',
+            row.descrizione || '',
+            row.note || '',
+            row.stato_pratica || ''
+        ].join(' ').toLocaleLowerCase('it-IT');
+        return text.indexOf('colloqu') !== -1 && (
+            text.indexOf('positivo') !== -1 ||
+            text.indexOf('approv') !== -1 ||
+            text.indexOf('idone') !== -1 ||
+            text.indexOf('ok') !== -1 ||
+            text.indexOf('svolto') !== -1
+        );
+    });
+}
+
+function msRenderPracticeDocs(practiceId) {
+    const box = document.getElementById('ms_docs_content');
+    if (!box) return;
+    const docsPanel = document.getElementById('ms_docs_panel');
+    const practiceType = msCurrentPracticeType();
+    const documents = msPracticeDocumentsForType(practiceType);
+    if (docsPanel) {
+        docsPanel.style.display = documents.length ? '' : 'none';
+    }
+    const attachments = msAttachments[String(practiceId)] || msAttachments[Number(practiceId)] || [];
+    if (!documents.length) {
+        box.innerHTML = '<span class="ms-muted">Per questa pratica bastano lo storico e gli eventuali allegati collegati agli eventi.</span>';
+        return;
+    }
+    if (!practiceId) {
+        box.innerHTML = '<span class="ms-muted">Salva prima la pratica, poi potrai caricare documenti.</span>';
+        return;
+    }
+    const attachmentsByType = {};
+    attachments.forEach(function (attachment) {
+        const type = String(attachment.tipo_allegato || '').trim();
+        if (!type) return;
+        if (!attachmentsByType[type]) attachmentsByType[type] = [];
+        attachmentsByType[type].push(attachment);
+    });
+    const typeLabels = {
+        documenti_entrata: 'Documenti genitori e studente',
+        pagella: 'Pagella',
+        pagella_precedente: 'Pagella',
+        documento_identita_studente: 'Documento di identita dello studente',
+        codice_fiscale_studente: 'Codice fiscale dello studente',
+        documento_identita_genitore_1: 'Documento di identita del responsabile 1',
+        codice_fiscale_genitore_1: 'Codice fiscale del responsabile 1',
+        documento_identita_genitore_2: 'Documento di identita del responsabile 2',
+        codice_fiscale_genitore_2: 'Codice fiscale del responsabile 2',
+        documenti_identita: 'Documenti genitori e studente',
+        domanda_ritiro_firmata: 'Domanda/mail di ritiro firmata',
+        domanda_nulla_osta: 'Domanda di nulla osta',
+        ricevuta_papiro: 'Ricevuta libreria Il Papiro restituzione libri',
+        richiesta_nulla_osta: 'Nulla osta',
+        nulla_osta_entrata: 'Nulla osta',
+        altro: 'Altri documenti'
+    };
+    const usedAttachmentIds = {};
+    function attachmentId(attachment) {
+        return String(attachment.id || '') || String(attachment.path_file || attachment.allegato_path || '') + '|' + String(attachment.nome_file || attachment.allegato_original_name || '');
+    }
+    function attachmentsForDocument(document) {
+        let matches = [];
+        [document.key].concat(document.aliases || []).forEach(function (type) {
+            if (attachmentsByType[type]) {
+                matches = matches.concat(attachmentsByType[type]);
+            }
+        });
+        return matches;
+    }
+    function renderAttachmentActions(attachment) {
+        const name = String(attachment.nome_file || attachment.allegato_original_name || 'Documento').trim();
+        const href = msAttachmentHref(attachment.path_file || attachment.allegato_path || '', attachment.id || '');
+        const id = Number(attachment.id || 0);
+        return '<div class="ms-doc-file">' + msEscape(name) + '</div>' +
+            '<div class="ms-doc-actions">' +
+            (href ? '<a class="btn btn-xs btn-primary" target="_blank" href="' + msEscape(href) + '"><span class="glyphicon glyphicon-file"></span> Apri</a>' : '') +
+            (id ? '<button type="button" class="btn btn-xs btn-danger" onclick="msDeleteAttachment(' + id + ')">Elimina</button>' : '') +
+            '</div>';
+    }
+    function renderInlineUpload(document, matches) {
+        const inputId = 'ms_doc_file_' + document.key;
+        const buttonText = matches.length ? 'Aggiungi' : 'Carica';
+        return '<div class="ms-doc-inline-upload">' +
+            '<input type="file" id="' + msEscape(inputId) + '" class="form-control input-sm" accept="application/pdf,image/jpeg,image/png" multiple>' +
+            '<button type="button" class="btn btn-xs btn-success" onclick="msUploadPracticeAttachments(\'' + msEscape(document.key) + '\', \'' + msEscape(inputId) + '\')">' +
+            '<span class="glyphicon glyphicon-plus"></span> ' + buttonText +
+            '</button>' +
+            '</div>';
+    }
+    let html = '<table class="ms-doc-table"><colgroup><col style="width:30%"><col style="width:12%"><col style="width:58%"></colgroup>' +
+        '<thead><tr><th>Documento</th><th>Stato</th><th>File</th></tr></thead><tbody>';
+    documents.forEach(function (document) {
+        const matches = document.checkOnly ? [] : attachmentsForDocument(document);
+        matches.forEach(function (attachment) {
+            usedAttachmentIds[attachmentId(attachment)] = true;
+        });
+        const checkOk = document.key === 'ok_colloqui' ? msHistoryHasColloquiOk(practiceId) : false;
+        const ok = matches.length || checkOk;
+        const statusText = ok ? (document.checkOnly ? 'ok' : 'caricato') : (document.optional ? 'facoltativo' : 'da avere');
+        const statusClass = ok ? 'success' : (document.optional ? 'default' : 'warning');
+        const fileCell = document.checkOnly
+            ? (checkOk ? '<span class="ms-doc-empty">OK presente nello storico colloqui</span>' : '<span class="ms-doc-empty">Da registrare nello storico/colloqui</span>')
+            : (matches.length ? matches.map(renderAttachmentActions).join('') : '<span class="ms-doc-empty">Nessun file caricato</span>') + renderInlineUpload(document, matches);
+        html += '<tr>' +
+            '<td class="ms-doc-name">' + msEscape(document.label) + '</td>' +
+            '<td><span class="label label-' + statusClass + '">' + statusText + '</span></td>' +
+            '<td>' + fileCell + '</td>' +
+            '</tr>';
+    });
+    html += '</tbody></table>';
+
+    const extras = attachments.filter(function (attachment) {
+        return !usedAttachmentIds[attachmentId(attachment)];
+    });
+    if (extras.length) {
+        html += '<div class="ms-doc-extra-title">Altri allegati caricati</div>' +
+            '<table class="ms-doc-table"><colgroup><col style="width:30%"><col style="width:12%"><col style="width:58%"></colgroup><tbody>' +
+            extras.map(function (attachment) {
+                const type = String(attachment.tipo_allegato || '').trim();
+                const typeLabel = typeLabels[type] || type || 'Documento';
+                return '<tr>' +
+                    '<td class="ms-doc-name">' + msEscape(typeLabel) + '</td>' +
+                    '<td><span class="label label-default">extra</span></td>' +
+                    '<td>' + renderAttachmentActions(attachment) + '</td>' +
+                    '</tr>';
+            }).join('') +
+            '</tbody></table>';
+    }
+    box.innerHTML = html;
+}
+
+function msShowWait(title, text) {
+    const overlay = document.getElementById('msWaitOverlay');
+    if (!overlay) return;
+    document.getElementById('msWaitTitle').textContent = title || 'Caricamento in corso';
+    document.getElementById('msWaitText').textContent = text || 'Attendere qualche secondo...';
+    overlay.classList.add('is-visible');
+}
+
+function msUploadPracticeAttachments(type, inputId) {
+    const practiceId = Number(document.getElementById('ms_id').value || 0);
+    if (!practiceId) {
+        window.alert('Salva prima la pratica, poi potrai caricare documenti.');
+        return;
+    }
+    const fileInput = document.getElementById(inputId || '');
+    if (!fileInput || !fileInput.files || !fileInput.files.length) {
+        window.alert('Seleziona almeno un documento da caricare.');
+        return;
+    }
+    const data = new FormData();
+    data.append('action', 'add_practice_attachment');
+    data.append('id', practiceId);
+    data.append('tipo_allegato', type || 'altro');
+    Array.prototype.forEach.call(fileInput.files, function (file) {
+        data.append('allegato[]', file);
+    });
+    msShowWait('Caricamento documento', 'Sto caricando il documento nella pratica...');
+    fetch(window.location.href, {
+        method: 'POST',
+        body: data,
+        credentials: 'same-origin'
+    }).then(function () {
+        window.location.href = 'movimentiStudenti.php?open_movimento_id=' + practiceId;
+    }).catch(function () {
+        const overlay = document.getElementById('msWaitOverlay');
+        if (overlay) overlay.classList.remove('is-visible');
+        window.alert('Caricamento documento non riuscito.');
+    });
 }
 
 function msSubmitHiddenPost(fields) {
@@ -1799,6 +2360,64 @@ function msSubmitHiddenPost(fields) {
     form.submit();
 }
 
+function msToggleAddHistoryEvent(show) {
+    const box = document.getElementById('ms_history_add_box');
+    if (!box) return;
+    const practiceId = Number(document.getElementById('ms_id').value || 0);
+    if (show && !practiceId) {
+        window.alert('Salva prima la pratica, poi potrai aggiungere eventi allo storico.');
+        return;
+    }
+    box.style.display = show ? 'block' : 'none';
+    if (!show) {
+        const desc = document.getElementById('ms_new_history_desc');
+        const note = document.getElementById('ms_new_history_note');
+        const file = document.getElementById('ms_new_history_file');
+        if (desc) desc.value = '';
+        if (note) note.value = '';
+        if (file) file.value = '';
+    }
+}
+
+function msSubmitNewHistoryEvent() {
+    const practiceId = Number(document.getElementById('ms_id').value || 0);
+    const desc = document.getElementById('ms_new_history_desc');
+    const note = document.getElementById('ms_new_history_note');
+    const file = document.getElementById('ms_new_history_file');
+    const description = desc ? desc.value.trim() : '';
+    if (!practiceId) {
+        window.alert('Salva prima la pratica, poi potrai aggiungere eventi allo storico.');
+        return;
+    }
+    if (!description) {
+        window.alert('Scrivi una descrizione per l\'evento.');
+        return;
+    }
+    const data = new FormData();
+    data.append('action', 'add_event');
+    data.append('id', practiceId);
+    data.append('event_descrizione', description);
+    data.append('event_note', note ? note.value.trim() : '');
+    data.append('tipo_pratica', document.getElementById('ms_tipo_pratica') ? document.getElementById('ms_tipo_pratica').value : '');
+    data.append('stato_pratica', document.getElementById('ms_stato_pratica') ? document.getElementById('ms_stato_pratica').value : '');
+    data.append('tipo_allegato', 'altro');
+    if (file && file.files && file.files.length) {
+        data.append('event_allegato', file.files[0]);
+    }
+    msShowWait('Salvataggio evento', 'Sto aggiungendo la riga allo storico...');
+    fetch(window.location.href, {
+        method: 'POST',
+        body: data,
+        credentials: 'same-origin'
+    }).then(function () {
+        window.location.href = 'movimentiStudenti.php?open_movimento_id=' + practiceId;
+    }).catch(function () {
+        const overlay = document.getElementById('msWaitOverlay');
+        if (overlay) overlay.classList.remove('is-visible');
+        window.alert('Salvataggio evento non riuscito.');
+    });
+}
+
 function msToggleHistoryEdit(id, show) {
     const box = document.getElementById('ms_history_edit_' + id);
     if (box) box.style.display = show ? 'block' : 'none';
@@ -1811,12 +2430,18 @@ function msDeleteHistoryEvent(id) {
 
 function msDeleteAttachment(id) {
     if (!window.confirm('Eliminare questo allegato?')) return;
+    msShowWait('Eliminazione documento', 'Sto aggiornando la pratica...');
     msSubmitHiddenPost({action: 'delete_attachment', attachment_id: id});
 }
 
 function msAttachmentTypeOptions() {
-    const select = document.getElementById('ms_tipo_allegato');
-    return select ? select.innerHTML : '<option value="documento">Documento</option>';
+    const docs = msPracticeDocumentsForType(msCurrentPracticeType()).filter(function (document) {
+        return !document.checkOnly;
+    });
+    const source = docs.length ? docs : [{key: 'altro', label: 'Altri documenti'}];
+    return source.map(function (document) {
+        return '<option value="' + msEscape(document.key) + '">' + msEscape(document.label) + '</option>';
+    }).join('');
 }
 
 function msUploadHistoryAttachment(eventId) {
@@ -1989,9 +2614,11 @@ function msOpenNew(kind) {
     msSetSubjectValues('carenze', []);
     msSetNote('');
     msRenderHistory(0);
+    msToggleAddHistoryEvent(false);
     document.getElementById('msPracticeTitle').textContent = kind === 'entrata' ? 'Nuova entrata' : 'Nuova uscita';
     msParentsExpanded = false;
     msUpdatePracticeKindFields();
+    msRenderPracticeDocs(0);
     $('#msPracticeModal').modal('show');
 }
 
@@ -2031,9 +2658,11 @@ function msOpenPracticeFromButton(button) {
     msSetSubjectValues('carenze', msSplitList(button.dataset.carenze_note || ''));
     msSetNote(button.dataset.note || '');
     msRenderHistory(button.dataset.id || 0);
+    msToggleAddHistoryEvent(false);
     document.getElementById('msPracticeTitle').textContent = 'Dettaglio pratica';
     msParentsExpanded = false;
     msUpdatePracticeKindFields();
+    msRenderPracticeDocs(button.dataset.id || 0);
     $('#msPracticeModal').modal('show');
 }
 
@@ -2056,24 +2685,36 @@ if (msOpenMovementId > 0) {
 }
 
 function msUpdatePracticeKindFields() {
-    const kind = document.getElementById('ms_tipo_pratica').value === 'entrata' ? 'entrata' : 'uscita';
+    const type = document.getElementById('ms_tipo_pratica').value || '';
+    const kind = type === 'entrata' ? 'entrata' : 'uscita';
+    const isEntry = type === 'entrata';
+    const isExit = type === 'uscita';
+    const isRepeat = type === 'bocciato_reiscrizione';
+    const isWithdrawal = type === 'ritiro';
     msFilterStateOptions();
     document.querySelectorAll('.ms-only-entrata').forEach(function (element) {
-        element.style.display = kind === 'entrata' ? '' : 'none';
+        element.style.display = isEntry ? '' : 'none';
     });
     document.querySelectorAll('.ms-only-uscita').forEach(function (element) {
-        element.style.display = kind === 'uscita' ? '' : 'none';
+        element.style.display = isExit ? '' : 'none';
+    });
+    document.querySelectorAll('.ms-field-source-school').forEach(function (element) {
+        element.style.display = isEntry ? '' : 'none';
+    });
+    document.querySelectorAll('.ms-field-destination-school, .ms-field-destination-address').forEach(function (element) {
+        element.style.display = isExit ? '' : 'none';
+    });
+    document.querySelectorAll('.ms-field-year, .ms-field-requested-class').forEach(function (element) {
+        element.style.display = isEntry ? '' : 'none';
     });
     document.querySelectorAll('.ms-address-gestore').forEach(function (element) {
-        const type = document.getElementById('ms_tipo_pratica').value || '';
-        element.style.display = (kind === 'entrata' || type === 'bocciato_reiscrizione' || document.getElementById('ms_doppio_bocciato').checked) ? '' : 'none';
+        element.style.display = isEntry ? '' : 'none';
     });
-    const type = document.getElementById('ms_tipo_pratica').value || '';
     document.querySelectorAll('.ms-needs-nullosta').forEach(function (element) {
-        element.style.display = (type === 'entrata' || type === 'uscita') ? '' : 'none';
+        element.style.display = (isEntry || isExit) ? '' : 'none';
     });
     msSetParentsVisible(msParentsExpanded);
-    if (kind === 'entrata') {
+    if (isEntry) {
         msSetField('ms_id_istituto_destinazione', '');
         msSetField('ms_scuola_destinazione', '');
         msSetField('ms_indirizzo_destinazione', '');
@@ -2088,12 +2729,28 @@ function msUpdatePracticeKindFields() {
         msSetSubjectValues('carenze', []);
         msUpdateSchoolOther('ms_id_istituto_provenienza', 'ms_scuola_provenienza', 'ms_scuola_provenienza_altro', 'ms_scuola_provenienza_libera', '');
     }
+    if (isExit || isRepeat || isWithdrawal) {
+        msSetField('ms_classe_richiesta', '');
+        msSetField('ms_id_indirizzo_gestore', '');
+    }
+    if (isRepeat || isWithdrawal) {
+        msSetField('ms_anno_corso', '');
+        msSetField('ms_id_istituto_destinazione', '');
+        msSetField('ms_scuola_destinazione', '');
+        msSetField('ms_indirizzo_destinazione', '');
+        msUpdateSchoolOther('ms_id_istituto_destinazione', 'ms_scuola_destinazione', 'ms_scuola_destinazione_altro', 'ms_scuola_destinazione_libera', '');
+    }
     msUpdateSubjectBoxes();
 }
 
 document.getElementById('ms_tipo_pratica').addEventListener('change', function () {
     msFilterStateOptions();
     msUpdatePracticeKindFields();
+    msRenderPracticeDocs(document.getElementById('ms_id').value || 0);
+});
+
+document.getElementById('ms_stato_pratica').addEventListener('change', function () {
+    msRenderPracticeDocs(document.getElementById('ms_id').value || 0);
 });
 
 document.getElementById('ms_doppio_bocciato').addEventListener('change', function () {
@@ -2105,6 +2762,7 @@ document.getElementById('ms_doppio_bocciato').addEventListener('change', functio
         msSetField('ms_stato_pratica', 'cambia_scuola');
     }
     msUpdatePracticeKindFields();
+    msRenderPracticeDocs(document.getElementById('ms_id').value || 0);
 });
 
 document.getElementById('ms_id_istituto_provenienza').addEventListener('change', function () {
@@ -2115,8 +2773,14 @@ document.getElementById('ms_id_istituto_destinazione').addEventListener('change'
     msUpdateSchoolOther('ms_id_istituto_destinazione', 'ms_scuola_destinazione', 'ms_scuola_destinazione_altro', 'ms_scuola_destinazione_libera', document.getElementById('ms_scuola_destinazione').value);
 });
 
-document.getElementById('ms_esami_integrativi').addEventListener('change', msUpdateSubjectBoxes);
-document.getElementById('ms_carenze_presenti').addEventListener('change', msUpdateSubjectBoxes);
+document.getElementById('ms_esami_integrativi').addEventListener('change', function () {
+    msUpdateSubjectBoxes();
+    msRenderPracticeDocs(document.getElementById('ms_id').value || 0);
+});
+document.getElementById('ms_carenze_presenti').addEventListener('change', function () {
+    msUpdateSubjectBoxes();
+    msRenderPracticeDocs(document.getElementById('ms_id').value || 0);
+});
 document.getElementById('ms_add_esame_materia').addEventListener('click', function () {
     msAddSubject('esami');
 });
@@ -2137,10 +2801,24 @@ document.querySelectorAll('.ms-note-field').forEach(function (element) {
 });
 
 document.getElementById('msPracticeForm').addEventListener('submit', function () {
+    msShowWait('Salvataggio pratica', 'Sto salvando i dati della pratica...');
     msSyncVisibleNote();
     msSyncSubjectNotes();
     msSyncSchoolHidden('ms_id_istituto_provenienza', 'ms_scuola_provenienza', 'ms_scuola_provenienza_altro');
     msSyncSchoolHidden('ms_id_istituto_destinazione', 'ms_scuola_destinazione', 'ms_scuola_destinazione_altro');
+});
+
+document.querySelectorAll('.ms-tabs a, .pagination a, a[href*="movimentiStudenti.php?sezione="]').forEach(function (link) {
+    link.addEventListener('click', function () {
+        msShowWait('Caricamento movimenti', 'Sto caricando la nuova vista...');
+    });
+});
+
+document.querySelectorAll('form').forEach(function (form) {
+    if (form.id === 'msInstantFilterForm') return;
+    form.addEventListener('submit', function () {
+        msShowWait('Operazione in corso', 'Attendere qualche secondo...');
+    });
 });
 
 document.getElementById('ms_id_studente').addEventListener('change', function () {

@@ -150,6 +150,7 @@ function ipd_badge_class(string $stato): string
 function ipd_stato_label(string $stato): string
 {
     $labels = [
+        'bozza' => 'Compilabile',
         'inviata' => 'Inviata',
         'verifica_iniziale_ok' => 'Verifica iniziale OK',
         'verificata' => 'Pratica completata',
@@ -195,14 +196,22 @@ function ipd_filter_duplicate_integration_events(array $eventi): array
 
 $filtroStato = trim((string)($_GET['stato'] ?? 'tutte'));
 $openPraticaId = intval($_GET['open_pratica_id'] ?? 0);
+$mostraCompletate = intval($_GET['mostra_completate'] ?? 0) === 1;
 $allowedFilters = ['tutte', 'inviata', 'verifica_iniziale_ok', 'verificata', 'da_integrare', 'annullata'];
 if (!in_array($filtroStato, $allowedFilters, true)) {
     $filtroStato = 'tutte';
 }
+if ($filtroStato === 'verificata') {
+    $mostraCompletate = true;
+}
 
-$where = "p.tipo_iscrizione = " . dbQ($tipoIscrizione) . " AND p.stato IN ('inviata', 'verifica_iniziale_ok', 'verificata', 'da_integrare', 'annullata')";
+$visibleStates = "'inviata', 'verifica_iniziale_ok', 'verificata', 'da_integrare', 'annullata'";
+$where = "p.tipo_iscrizione = " . dbQ($tipoIscrizione) . " AND p.stato IN ($visibleStates)";
 if ($filtroStato !== 'tutte') {
     $where = "p.tipo_iscrizione = " . dbQ($tipoIscrizione) . " AND p.stato = " . dbQ($filtroStato);
+}
+if ($openPraticaId > 0) {
+    $where = "(" . $where . " OR (p.tipo_iscrizione = " . dbQ($tipoIscrizione) . " AND p.id = " . intval($openPraticaId) . "))";
 }
 
 $pratiche = dbGetAll("
@@ -211,8 +220,21 @@ $pratiche = dbGetAll("
            movimento_reiscrizione.stato_pratica AS movimento_reiscrizione_stato,
            movimento_reiscrizione.classe_origine AS movimento_reiscrizione_classe_origine,
            movimento_reiscrizione.classe_richiesta AS movimento_reiscrizione_classe_richiesta,
-           movimento_reiscrizione.updated_at AS movimento_reiscrizione_updated_at
+           movimento_reiscrizione.updated_at AS movimento_reiscrizione_updated_at,
+           COALESCE(documenti_caricati.totale_caricati, 0) AS totale_documenti_caricati
     FROM iscrizioni_prime_pratiche p
+    LEFT JOIN (
+        SELECT
+            pratica_id,
+            COUNT(*) AS totale_caricati
+        FROM iscrizioni_prime_documenti
+        WHERE (
+            stato IN ('caricato', 'estratto', 'verificato')
+            OR COALESCE(file_path, '') <> ''
+            OR COALESCE(drive_file_id, '') <> ''
+        )
+        GROUP BY pratica_id
+    ) documenti_caricati ON documenti_caricati.pratica_id = p.id
     LEFT JOIN studenti_movimenti_pratiche movimento_reiscrizione
       ON movimento_reiscrizione.id = (
           SELECT m2.id
@@ -226,7 +248,19 @@ $pratiche = dbGetAll("
           LIMIT 1
       )
     WHERE $where
-    ORDER BY p.updated_at DESC, p.cognome ASC, p.nome ASC
+    ORDER BY
+        CASE p.stato
+            WHEN 'inviata' THEN 0
+            WHEN 'da_integrare' THEN 1
+            WHEN 'verifica_iniziale_ok' THEN 2
+            WHEN 'annullata' THEN 3
+            WHEN 'verificata' THEN 4
+            ELSE 9
+        END,
+        CASE WHEN p.stato = 'inviata' THEN COALESCE(documenti_caricati.totale_caricati, 0) ELSE 0 END DESC,
+        p.updated_at DESC,
+        p.cognome ASC,
+        p.nome ASC
 ");
 
 $stats = dbGetFirst("
@@ -249,6 +283,18 @@ $labels = array_merge(iscrizioniPrimeDocumentTypes($tipoIscrizione), iscrizioniP
 $eventiPratiche = [];
 foreach ($pratiche as $praticaEvento) {
     $eventiPratiche[intval($praticaEvento['id'] ?? 0)] = ipd_filter_duplicate_integration_events(iscrizioniPrimeEventsForPratica($praticaEvento));
+}
+
+function ipd_filter_url(string $tipoIscrizione, string $stato, bool $mostraCompletate): string
+{
+    $params = [
+        'tipo_iscrizione' => $tipoIscrizione,
+        'stato' => $stato,
+    ];
+    if ($mostraCompletate || $stato === 'verificata') {
+        $params['mostra_completate'] = '1';
+    }
+    return '?' . http_build_query($params);
 }
 
 ?>
@@ -516,7 +562,7 @@ foreach ($pratiche as $praticaEvento) {
                 ?>
                 <?php foreach ($statCards as $card) : ?>
                     <a class="ipd-stat <?php echo ipd_h($card['class']); ?> <?php echo $filtroStato === $card['key'] ? 'active' : ''; ?>"
-                       href="?tipo_iscrizione=<?php echo urlencode($tipoIscrizione); ?>&stato=<?php echo urlencode($card['key']); ?>">
+                       href="<?php echo ipd_h(ipd_filter_url($tipoIscrizione, (string)$card['key'], $mostraCompletate)); ?>">
                         <span class="num"><?php echo intval($card['value']); ?></span>
                         <span class="label"><?php echo ipd_h($card['label']); ?></span>
                     </a>
@@ -536,6 +582,10 @@ foreach ($pratiche as $praticaEvento) {
                     <button type="button" class="btn btn-default" onclick="document.getElementById('ipdLiveFilter').value=''; ipdApplyLiveFilter();">
                         <span class="glyphicon glyphicon-remove"></span> Pulisci ricerca
                     </button>
+                    <button type="button" id="ipdToggleCompletedButton" class="btn <?php echo $mostraCompletate ? 'btn-warning' : 'btn-default'; ?>" onclick="ipdToggleCompleted()">
+                        <span class="glyphicon glyphicon-<?php echo $mostraCompletate ? 'eye-close' : 'eye-open'; ?>"></span>
+                        <span class="ipd-toggle-completed-label"><?php echo $mostraCompletate ? 'Nascondi completate' : 'Mostra completate'; ?></span>
+                    </button>
                     <span class="ipd-help-tip">
                         <button type="button" class="btn btn-default">
                             <span class="glyphicon glyphicon-question-sign"></span> Uso stati
@@ -546,6 +596,7 @@ foreach ($pratiche as $praticaEvento) {
                             "Pratica completata" chiude definitivamente la pratica.
                             "Richiedi integrazione" riapre la pratica, invia una mail ai genitori con le indicazioni della segreteria e permette di correggere/reinviare.
                             "Rimetti in inviata" riporta una domanda allo stato ricevuto senza inviare mail.
+                            "Rendi compilabile" riapre il link genitore senza inviare mail.
                             "Cambio scuola" mantiene la pratica archiviata ma la esclude dagli invii massivi.
                         </span>
                     </span>
@@ -565,9 +616,10 @@ foreach ($pratiche as $praticaEvento) {
         $nome = trim((string)(($pratica['cognome'] ?? '') . ' ' . ($pratica['nome'] ?? '')));
         $extraInfo = ipd_extra_info($pratica);
         $docCounts = ['ok' => 0, 'paper' => 0, 'missing' => 0];
+        $optionalDocumentTypes = iscrizioniPrimeOptionalDocumentTypes();
         foreach ($documents as $documentCountRow) {
             $tipoCount = (string)$documentCountRow['tipo_documento'];
-            if ($tipoCount === 'altro' && (string)$documentCountRow['stato'] === 'mancante') {
+            if (in_array($tipoCount, $optionalDocumentTypes, true) && (string)$documentCountRow['stato'] === 'mancante') {
                 continue;
             }
             if (in_array($tipoCount, ['documento_identita_genitore_2', 'codice_fiscale_genitore_2', 'documento_cf_genitore_2'], true) && !hasSecondResponsibleForIscrizioniPrime($pratica, $confirmed)) {
@@ -588,7 +640,7 @@ foreach ($pratiche as $praticaEvento) {
         $movementDone = $movementId > 0 && in_array($movementState, ['reiscrizione_confermata', 'chiusa'], true);
         $movementUrl = 'movimentiStudenti.php?sezione=uscite&open_movimento_id=' . $movementId;
     ?>
-        <div class="ipd-card" id="pratica-<?php echo intval($pratica['id']); ?>">
+        <div class="ipd-card" id="pratica-<?php echo intval($pratica['id']); ?>" data-stato="<?php echo ipd_h((string)$pratica['stato']); ?>">
             <div class="ipd-card-head">
                 <div>
                     <div class="ipd-name"><?php echo ipd_h($nome); ?></div>
@@ -654,6 +706,7 @@ foreach ($pratiche as $praticaEvento) {
                         <button type="button" class="btn btn-success" title="La pratica e' completa e viene chiusa definitivamente." onclick="ipdSetStato(<?php echo intval($pratica['id']); ?>, 'verificata')">Pratica completata</button>
                         <button type="button" class="btn btn-warning" title="Riapre la pratica e invia una mail ai genitori." onclick="ipdSetStato(<?php echo intval($pratica['id']); ?>, 'da_integrare')">Richiedi integrazione</button>
                         <button type="button" class="btn btn-default" title="Riporta la pratica allo stato ricevuto/inviata." onclick="ipdSetStato(<?php echo intval($pratica['id']); ?>, 'inviata')">Rimetti in inviata</button>
+                        <button type="button" class="btn btn-default" title="Rende di nuovo apribile il link genitore senza inviare automaticamente una mail." onclick="ipdSetStato(<?php echo intval($pratica['id']); ?>, 'bozza')">Rendi compilabile</button>
                         <button type="button" class="btn btn-danger" title="La famiglia ha cambiato scuola: la pratica resta archiviata ma non riceve piu comunicazioni automatiche." onclick="ipdOpenCambioScuolaModal(<?php echo intval($pratica['id']); ?>)">Cambio scuola</button>
                     </div>
                 </div>
@@ -781,7 +834,7 @@ foreach ($pratiche as $praticaEvento) {
                                 }
                                 $statoDoc = (string)$document['stato'];
                                 $hasFile = !empty($document['file_path']) || !empty($document['drive_file_id']);
-                                $isOptionalMissing = $tipo === 'altro' && !$hasFile && $statoDoc === 'mancante';
+                                $isOptionalMissing = in_array($tipo, $optionalDocumentTypes, true) && !$hasFile && $statoDoc === 'mancante';
                                 $statusClass = $isOptionalMissing ? 'optional' : ($statoDoc === 'consegna_cartacea' ? 'paper' : ($hasFile || in_array($statoDoc, ['caricato', 'estratto', 'verificato'], true) ? 'ok' : 'missing'));
                                 $statusLabel = $isOptionalMissing ? 'facoltativo' : ($statoDoc === 'consegna_cartacea' ? 'consegna cartacea' : $statoDoc);
                             ?>
@@ -875,7 +928,7 @@ foreach ($pratiche as $praticaEvento) {
                                 <?php if (!empty($evento['messaggio'])) : ?>
                                     <div class="ipd-cambio-event-note"><?php echo ipd_h($evento['messaggio']); ?></div>
                                 <?php endif; ?>
-                                <?php if (!empty($evento['allegato_path']) && intval($evento['id'] ?? 0) > 0) : ?>
+                                <?php if ((!empty($evento['allegato_path']) || !empty($evento['allegato_drive_file_id'])) && intval($evento['id'] ?? 0) > 0) : ?>
                                     <div class="ipd-cambio-event-meta">
                                         <a class="btn btn-xs btn-default" target="_blank" rel="noopener" href="iscrizioniPrimeEventoAllegato.php?evento_id=<?php echo intval($evento['id']); ?>">
                                             <span class="glyphicon glyphicon-paperclip"></span>
@@ -1278,6 +1331,7 @@ let ipdStatusNotePraticaId = 0;
 let ipdStatusNoteStato = '';
 const ipdTipoIscrizione = <?php echo json_encode($tipoIscrizione); ?>;
 const ipdOpenPraticaId = <?php echo intval($openPraticaId); ?>;
+let ipdShowCompleted = <?php echo $mostraCompletate ? 'true' : 'false'; ?>;
 let ipdBulkMailRunning = false;
 let ipdBulkMailSent = 0;
 let ipdBulkMailInitialRemaining = 0;
@@ -1343,8 +1397,10 @@ function ipdApplyLiveFilter() {
     cards.forEach(card => {
         const haystack = ipdNormalizeFilterText(card.textContent || '');
         const match = terms.length === 0 || terms.every(term => haystack.includes(term));
-        card.style.display = match ? '' : 'none';
-        if (match) {
+        const isCompleted = card.dataset.stato === 'verificata';
+        const show = match && (ipdShowCompleted || !isCompleted);
+        card.style.display = show ? '' : 'none';
+        if (show) {
             visible++;
         }
     });
@@ -1354,6 +1410,29 @@ function ipdApplyLiveFilter() {
     }
 }
 
+function ipdUpdateCompletedButton() {
+    const button = document.getElementById('ipdToggleCompletedButton');
+    if (!button) {
+        return;
+    }
+    const icon = button.querySelector('.glyphicon');
+    const label = button.querySelector('.ipd-toggle-completed-label');
+    button.classList.toggle('btn-warning', ipdShowCompleted);
+    button.classList.toggle('btn-default', !ipdShowCompleted);
+    if (icon) {
+        icon.className = 'glyphicon glyphicon-' + (ipdShowCompleted ? 'eye-close' : 'eye-open');
+    }
+    if (label) {
+        label.textContent = ipdShowCompleted ? 'Nascondi completate' : 'Mostra completate';
+    }
+}
+
+function ipdToggleCompleted() {
+    ipdShowCompleted = !ipdShowCompleted;
+    ipdUpdateCompletedButton();
+    ipdApplyLiveFilter();
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     const input = document.getElementById('ipdLiveFilter');
     if (input) {
@@ -1361,9 +1440,16 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     const hashMatch = String(window.location.hash || '').match(/^#pratica-(\d+)$/);
     const hashPraticaId = hashMatch ? Number(hashMatch[1] || 0) : 0;
-    if (ipdOpenPraticaId > 0 || hashPraticaId > 0) {
-        ipdOpenPraticaCard(ipdOpenPraticaId > 0 ? ipdOpenPraticaId : hashPraticaId);
+    const targetPraticaId = ipdOpenPraticaId > 0 ? ipdOpenPraticaId : hashPraticaId;
+    if (targetPraticaId > 0) {
+        const targetCard = document.getElementById('pratica-' + targetPraticaId);
+        if (targetCard && targetCard.dataset.stato === 'verificata') {
+            ipdShowCompleted = true;
+        }
+        ipdOpenPraticaCard(targetPraticaId);
     }
+    ipdUpdateCompletedButton();
+    ipdApplyLiveFilter();
 });
 
 function ipdSetStato(id, stato) {
@@ -1379,6 +1465,10 @@ function ipdSetStato(id, stato) {
         ipdOpenStatusNoteModal(id, stato, 'Riporta la pratica allo stato inviata e indica il motivo.');
         return;
     }
+    if (stato === 'bozza') {
+        ipdOpenStatusNoteModal(id, stato, 'Rende la pratica di nuovo compilabile dal link dei genitori. Indica il motivo.');
+        return;
+    }
     if (stato === 'verifica_iniziale_ok') {
         ipdOpenStatusNoteModal(id, stato, 'Indica cosa e\' stato controllato e cosa resta da consegnare in cartaceo.');
         return;
@@ -1388,6 +1478,7 @@ function ipdSetStato(id, stato) {
         verifica_iniziale_ok: 'registrare la verifica iniziale OK',
         verificata: 'segnare la pratica come completata',
         da_integrare: 'segnare la pratica come da integrare',
+        bozza: 'rendere la pratica di nuovo compilabile dai genitori',
         inviata: 'riportare la pratica allo stato inviata',
         annullata: 'segnare la pratica come cambio scuola/non prosegue'
     };
@@ -1546,7 +1637,7 @@ function ipdRenderCambioScuolaStorico(praticaId, eventi) {
         return;
     }
     box.innerHTML = eventi.map((evento, index) => {
-        const allegato = evento.allegato_path
+        const allegato = (evento.allegato_path || evento.allegato_drive_file_id)
             ? '<a class="btn btn-xs btn-primary" target="_blank" rel="noopener" href="iscrizioniPrimeCambioScuolaAllegato.php?id=' + encodeURIComponent(praticaId) + '&evento_id=' + encodeURIComponent(evento.id) + '"><span class="glyphicon glyphicon-file"></span> Apri PDF</a> <span class="text-muted">' + ipdEscape(evento.allegato_original_name || '') + '</span>'
             : '<span class="text-muted">Nessun PDF allegato a questo aggiornamento</span>';
         const undo = index === 0 && Number(evento.id || 0) > 0
@@ -2103,6 +2194,7 @@ async function ipdStartBulkMail() {
 }
 
 async function ipdSendCustomMail() {
+    const praticaId = Number(ipdCustomMailPraticaId || 0);
     const subject = document.getElementById('ipdCustomMailSubject');
     const message = document.getElementById('ipdCustomMailMessage');
     const signature = document.getElementById('ipdCustomMailSignature');
@@ -2136,7 +2228,7 @@ async function ipdSendCustomMail() {
     }
 
     const data = new FormData();
-    data.append('id', ipdCustomMailPraticaId);
+    data.append('id', praticaId);
     data.append('subject', subjectValue);
     data.append('message', messageValue);
     data.append('signature', signatureValue);
@@ -2159,7 +2251,7 @@ async function ipdSendCustomMail() {
             'Destinatari selezionati: <strong>' + recipients.length + '</strong>',
             'success'
         );
-        document.getElementById('ipdMessageClose').onclick = () => window.location.reload();
+        document.getElementById('ipdMessageClose').onclick = () => ipdReloadPratica(praticaId);
     })
     .catch(err => {
         ipdShowMessageModal('Invio non riuscito', err.message, '', 'error');
@@ -2313,7 +2405,7 @@ function ipdSendStato(id, stato, note) {
         if (result.warning) {
             alert(result.message);
         }
-        window.location.reload();
+        ipdReloadPratica(id);
     })
     .catch(error => {
         ipdHideBusy();

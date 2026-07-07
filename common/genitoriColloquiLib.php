@@ -157,7 +157,23 @@ function genitoriColloquiEnsureTables(): void
     genitoriColloquiEnsureColumn('genitori_colloqui', 'ricevuta_libri_path', "ALTER TABLE genitori_colloqui ADD COLUMN ricevuta_libri_path varchar(500) DEFAULT NULL AFTER libri_restituiti_at");
     genitoriColloquiEnsureColumn('genitori_colloqui', 'ricevuta_libri_original_name', "ALTER TABLE genitori_colloqui ADD COLUMN ricevuta_libri_original_name varchar(255) DEFAULT NULL AFTER ricevuta_libri_path");
     genitoriColloquiEnsureColumn('genitori_colloqui', 'ricevuta_libri_size', "ALTER TABLE genitori_colloqui ADD COLUMN ricevuta_libri_size int DEFAULT NULL AFTER ricevuta_libri_original_name");
+    genitoriColloquiEnsureColumn('genitori_colloqui', 'ricevuta_libri_storage_type', "ALTER TABLE genitori_colloqui ADD COLUMN ricevuta_libri_storage_type enum('LOCAL','DRIVE') NOT NULL DEFAULT 'LOCAL' AFTER ricevuta_libri_size");
+    genitoriColloquiEnsureColumn('genitori_colloqui', 'ricevuta_libri_drive_file_id', "ALTER TABLE genitori_colloqui ADD COLUMN ricevuta_libri_drive_file_id varchar(255) DEFAULT NULL AFTER ricevuta_libri_storage_type");
+    genitoriColloquiEnsureColumn('genitori_colloqui', 'ricevuta_libri_drive_web_view_link', "ALTER TABLE genitori_colloqui ADD COLUMN ricevuta_libri_drive_web_view_link varchar(500) DEFAULT NULL AFTER ricevuta_libri_drive_file_id");
+    genitoriColloquiEnsureColumn('genitori_colloqui', 'ricevuta_libri_drive_folder_id', "ALTER TABLE genitori_colloqui ADD COLUMN ricevuta_libri_drive_folder_id varchar(255) DEFAULT NULL AFTER ricevuta_libri_drive_web_view_link");
+    genitoriColloquiEnsureColumn('genitori_colloqui', 'allegato_storage_type', "ALTER TABLE genitori_colloqui ADD COLUMN allegato_storage_type enum('LOCAL','DRIVE') NOT NULL DEFAULT 'LOCAL' AFTER allegato_size");
+    genitoriColloquiEnsureColumn('genitori_colloqui', 'allegato_drive_file_id', "ALTER TABLE genitori_colloqui ADD COLUMN allegato_drive_file_id varchar(255) DEFAULT NULL AFTER allegato_storage_type");
+    genitoriColloquiEnsureColumn('genitori_colloqui', 'allegato_drive_web_view_link', "ALTER TABLE genitori_colloqui ADD COLUMN allegato_drive_web_view_link varchar(500) DEFAULT NULL AFTER allegato_drive_file_id");
+    genitoriColloquiEnsureColumn('genitori_colloqui', 'allegato_drive_folder_id', "ALTER TABLE genitori_colloqui ADD COLUMN allegato_drive_folder_id varchar(255) DEFAULT NULL AFTER allegato_drive_web_view_link");
     genitoriColloquiEnsureColumn('genitori_colloqui', 'studente_bocciato', "ALTER TABLE genitori_colloqui ADD COLUMN studente_bocciato tinyint NOT NULL DEFAULT 0 AFTER ricevuta_libri_size");
+    genitoriColloquiEnsureColumn('genitori_colloqui_incontri_allegati', 'storage_type', "ALTER TABLE genitori_colloqui_incontri_allegati ADD COLUMN storage_type enum('LOCAL','DRIVE') NOT NULL DEFAULT 'LOCAL' AFTER dimensione");
+    genitoriColloquiEnsureColumn('genitori_colloqui_incontri_allegati', 'drive_file_id', "ALTER TABLE genitori_colloqui_incontri_allegati ADD COLUMN drive_file_id varchar(255) DEFAULT NULL AFTER storage_type");
+    genitoriColloquiEnsureColumn('genitori_colloqui_incontri_allegati', 'drive_web_view_link', "ALTER TABLE genitori_colloqui_incontri_allegati ADD COLUMN drive_web_view_link varchar(500) DEFAULT NULL AFTER drive_file_id");
+    genitoriColloquiEnsureColumn('genitori_colloqui_incontri_allegati', 'drive_folder_id', "ALTER TABLE genitori_colloqui_incontri_allegati ADD COLUMN drive_folder_id varchar(255) DEFAULT NULL AFTER drive_web_view_link");
+    genitoriColloquiEnsureColumn('genitori_colloqui_eventi', 'allegato_storage_type', "ALTER TABLE genitori_colloqui_eventi ADD COLUMN allegato_storage_type enum('LOCAL','DRIVE') NOT NULL DEFAULT 'LOCAL' AFTER allegato_original_name");
+    genitoriColloquiEnsureColumn('genitori_colloqui_eventi', 'allegato_drive_file_id', "ALTER TABLE genitori_colloqui_eventi ADD COLUMN allegato_drive_file_id varchar(255) DEFAULT NULL AFTER allegato_storage_type");
+    genitoriColloquiEnsureColumn('genitori_colloqui_eventi', 'allegato_drive_web_view_link', "ALTER TABLE genitori_colloqui_eventi ADD COLUMN allegato_drive_web_view_link varchar(500) DEFAULT NULL AFTER allegato_drive_file_id");
+    genitoriColloquiEnsureColumn('genitori_colloqui_eventi', 'allegato_drive_folder_id', "ALTER TABLE genitori_colloqui_eventi ADD COLUMN allegato_drive_folder_id varchar(255) DEFAULT NULL AFTER allegato_drive_web_view_link");
     genitoriColloquiBackfillLegacyIncontri();
     genitoriColloquiBackfillMovementClasseOrigine();
     genitoriColloquiBackfillMovementLinks();
@@ -176,6 +192,70 @@ function genitoriColloquiEnsureColumn(string $table, string $column, string $alt
     if (intval($exists) === 0) {
         dbExec($alterSql);
     }
+}
+
+function genitoriColloquiDriveEnabled(): bool
+{
+    try {
+        require_once __DIR__ . '/../api/googleDriveLib.php';
+        return googleDriveIsEnabled();
+    } catch (Throwable $e) {
+        return false;
+    }
+}
+
+function genitoriColloquiSchoolYearLabel(): string
+{
+    $year = intval(date('Y'));
+    $month = intval(date('n'));
+    $start = $month >= 9 ? $year : $year - 1;
+    return sprintf('%04d/%04d', $start, $start + 1);
+}
+
+function genitoriColloquiDriveFolderId(int $colloquioId): string
+{
+    require_once __DIR__ . '/../api/googleDriveLib.php';
+    $row = dbGetFirst("SELECT * FROM genitori_colloqui WHERE id = " . dbI($colloquioId) . " LIMIT 1") ?: [];
+    $rootId = googleDriveGetConfiguredFolderId('colloquiFolderId', 'colloquiFolderName', 'Colloqui');
+    $yearFolderId = googleDriveGetOrCreateFolderInParent(iscrizioniPrimeDriveSafeName(genitoriColloquiSchoolYearLabel()), $rootId);
+    $ambito = iscrizioniPrimeDriveSafeName((string)($row['ambito'] ?? 'colloquio'));
+    $ambitoFolderId = googleDriveGetOrCreateFolderInParent($ambito !== '' ? $ambito : 'colloquio', $yearFolderId);
+    $name = trim((string)($row['cognome'] ?? '') . ' ' . (string)($row['nome'] ?? ''));
+    $cf = trim((string)($row['codice_fiscale'] ?? ''));
+    $folderName = $name !== '' ? $name : ('Colloquio ' . $colloquioId);
+    if ($cf !== '') {
+        $folderName .= ' - ' . $cf;
+    }
+    $folderName .= ' - colloquio ' . $colloquioId;
+    return googleDriveGetOrCreateFolderInParent(iscrizioniPrimeDriveSafeName($folderName), $ambitoFolderId);
+}
+
+function genitoriColloquiUploadMetadata(int $colloquioId, string $localPath, string $original, string $mimeType = ''): array
+{
+    $meta = [
+        'storage_type' => 'LOCAL',
+        'drive_file_id' => null,
+        'drive_web_view_link' => null,
+        'drive_folder_id' => null,
+    ];
+    if (!genitoriColloquiDriveEnabled()) {
+        return $meta;
+    }
+
+    require_once __DIR__ . '/../api/googleDriveLib.php';
+    $folderId = genitoriColloquiDriveFolderId($colloquioId);
+    $driveName = iscrizioniPrimeDriveSafeName(date('Ymd_His') . ' ' . $original);
+    $upload = googleDriveUploadFile($localPath, $driveName, $folderId, $mimeType);
+    $driveFileId = trim((string)($upload['id'] ?? ''));
+    if ($driveFileId === '') {
+        throw new RuntimeException('Upload Google Drive non riuscito: ID file mancante.');
+    }
+    return [
+        'storage_type' => 'DRIVE',
+        'drive_file_id' => $driveFileId,
+        'drive_web_view_link' => $upload['webViewLink'] ?? null,
+        'drive_folder_id' => $folderId,
+    ];
 }
 
 function genitoriColloquiBackfillLegacyIncontri(): void
@@ -759,11 +839,16 @@ function genitoriColloquiAttachFile(int $id, array $file): void
         throw new RuntimeException('Impossibile salvare allegato colloquio.');
     }
     $relative = 'data/genitori_colloqui/' . $id . '/' . basename($target);
+    $storage = genitoriColloquiUploadMetadata($id, $target, $original, (string)($file['type'] ?? ''));
     dbExec("
         UPDATE genitori_colloqui SET
             allegato_path = " . dbQ($relative) . ",
             allegato_original_name = " . dbQ($original) . ",
             allegato_size = " . dbI(filesize($target) ?: intval($file['size'] ?? 0)) . ",
+            allegato_storage_type = " . dbQ($storage['storage_type']) . ",
+            allegato_drive_file_id = " . dbQ($storage['drive_file_id']) . ",
+            allegato_drive_web_view_link = " . dbQ($storage['drive_web_view_link']) . ",
+            allegato_drive_folder_id = " . dbQ($storage['drive_folder_id']) . ",
             updated_at = NOW()
         WHERE id = " . dbI($id) . "
         LIMIT 1
@@ -790,11 +875,16 @@ function genitoriColloquiAttachReceipt(int $id, array $file): void
         throw new RuntimeException('Impossibile salvare ricevuta libri.');
     }
     $relative = 'data/genitori_colloqui/' . $id . '/' . basename($target);
+    $storage = genitoriColloquiUploadMetadata($id, $target, $original, (string)($file['type'] ?? ''));
     dbExec("
         UPDATE genitori_colloqui SET
             ricevuta_libri_path = " . dbQ($relative) . ",
             ricevuta_libri_original_name = " . dbQ($original) . ",
             ricevuta_libri_size = " . dbI(filesize($target) ?: intval($file['size'] ?? 0)) . ",
+            ricevuta_libri_storage_type = " . dbQ($storage['storage_type']) . ",
+            ricevuta_libri_drive_file_id = " . dbQ($storage['drive_file_id']) . ",
+            ricevuta_libri_drive_web_view_link = " . dbQ($storage['drive_web_view_link']) . ",
+            ricevuta_libri_drive_folder_id = " . dbQ($storage['drive_folder_id']) . ",
             updated_at = NOW()
         WHERE id = " . dbI($id) . "
         LIMIT 1
@@ -897,6 +987,7 @@ function genitoriColloquiAttachIncontroFiles(int $incontroId, ?array $files): vo
     $errors = is_array($files['error']) ? $files['error'] : [$files['error']];
     $types = is_array($files['type']) ? $files['type'] : [$files['type'] ?? null];
     $sizes = is_array($files['size']) ? $files['size'] : [$files['size'] ?? null];
+    $colloquioId = intval(dbGetValue("SELECT colloquio_id FROM genitori_colloqui_incontri WHERE id = " . dbI($incontroId) . " LIMIT 1") ?? 0);
     $dir = genitoriColloquiIncontroUploadDir($incontroId);
     if (!is_dir($dir) && !mkdir($dir, 0775, true)) {
         throw new RuntimeException('Impossibile creare la cartella allegati incontro.');
@@ -913,9 +1004,12 @@ function genitoriColloquiAttachIncontroFiles(int $incontroId, ?array $files): vo
             throw new RuntimeException('Impossibile salvare allegato incontro.');
         }
         $relative = 'data/genitori_colloqui/incontri/' . $incontroId . '/' . $safeName;
+        $storage = $colloquioId > 0
+            ? genitoriColloquiUploadMetadata($colloquioId, $target, $original, (string)($types[$index] ?? ''))
+            : ['storage_type' => 'LOCAL', 'drive_file_id' => null, 'drive_web_view_link' => null, 'drive_folder_id' => null];
         dbExec("
             INSERT INTO genitori_colloqui_incontri_allegati
-                (incontro_id, nome_file, path_file, mime_type, dimensione, created_at)
+                (incontro_id, nome_file, path_file, mime_type, dimensione, storage_type, drive_file_id, drive_web_view_link, drive_folder_id, created_at)
             VALUES
                 (
                     " . dbI($incontroId) . ",
@@ -923,6 +1017,10 @@ function genitoriColloquiAttachIncontroFiles(int $incontroId, ?array $files): vo
                     " . dbQ($relative) . ",
                     " . dbQ((string)($types[$index] ?? '')) . ",
                     " . dbI(intval($sizes[$index] ?? 0) ?: null) . ",
+                    " . dbQ($storage['storage_type']) . ",
+                    " . dbQ($storage['drive_file_id']) . ",
+                    " . dbQ($storage['drive_web_view_link']) . ",
+                    " . dbQ($storage['drive_folder_id']) . ",
                     NOW()
                 )
         ");
@@ -968,7 +1066,12 @@ function genitoriColloquiAddEvent(int $id, string $type, string $description, ar
     if ($id <= 0) {
         return;
     }
-    $row = dbGetFirst("SELECT allegato_path, allegato_original_name FROM genitori_colloqui WHERE id = " . dbI($id) . " LIMIT 1") ?: [];
+    $row = dbGetFirst("
+        SELECT allegato_path, allegato_original_name, allegato_storage_type, allegato_drive_file_id, allegato_drive_web_view_link, allegato_drive_folder_id
+        FROM genitori_colloqui
+        WHERE id = " . dbI($id) . "
+        LIMIT 1
+    ") ?: [];
     $dataJson = json_encode($fields, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     $lastEvent = dbGetFirst("
         SELECT colloquio_id, tipo_evento, descrizione, stato, esito, ambito, dati_json, allegato_path, allegato_original_name
@@ -987,12 +1090,16 @@ function genitoriColloquiAddEvent(int $id, string $type, string $description, ar
         'dati_json' => $dataJson,
         'allegato_path' => $row['allegato_path'] ?? null,
         'allegato_original_name' => $row['allegato_original_name'] ?? null,
+        'allegato_storage_type' => $row['allegato_storage_type'] ?? 'LOCAL',
+        'allegato_drive_file_id' => $row['allegato_drive_file_id'] ?? null,
+        'allegato_drive_web_view_link' => $row['allegato_drive_web_view_link'] ?? null,
+        'allegato_drive_folder_id' => $row['allegato_drive_folder_id'] ?? null,
     ])) {
         return;
     }
     dbExec("
         INSERT INTO genitori_colloqui_eventi
-            (colloquio_id, tipo_evento, descrizione, stato, esito, ambito, dati_json, allegato_path, allegato_original_name, created_by, created_at)
+            (colloquio_id, tipo_evento, descrizione, stato, esito, ambito, dati_json, allegato_path, allegato_original_name, allegato_storage_type, allegato_drive_file_id, allegato_drive_web_view_link, allegato_drive_folder_id, created_by, created_at)
         VALUES
             (
                 " . dbI($id) . ",
@@ -1004,6 +1111,10 @@ function genitoriColloquiAddEvent(int $id, string $type, string $description, ar
                 " . dbQ($dataJson) . ",
                 " . dbQ($row['allegato_path'] ?? null) . ",
                 " . dbQ($row['allegato_original_name'] ?? null) . ",
+                " . dbQ($row['allegato_storage_type'] ?? 'LOCAL') . ",
+                " . dbQ($row['allegato_drive_file_id'] ?? null) . ",
+                " . dbQ($row['allegato_drive_web_view_link'] ?? null) . ",
+                " . dbQ($row['allegato_drive_folder_id'] ?? null) . ",
                 " . dbQ(genitoriColloquiActor()) . ",
                 NOW()
             )

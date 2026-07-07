@@ -20,6 +20,17 @@ function googleDriveGetConfig()
     throw new Exception('Configurazione Google Drive mancante in GestOre.json');
 }
 
+function googleDriveIsEnabled(): bool
+{
+    try {
+        $cfg = googleDriveGetConfig();
+    } catch (Throwable $e) {
+        return false;
+    }
+
+    return !empty($cfg->enabled);
+}
+
 function googleDriveGetRedirectUri(): string
 {
     global $__settings;
@@ -165,6 +176,29 @@ function googleDriveGetLogFolderId(): string
     }
     if ($folderId === '') {
         throw new Exception('Impossibile trovare o creare la cartella Google Drive dei log');
+    }
+    return $folderId;
+}
+
+function googleDriveGetConfiguredFolderId(string $folderIdKey, string $folderNameKey, string $defaultFolderName): string
+{
+    $cfg = googleDriveGetConfig();
+    $folderId = trim((string)($cfg->{$folderIdKey} ?? ''));
+    if ($folderId !== '') {
+        return $folderId;
+    }
+
+    $folderName = trim((string)($cfg->{$folderNameKey} ?? $defaultFolderName));
+    if ($folderName === '') {
+        $folderName = $defaultFolderName;
+    }
+
+    $folderId = googleDriveFindFolderByName($folderName);
+    if ($folderId === '') {
+        $folderId = googleDriveCreateFolder($folderName);
+    }
+    if ($folderId === '') {
+        throw new Exception('Impossibile trovare o creare la cartella Google Drive: ' . $folderName);
     }
     return $folderId;
 }

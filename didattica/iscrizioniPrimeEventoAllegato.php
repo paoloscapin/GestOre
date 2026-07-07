@@ -13,11 +13,13 @@ if ($eventId <= 0) {
 
 iscrizioniPrimeEnsureSchema();
 $event = dbGetFirst("
-    SELECT allegato_path, allegato_original_name
+    SELECT allegato_path, allegato_original_name, allegato_storage_type, allegato_drive_file_id
     FROM iscrizioni_prime_eventi
     WHERE id = " . dbI($eventId) . "
-      AND allegato_path IS NOT NULL
-      AND allegato_path <> ''
+      AND (
+          (allegato_path IS NOT NULL AND allegato_path <> '')
+          OR (allegato_drive_file_id IS NOT NULL AND allegato_drive_file_id <> '')
+      )
     LIMIT 1
 ");
 
@@ -25,6 +27,26 @@ if (!$event) {
     http_response_code(404);
     echo 'Allegato non disponibile.';
     exit;
+}
+
+$name = basename((string)($event['allegato_original_name'] ?? 'allegato'));
+$name = preg_replace('/[^A-Za-z0-9_. -]+/', '_', $name);
+
+if (strtoupper((string)($event['allegato_storage_type'] ?? 'LOCAL')) === 'DRIVE' && trim((string)($event['allegato_drive_file_id'] ?? '')) !== '') {
+    require_once '../api/googleDriveLib.php';
+    try {
+        $download = googleDriveDownloadFileContent((string)$event['allegato_drive_file_id']);
+        $mime = trim((string)($download['mimeType'] ?? '')) ?: 'application/octet-stream';
+        header('Content-Type: ' . $mime);
+        header('Content-Disposition: inline; filename="' . $name . '"');
+        header('X-Content-Type-Options: nosniff');
+        echo (string)($download['content'] ?? '');
+        exit;
+    } catch (Throwable $e) {
+        http_response_code(500);
+        echo 'Errore download Google Drive.';
+        exit;
+    }
 }
 
 $absolute = realpath(__DIR__ . '/../' . (string)$event['allegato_path']);
@@ -35,8 +57,6 @@ if (!$absolute || !$base || strpos($absolute, $base) !== 0 || !is_file($absolute
     exit;
 }
 
-$name = basename((string)($event['allegato_original_name'] ?? 'allegato'));
-$name = preg_replace('/[^A-Za-z0-9_. -]+/', '_', $name);
 $extension = strtolower(pathinfo($absolute, PATHINFO_EXTENSION));
 $mime = $extension === 'pdf' ? 'application/pdf' : (in_array($extension, ['jpg', 'jpeg'], true) ? 'image/jpeg' : 'image/png');
 

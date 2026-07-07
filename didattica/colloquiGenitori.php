@@ -200,21 +200,23 @@ function cg_parent_contacts(array $row): array
 function cg_attachment_link(array $row): string
 {
     $path = trim((string)($row['allegato_path'] ?? ''));
-    if ($path === '') {
+    $driveFileId = trim((string)($row['allegato_drive_file_id'] ?? ''));
+    if ($path === '' && $driveFileId === '') {
         return '';
     }
     $name = trim((string)($row['allegato_original_name'] ?? 'Allegato'));
-    return '<a class="btn btn-xs btn-default" target="_blank" href="../' . cg_h($path) . '"><span class="glyphicon glyphicon-paperclip"></span> ' . cg_h($name) . '</a>';
+    return '<a class="btn btn-xs btn-default" target="_blank" href="colloquiGenitoriAllegato.php?type=allegato&id=' . intval($row['id'] ?? 0) . '"><span class="glyphicon glyphicon-paperclip"></span> ' . cg_h($name) . '</a>';
 }
 
 function cg_receipt_link(array $row): string
 {
     $path = trim((string)($row['ricevuta_libri_path'] ?? ''));
-    if ($path === '') {
+    $driveFileId = trim((string)($row['ricevuta_libri_drive_file_id'] ?? ''));
+    if ($path === '' && $driveFileId === '') {
         return '';
     }
     $name = trim((string)($row['ricevuta_libri_original_name'] ?? 'Ricevuta libri'));
-    return '<a class="btn btn-xs btn-success" target="_blank" href="../' . cg_h($path) . '"><span class="glyphicon glyphicon-book"></span> ' . cg_h($name) . '</a>';
+    return '<a class="btn btn-xs btn-success" target="_blank" href="colloquiGenitoriAllegato.php?type=ricevuta&id=' . intval($row['id'] ?? 0) . '"><span class="glyphicon glyphicon-book"></span> ' . cg_h($name) . '</a>';
 }
 
 ?>
@@ -1329,8 +1331,8 @@ function cg_receipt_link(array $row): string
                 data.esami_integrativi ? 'Esami integrativi: ' + data.esami_integrativi : '',
                 data.carenze_note ? 'Carenze: ' + data.carenze_note : ''
             ].filter(Boolean).join(' - ');
-            var attachment = event.allegato_path
-                ? '<div style="margin-top:6px;"><a class="btn btn-xs btn-default" target="_blank" href="../' + escapeHtml(event.allegato_path) + '"><span class="glyphicon glyphicon-paperclip"></span> ' + escapeHtml(event.allegato_original_name || 'Allegato') + '</a></div>'
+            var attachment = (event.allegato_path || event.allegato_drive_file_id)
+                ? '<div style="margin-top:6px;"><a class="btn btn-xs btn-default" target="_blank" href="colloquiGenitoriAllegato.php?type=evento&id=' + encodeURIComponent(eventId) + '"><span class="glyphicon glyphicon-paperclip"></span> ' + escapeHtml(event.allegato_original_name || 'Allegato') + '</a></div>'
                 : '';
             var editBox = '<div class="cg-history-edit" id="cg_history_edit_' + eventId + '" style="display:none;margin-top:8px;">'
                 + '<label>Descrizione</label><input class="form-control input-sm" id="cg_history_desc_' + eventId + '" value="' + escapeHtml(event.descrizione || event.tipo_evento || 'Evento') + '">'
@@ -1404,7 +1406,7 @@ function cg_receipt_link(array $row): string
         box.innerHTML = incontri.map(function (item) {
             var allegati = Array.isArray(item.allegati) ? item.allegati : [];
             var links = allegati.map(function (allegato) {
-                return '<a class="btn btn-xs btn-default" target="_blank" rel="noopener" href="../' + escapeHtml(allegato.path_file || '') + '"><span class="glyphicon glyphicon-paperclip"></span> ' + escapeHtml(allegato.nome_file || 'Allegato') + '</a>';
+                return '<a class="btn btn-xs btn-default" target="_blank" rel="noopener" href="colloquiGenitoriAllegato.php?type=incontro&id=' + encodeURIComponent(allegato.id || '') + '"><span class="glyphicon glyphicon-paperclip"></span> ' + escapeHtml(allegato.nome_file || 'Allegato') + '</a>';
             }).join('<br>');
             var details = [
                 item.tipo ? 'Tipo: ' + item.tipo : '',

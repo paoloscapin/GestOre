@@ -447,6 +447,10 @@ function iscrizioniPrimeEnsureSchema(): void
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'tablet_rinuncia_allegato_path', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN tablet_rinuncia_allegato_path text DEFAULT NULL AFTER tablet_note");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'tablet_rinuncia_allegato_original_name', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN tablet_rinuncia_allegato_original_name text DEFAULT NULL AFTER tablet_rinuncia_allegato_path");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'tablet_rinuncia_allegato_size', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN tablet_rinuncia_allegato_size int DEFAULT NULL AFTER tablet_rinuncia_allegato_original_name");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'tablet_rinuncia_allegato_storage_type', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN tablet_rinuncia_allegato_storage_type enum('LOCAL','DRIVE') NOT NULL DEFAULT 'LOCAL' AFTER tablet_rinuncia_allegato_size");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'tablet_rinuncia_allegato_drive_file_id', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN tablet_rinuncia_allegato_drive_file_id varchar(255) DEFAULT NULL AFTER tablet_rinuncia_allegato_storage_type");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'tablet_rinuncia_allegato_drive_web_view_link', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN tablet_rinuncia_allegato_drive_web_view_link varchar(500) DEFAULT NULL AFTER tablet_rinuncia_allegato_drive_file_id");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'tablet_rinuncia_allegato_drive_folder_id', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN tablet_rinuncia_allegato_drive_folder_id varchar(255) DEFAULT NULL AFTER tablet_rinuncia_allegato_drive_web_view_link");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'id_indirizzo_gestore', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN id_indirizzo_gestore int DEFAULT NULL AFTER corso_studi");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'note_genitori_iscrizione', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN note_genitori_iscrizione text DEFAULT NULL AFTER id_indirizzo_gestore");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'curvatura_design', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN curvatura_design varchar(20) NOT NULL DEFAULT '' AFTER note_genitori_iscrizione");
@@ -497,6 +501,10 @@ function iscrizioniPrimeEnsureSchema(): void
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_cambio_scuola', 'allegato_path', "ALTER TABLE iscrizioni_prime_cambio_scuola ADD COLUMN allegato_path varchar(500) DEFAULT NULL AFTER note");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_cambio_scuola', 'allegato_original_name', "ALTER TABLE iscrizioni_prime_cambio_scuola ADD COLUMN allegato_original_name varchar(255) DEFAULT NULL AFTER allegato_path");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_cambio_scuola', 'allegato_size', "ALTER TABLE iscrizioni_prime_cambio_scuola ADD COLUMN allegato_size int DEFAULT NULL AFTER allegato_original_name");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_cambio_scuola', 'allegato_storage_type', "ALTER TABLE iscrizioni_prime_cambio_scuola ADD COLUMN allegato_storage_type enum('LOCAL','DRIVE') NOT NULL DEFAULT 'LOCAL' AFTER allegato_size");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_cambio_scuola', 'allegato_drive_file_id', "ALTER TABLE iscrizioni_prime_cambio_scuola ADD COLUMN allegato_drive_file_id varchar(255) DEFAULT NULL AFTER allegato_storage_type");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_cambio_scuola', 'allegato_drive_web_view_link', "ALTER TABLE iscrizioni_prime_cambio_scuola ADD COLUMN allegato_drive_web_view_link varchar(500) DEFAULT NULL AFTER allegato_drive_file_id");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_cambio_scuola', 'allegato_drive_folder_id', "ALTER TABLE iscrizioni_prime_cambio_scuola ADD COLUMN allegato_drive_folder_id varchar(255) DEFAULT NULL AFTER allegato_drive_web_view_link");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_cambio_scuola', 'created_by', "ALTER TABLE iscrizioni_prime_cambio_scuola ADD COLUMN created_by varchar(255) DEFAULT NULL AFTER allegato_size");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_cambio_scuola_eventi', 'cambio_scuola_id', "ALTER TABLE iscrizioni_prime_cambio_scuola_eventi ADD COLUMN cambio_scuola_id int DEFAULT NULL AFTER id");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_cambio_scuola_eventi', 'tipo_iscrizione', "ALTER TABLE iscrizioni_prime_cambio_scuola_eventi ADD COLUMN tipo_iscrizione varchar(20) NOT NULL DEFAULT 'prime' AFTER pratica_id");
@@ -507,6 +515,10 @@ function iscrizioniPrimeEnsureSchema(): void
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_cambio_scuola_eventi', 'allegato_path', "ALTER TABLE iscrizioni_prime_cambio_scuola_eventi ADD COLUMN allegato_path varchar(500) DEFAULT NULL AFTER note");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_cambio_scuola_eventi', 'allegato_original_name', "ALTER TABLE iscrizioni_prime_cambio_scuola_eventi ADD COLUMN allegato_original_name varchar(255) DEFAULT NULL AFTER allegato_path");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_cambio_scuola_eventi', 'allegato_size', "ALTER TABLE iscrizioni_prime_cambio_scuola_eventi ADD COLUMN allegato_size int DEFAULT NULL AFTER allegato_original_name");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_cambio_scuola_eventi', 'allegato_storage_type', "ALTER TABLE iscrizioni_prime_cambio_scuola_eventi ADD COLUMN allegato_storage_type enum('LOCAL','DRIVE') NOT NULL DEFAULT 'LOCAL' AFTER allegato_size");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_cambio_scuola_eventi', 'allegato_drive_file_id', "ALTER TABLE iscrizioni_prime_cambio_scuola_eventi ADD COLUMN allegato_drive_file_id varchar(255) DEFAULT NULL AFTER allegato_storage_type");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_cambio_scuola_eventi', 'allegato_drive_web_view_link', "ALTER TABLE iscrizioni_prime_cambio_scuola_eventi ADD COLUMN allegato_drive_web_view_link varchar(500) DEFAULT NULL AFTER allegato_drive_file_id");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_cambio_scuola_eventi', 'allegato_drive_folder_id', "ALTER TABLE iscrizioni_prime_cambio_scuola_eventi ADD COLUMN allegato_drive_folder_id varchar(255) DEFAULT NULL AFTER allegato_drive_web_view_link");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_eventi', 'stato_precedente', "ALTER TABLE iscrizioni_prime_eventi ADD COLUMN stato_precedente varchar(30) DEFAULT NULL AFTER titolo");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_eventi', 'stato_nuovo', "ALTER TABLE iscrizioni_prime_eventi ADD COLUMN stato_nuovo varchar(30) DEFAULT NULL AFTER stato_precedente");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_eventi', 'oggetto', "ALTER TABLE iscrizioni_prime_eventi ADD COLUMN oggetto varchar(255) DEFAULT NULL AFTER stato_nuovo");
@@ -516,6 +528,10 @@ function iscrizioniPrimeEnsureSchema(): void
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_eventi', 'allegato_path', "ALTER TABLE iscrizioni_prime_eventi ADD COLUMN allegato_path varchar(500) DEFAULT NULL AFTER created_by");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_eventi', 'allegato_original_name', "ALTER TABLE iscrizioni_prime_eventi ADD COLUMN allegato_original_name varchar(255) DEFAULT NULL AFTER allegato_path");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_eventi', 'allegato_size', "ALTER TABLE iscrizioni_prime_eventi ADD COLUMN allegato_size int DEFAULT NULL AFTER allegato_original_name");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_eventi', 'allegato_storage_type', "ALTER TABLE iscrizioni_prime_eventi ADD COLUMN allegato_storage_type enum('LOCAL','DRIVE') NOT NULL DEFAULT 'LOCAL' AFTER allegato_size");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_eventi', 'allegato_drive_file_id', "ALTER TABLE iscrizioni_prime_eventi ADD COLUMN allegato_drive_file_id varchar(255) DEFAULT NULL AFTER allegato_storage_type");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_eventi', 'allegato_drive_web_view_link', "ALTER TABLE iscrizioni_prime_eventi ADD COLUMN allegato_drive_web_view_link varchar(500) DEFAULT NULL AFTER allegato_drive_file_id");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_eventi', 'allegato_drive_folder_id', "ALTER TABLE iscrizioni_prime_eventi ADD COLUMN allegato_drive_folder_id varchar(255) DEFAULT NULL AFTER allegato_drive_web_view_link");
     iscrizioniPrimeEnsureDocumentStatusEnum();
     iscrizioniPrimeEnsurePracticeStatusEnum();
     iscrizioniPrimeEnsureMailLogStatusEnum();
@@ -934,11 +950,16 @@ function iscrizioniPrimeTabletSaveRenounceAttachment(int $praticaId, array $file
     if (!move_uploaded_file($file['tmp_name'], $target)) {
         throw new RuntimeException('Impossibile salvare il PDF della rinuncia tablet.');
     }
+    $storage = iscrizioniPrimeDriveAttachmentMetadata($praticaId, $target, $name, 'RINUNCIA TABLET', 'application/pdf');
     return [
         'absolute_path' => $target,
         'relative_path' => 'data/iscrizioni_tablet_rinunce/' . intval($praticaId) . '/' . $targetName,
         'original_name' => $name,
         'size' => intval(filesize($target) ?: ($file['size'] ?? 0)),
+        'storage_type' => $storage['storage_type'],
+        'drive_file_id' => $storage['drive_file_id'],
+        'drive_web_view_link' => $storage['drive_web_view_link'],
+        'drive_folder_id' => $storage['drive_folder_id'],
     ];
 }
 
@@ -994,6 +1015,10 @@ function iscrizioniPrimeTabletRenounce(int $praticaId, string $note = '', ?array
             tablet_rinuncia_allegato_path = " . dbQ($attachmentData['relative_path'] ?? ($pratica['tablet_rinuncia_allegato_path'] ?? null)) . ",
             tablet_rinuncia_allegato_original_name = " . dbQ($attachmentData['original_name'] ?? ($pratica['tablet_rinuncia_allegato_original_name'] ?? null)) . ",
             tablet_rinuncia_allegato_size = " . dbQ($attachmentData['size'] ?? ($pratica['tablet_rinuncia_allegato_size'] ?? null)) . ",
+            tablet_rinuncia_allegato_storage_type = " . dbQ($attachmentData['storage_type'] ?? ($pratica['tablet_rinuncia_allegato_storage_type'] ?? 'LOCAL')) . ",
+            tablet_rinuncia_allegato_drive_file_id = " . dbQ($attachmentData['drive_file_id'] ?? ($pratica['tablet_rinuncia_allegato_drive_file_id'] ?? null)) . ",
+            tablet_rinuncia_allegato_drive_web_view_link = " . dbQ($attachmentData['drive_web_view_link'] ?? ($pratica['tablet_rinuncia_allegato_drive_web_view_link'] ?? null)) . ",
+            tablet_rinuncia_allegato_drive_folder_id = " . dbQ($attachmentData['drive_folder_id'] ?? ($pratica['tablet_rinuncia_allegato_drive_folder_id'] ?? null)) . ",
             updated_at = NOW()
         WHERE id = " . dbI($praticaId) . "
     ");
@@ -1250,6 +1275,41 @@ function iscrizioniPrimeDriveFolderId(array $pratica): string
 
     $annoFolderId = googleDriveGetOrCreateFolderInParent($anno, $rootFolderId);
     return googleDriveGetOrCreateFolderInParent(iscrizioniPrimeDriveStudentFolderName($pratica), $annoFolderId);
+}
+
+function iscrizioniPrimeDriveAttachmentMetadata(int $praticaId, string $localPath, string $originalName, string $prefix = '', string $mimeType = ''): array
+{
+    $meta = [
+        'storage_type' => 'LOCAL',
+        'drive_file_id' => null,
+        'drive_web_view_link' => null,
+        'drive_folder_id' => null,
+    ];
+    if (!iscrizioniPrimeDriveEnabled()) {
+        return $meta;
+    }
+    $pratica = dbGetFirst("SELECT * FROM iscrizioni_prime_pratiche WHERE id = " . dbI($praticaId) . " LIMIT 1") ?: [];
+    if (!$pratica) {
+        return $meta;
+    }
+
+    require_once __DIR__ . '/../api/googleDriveLib.php';
+    $folderId = iscrizioniPrimeDriveFolderId($pratica);
+    $driveName = iscrizioniPrimeDriveSafeName(trim($prefix . ' ' . $originalName));
+    if ($driveName === '') {
+        $driveName = iscrizioniPrimeDriveSafeName(date('Ymd_His') . ' allegato');
+    }
+    $upload = googleDriveUploadFile($localPath, $driveName, $folderId, $mimeType);
+    $driveFileId = trim((string)($upload['id'] ?? ''));
+    if ($driveFileId === '') {
+        throw new RuntimeException('Upload Google Drive non riuscito: ID file mancante.');
+    }
+    return [
+        'storage_type' => 'DRIVE',
+        'drive_file_id' => $driveFileId,
+        'drive_web_view_link' => $upload['webViewLink'] ?? null,
+        'drive_folder_id' => $folderId,
+    ];
 }
 
 function iscrizioniPrimeDriveFileName(array $pratica, string $tipo, string $label): string
@@ -2096,7 +2156,7 @@ function iscrizioniPrimeRecordEvent(int $praticaId, string $tipoEvento, string $
 
     dbExec("
         INSERT INTO iscrizioni_prime_eventi
-            (pratica_id, tipo_iscrizione, tipo_evento, titolo, stato_precedente, stato_nuovo, oggetto, messaggio, dettagli_json, created_by, allegato_path, allegato_original_name, allegato_size, created_at)
+            (pratica_id, tipo_iscrizione, tipo_evento, titolo, stato_precedente, stato_nuovo, oggetto, messaggio, dettagli_json, created_by, allegato_path, allegato_original_name, allegato_size, allegato_storage_type, allegato_drive_file_id, allegato_drive_web_view_link, allegato_drive_folder_id, created_at)
         VALUES
             (
                 " . dbI($praticaId) . ",
@@ -2112,6 +2172,10 @@ function iscrizioniPrimeRecordEvent(int $praticaId, string $tipoEvento, string $
                 " . dbQ($options['allegato_path'] ?? null) . ",
                 " . dbQ($options['allegato_original_name'] ?? null) . ",
                 " . dbI($options['allegato_size'] ?? null) . ",
+                " . dbQ($options['allegato_storage_type'] ?? 'LOCAL') . ",
+                " . dbQ($options['allegato_drive_file_id'] ?? null) . ",
+                " . dbQ($options['allegato_drive_web_view_link'] ?? null) . ",
+                " . dbQ($options['allegato_drive_folder_id'] ?? null) . ",
                 $createdAt
             )
     ");
@@ -2141,10 +2205,15 @@ function iscrizioniPrimeAttachEventFile(int $praticaId, array $file): array
     if (!move_uploaded_file((string)$file['tmp_name'], $target)) {
         throw new RuntimeException('Impossibile salvare allegato evento.');
     }
+    $storage = iscrizioniPrimeDriveAttachmentMetadata($praticaId, $target, $original, 'EVENTO PRATICA', (string)($file['type'] ?? ''));
     return [
         'allegato_path' => 'data/iscrizioni_prime_eventi/' . $praticaId . '/' . $safeName,
         'allegato_original_name' => $original,
         'allegato_size' => filesize($target) ?: intval($file['size'] ?? 0),
+        'allegato_storage_type' => $storage['storage_type'],
+        'allegato_drive_file_id' => $storage['drive_file_id'],
+        'allegato_drive_web_view_link' => $storage['drive_web_view_link'],
+        'allegato_drive_folder_id' => $storage['drive_folder_id'],
     ];
 }
 
@@ -3302,7 +3371,7 @@ function iscrizioniPrimeMailDocumentsTable(array $pratica): string
 
     foreach ($documents as $document) {
         $tipo = (string)($document['tipo_documento'] ?? '');
-        if ($tipo === 'altro' && (string)($document['stato'] ?? 'mancante') === 'mancante') {
+        if (in_array($tipo, iscrizioniPrimeOptionalDocumentTypes(), true) && (string)($document['stato'] ?? 'mancante') === 'mancante') {
             continue;
         }
         if (in_array($tipo, ['documento_identita_genitore_2', 'codice_fiscale_genitore_2', 'documento_cf_genitore_2'], true) && !hasSecondResponsibleForIscrizioniPrime($pratica, $confirmed)) {
@@ -3357,7 +3426,7 @@ function iscrizioniPrimePaperDocumentLabels(array $pratica): array
         if ((string)($document['stato'] ?? '') !== 'consegna_cartacea') {
             continue;
         }
-        if ($tipo === 'altro') {
+        if (in_array($tipo, iscrizioniPrimeOptionalDocumentTypes(), true)) {
             continue;
         }
         if (in_array($tipo, ['documento_identita_genitore_2', 'codice_fiscale_genitore_2', 'documento_cf_genitore_2'], true) && !hasSecondResponsibleForIscrizioniPrime($pratica, $confirmed)) {
@@ -5289,7 +5358,7 @@ function iscrizioniPrimeSaveDraftByToken(string $token, array $data): array
 
     iscrizioniPrimeRecordContactChanges($pratica, $confirmed);
 
-    $nextPracticeState = iscrizioniPrimeIsReceivedBySecretaryState((string)($pratica['stato'] ?? '')) ? 'inviata' : 'bozza';
+    $nextPracticeState = 'bozza';
     dbExec("
         UPDATE iscrizioni_prime_pratiche SET
             email_studente = " . dbQ($confirmed['email_studente']) . ",
@@ -5342,6 +5411,11 @@ function iscrizioniPrimeRequiredDocumentTypes(array $pratica, array $confirmed =
     }
 
     return $types;
+}
+
+function iscrizioniPrimeOptionalDocumentTypes(): array
+{
+    return ['altro', 'attestazione_erogazione_liberale'];
 }
 
 function hasSecondResponsibleForIscrizioniPrime(array $pratica, array $confirmed = []): bool
@@ -5868,7 +5942,7 @@ function iscrizioniPrimeUploadDocumentByToken(string $token, string $tipo, array
         }
     }
 
-    $nextPracticeState = iscrizioniPrimeIsReceivedBySecretaryState((string)($pratica['stato'] ?? '')) ? 'inviata' : 'bozza';
+    $nextPracticeState = 'bozza';
     $newsMessage = null;
     if (iscrizioniPrimeIsReceivedBySecretaryState((string)($pratica['stato'] ?? ''))) {
         $newsMessage = $appendedToPrevious
@@ -6241,6 +6315,7 @@ function iscrizioniPrimeSaveCambioScuola(int $praticaId, array $data, ?array $fi
     $eventRelativePath = null;
     $eventOriginalName = null;
     $eventFileSize = null;
+    $eventStorage = ['storage_type' => 'LOCAL', 'drive_file_id' => null, 'drive_web_view_link' => null, 'drive_folder_id' => null];
 
     if ($file && intval($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
         if (!empty($file['error']) || empty($file['tmp_name']) || !is_uploaded_file($file['tmp_name'])) {
@@ -6278,16 +6353,21 @@ function iscrizioniPrimeSaveCambioScuola(int $praticaId, array $data, ?array $fi
         $eventRelativePath = 'data/iscrizioni_cambio_scuola/' . intval($praticaId) . '/' . $targetName;
         $eventOriginalName = $name;
         $eventFileSize = intval(filesize($target) ?: $size);
+        $eventStorage = iscrizioniPrimeDriveAttachmentMetadata($praticaId, $target, $name, 'CAMBIO SCUOLA', 'application/pdf');
     }
 
     $existing = iscrizioniPrimeGetCambioScuola($praticaId);
     $summaryPath = $eventRelativePath ?: ($existing['allegato_path'] ?? null);
     $summaryOriginalName = $eventOriginalName ?: ($existing['allegato_original_name'] ?? null);
     $summaryFileSize = $eventFileSize ?: ($existing['allegato_size'] ?? null);
+    $summaryStorageType = $eventRelativePath ? $eventStorage['storage_type'] : ($existing['allegato_storage_type'] ?? 'LOCAL');
+    $summaryDriveFileId = $eventRelativePath ? $eventStorage['drive_file_id'] : ($existing['allegato_drive_file_id'] ?? null);
+    $summaryDriveWebViewLink = $eventRelativePath ? $eventStorage['drive_web_view_link'] : ($existing['allegato_drive_web_view_link'] ?? null);
+    $summaryDriveFolderId = $eventRelativePath ? $eventStorage['drive_folder_id'] : ($existing['allegato_drive_folder_id'] ?? null);
 
     dbExec("
         INSERT INTO iscrizioni_prime_cambio_scuola
-            (pratica_id, tipo_iscrizione, richiesta_data, canale, id_istituto_destinazione, scuola_destinazione, indirizzo_destinazione, colloquio_stato, nulla_osta_stato, documenti_stato, pratica_stato, note, allegato_path, allegato_original_name, allegato_size, created_by, created_at, updated_at)
+            (pratica_id, tipo_iscrizione, richiesta_data, canale, id_istituto_destinazione, scuola_destinazione, indirizzo_destinazione, colloquio_stato, nulla_osta_stato, documenti_stato, pratica_stato, note, allegato_path, allegato_original_name, allegato_size, allegato_storage_type, allegato_drive_file_id, allegato_drive_web_view_link, allegato_drive_folder_id, created_by, created_at, updated_at)
         VALUES
             (
                 " . dbI($praticaId) . ",
@@ -6305,6 +6385,10 @@ function iscrizioniPrimeSaveCambioScuola(int $praticaId, array $data, ?array $fi
                 " . dbQ($summaryPath) . ",
                 " . dbQ($summaryOriginalName) . ",
                 " . dbI($summaryFileSize) . ",
+                " . dbQ($summaryStorageType) . ",
+                " . dbQ($summaryDriveFileId) . ",
+                " . dbQ($summaryDriveWebViewLink) . ",
+                " . dbQ($summaryDriveFolderId) . ",
                 " . dbQ($updatedBy) . ",
                 NOW(),
                 NOW()
@@ -6324,6 +6408,10 @@ function iscrizioniPrimeSaveCambioScuola(int $praticaId, array $data, ?array $fi
             allegato_path = VALUES(allegato_path),
             allegato_original_name = VALUES(allegato_original_name),
             allegato_size = VALUES(allegato_size),
+            allegato_storage_type = VALUES(allegato_storage_type),
+            allegato_drive_file_id = VALUES(allegato_drive_file_id),
+            allegato_drive_web_view_link = VALUES(allegato_drive_web_view_link),
+            allegato_drive_folder_id = VALUES(allegato_drive_folder_id),
             updated_at = NOW()
     ");
 
@@ -6336,7 +6424,7 @@ function iscrizioniPrimeSaveCambioScuola(int $praticaId, array $data, ?array $fi
 
     dbExec("
         INSERT INTO iscrizioni_prime_cambio_scuola_eventi
-            (cambio_scuola_id, pratica_id, tipo_iscrizione, richiesta_data, canale, id_istituto_destinazione, scuola_destinazione, indirizzo_destinazione, colloquio_stato, nulla_osta_stato, documenti_stato, pratica_stato, stato_pratica_precedente, note, allegato_path, allegato_original_name, allegato_size, created_by, created_at)
+            (cambio_scuola_id, pratica_id, tipo_iscrizione, richiesta_data, canale, id_istituto_destinazione, scuola_destinazione, indirizzo_destinazione, colloquio_stato, nulla_osta_stato, documenti_stato, pratica_stato, stato_pratica_precedente, note, allegato_path, allegato_original_name, allegato_size, allegato_storage_type, allegato_drive_file_id, allegato_drive_web_view_link, allegato_drive_folder_id, created_by, created_at)
         VALUES
             (
                 " . dbI($cambioScuolaId) . ",
@@ -6356,6 +6444,10 @@ function iscrizioniPrimeSaveCambioScuola(int $praticaId, array $data, ?array $fi
                 " . dbQ($eventRelativePath) . ",
                 " . dbQ($eventOriginalName) . ",
                 " . dbI($eventFileSize) . ",
+                " . dbQ($eventStorage['storage_type']) . ",
+                " . dbQ($eventStorage['drive_file_id']) . ",
+                " . dbQ($eventStorage['drive_web_view_link']) . ",
+                " . dbQ($eventStorage['drive_folder_id']) . ",
                 " . dbQ($updatedBy) . ",
                 NOW()
             )
@@ -6456,6 +6548,10 @@ function iscrizioniPrimeUndoLastCambioScuola(int $praticaId): array
                 allegato_path = " . dbQ((string)($previous['allegato_path'] ?? '')) . ",
                 allegato_original_name = " . dbQ((string)($previous['allegato_original_name'] ?? '')) . ",
                 allegato_size = " . dbI($previous['allegato_size'] ?? null) . ",
+                allegato_storage_type = " . dbQ((string)($previous['allegato_storage_type'] ?? 'LOCAL')) . ",
+                allegato_drive_file_id = " . dbQ($previous['allegato_drive_file_id'] ?? null) . ",
+                allegato_drive_web_view_link = " . dbQ($previous['allegato_drive_web_view_link'] ?? null) . ",
+                allegato_drive_folder_id = " . dbQ($previous['allegato_drive_folder_id'] ?? null) . ",
                 updated_at = NOW()
             WHERE pratica_id = " . dbI($praticaId) . "
             LIMIT 1
@@ -6575,7 +6671,7 @@ function iscrizioniPrimeDeleteDocumentByToken(string $token, string $tipo): arra
         LIMIT 1
     ");
 
-    $nextPracticeState = iscrizioniPrimeIsReceivedBySecretaryState((string)($pratica['stato'] ?? '')) ? 'inviata' : 'bozza';
+    $nextPracticeState = 'bozza';
     $newsMessage = iscrizioniPrimeIsReceivedBySecretaryState((string)($pratica['stato'] ?? ''))
         ? 'La famiglia ha cancellato il documento: ' . $types[$tipo] . '. Deve reinviare la conferma.'
         : null;
@@ -6721,7 +6817,15 @@ function iscrizioniPrimeSubmitByToken(string $token, array $data): array
     foreach (iscrizioniPrimeRequiredDocumentTypes($pratica, $confirmed) as $tipoDocumento) {
         $document = $byType[$tipoDocumento] ?? null;
         $stato = (string)($document['stato'] ?? 'mancante');
-        if (!in_array($stato, ['caricato', 'consegna_cartacea', 'estratto', 'verificato'], true)) {
+        $hasFile = $document
+            && (
+                trim((string)($document['file_path'] ?? '')) !== ''
+                || trim((string)($document['drive_file_id'] ?? '')) !== ''
+                || trim((string)($document['original_name'] ?? '')) !== ''
+            );
+        $validUploaded = in_array($stato, ['caricato', 'estratto', 'verificato'], true) && $hasFile;
+        $validPaper = $stato === 'consegna_cartacea';
+        if (!$validUploaded && !$validPaper) {
             $missing[] = $labels[$tipoDocumento] ?? $tipoDocumento;
         }
     }
@@ -7161,7 +7265,7 @@ function iscrizioniPrimeUpsertGestoreStudent(array $pratica, ?int $attivo = null
     if (!in_array($sesso, ['M', 'F'], true)) {
         $sesso = null;
     }
-    $email = iscrizioniPrimeTrimValue($pratica['email_studente'] ?? null);
+    $email = iscrizioniPrimeTrimValue($pratica['email_studente'] ?? null) ?? '';
     $studenteId = intval(dbGetValue("SELECT id FROM studente WHERE codice_fiscale = " . dbQ($cf) . " LIMIT 1") ?? 0);
     $attivo = $attivo === null ? iscrizioniPrimeGestoreStudentActiveFromPratica($pratica) : ($attivo ? 1 : 0);
 
@@ -7170,8 +7274,8 @@ function iscrizioniPrimeUpsertGestoreStudent(array $pratica, ?int $attivo = null
             UPDATE studente SET
                 cognome = " . dbQ($pratica['cognome'] ?? '') . ",
                 nome = " . dbQ($pratica['nome'] ?? '') . ",
-                email = " . dbQ($email) . ",
-                codice_fiscale = " . dbQ($cf) . ",
+                email = " . dbQNotNull($email) . ",
+                codice_fiscale = " . dbQNotNull($cf) . ",
                 sesso = " . dbQ($sesso) . ",
                 attivo = " . dbI($attivo) . "
             WHERE id = " . dbI($studenteId) . "
@@ -7185,7 +7289,7 @@ function iscrizioniPrimeUpsertGestoreStudent(array $pratica, ?int $attivo = null
         VALUES (
             " . dbQ($pratica['cognome'] ?? '') . ",
             " . dbQ($pratica['nome'] ?? '') . ",
-            " . dbQ($email) . ",
+            " . dbQNotNull($email) . ",
             '',
             " . dbQ($cf) . ",
             " . dbQ($sesso) . ",
@@ -7239,7 +7343,7 @@ function iscrizioniPrimeUpsertGestoreFrequency(int $studenteId, string $classeCo
 function iscrizioniPrimeUpsertGestoreParent(array $parent, int $studenteId): int
 {
     $cf = strtoupper(trim((string)($parent['codice_fiscale'] ?? '')));
-    $email = iscrizioniPrimeTrimValue($parent['email'] ?? null);
+    $email = iscrizioniPrimeTrimValue($parent['email'] ?? null) ?? '';
     $cognome = trim((string)($parent['cognome'] ?? ''));
     $nome = trim((string)($parent['nome'] ?? ''));
 
@@ -7252,16 +7356,16 @@ function iscrizioniPrimeUpsertGestoreParent(array $parent, int $studenteId): int
         : "LOWER(TRIM(email)) = " . dbQ(strtolower((string)$email));
 
     $genitoreId = intval(dbGetValue("SELECT id FROM genitori WHERE $where LIMIT 1") ?? 0);
-    $username = $email !== null ? $email : '';
+    $username = $email;
 
     if ($genitoreId > 0) {
         dbExec("
             UPDATE genitori SET
                 cognome = " . dbQ($cognome) . ",
                 nome = " . dbQ($nome) . ",
-                email = " . dbQ($email) . ",
+                email = " . dbQNotNull($email) . ",
                 codice_fiscale = " . dbQ($cf) . ",
-                username = " . dbQ($username) . ",
+                username = " . dbQNotNull($username) . ",
                 attivo = 1
             WHERE id = " . dbI($genitoreId) . "
             LIMIT 1
@@ -7269,7 +7373,7 @@ function iscrizioniPrimeUpsertGestoreParent(array $parent, int $studenteId): int
     } else {
         dbExec("
             INSERT INTO genitori (cognome, nome, email, codice_fiscale, username, attivo, last_login, last_IP)
-            VALUES (" . dbQ($cognome) . ", " . dbQ($nome) . ", " . dbQ($email) . ", " . dbQ($cf) . ", " . dbQ($username) . ", 1, '', '')
+            VALUES (" . dbQ($cognome) . ", " . dbQ($nome) . ", " . dbQNotNull($email) . ", " . dbQ($cf) . ", " . dbQNotNull($username) . ", 1, '', '')
         ");
         $genitoreId = intval(dblastId());
     }

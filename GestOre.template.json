@@ -207,7 +207,11 @@
             "verificheDigitaliFolderName": "Verifiche Digitali",
             "iscrizioniPrimeEnabled": false,
             "iscrizioniPrimeFolderId": "",
-            "iscrizioniPrimeFolderName": "Iscrizioni prime"
+            "iscrizioniPrimeFolderName": "Iscrizioni prime",
+            "movimentiFolderId": "",
+            "movimentiFolderName": "Movimenti Entrate-Uscite",
+            "colloquiFolderId": "",
+            "colloquiFolderName": "Colloqui"
         }
     },
     "importi": {
