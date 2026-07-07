@@ -216,6 +216,391 @@ function mad_unique_file_count(): int
     return count($seen);
 }
 
+function mad_migrated_sources(): array
+{
+    return [
+        [
+            'label' => 'Movimenti - allegati pratica',
+            'sql' => "
+                SELECT 'movimenti_allegati' AS kind, id, path_file AS path, nome_file AS name
+                FROM studenti_movimenti_allegati
+                WHERE path_file IS NOT NULL AND path_file <> ''
+                  AND drive_file_id IS NOT NULL AND drive_file_id <> ''
+                  AND storage_type = 'DRIVE'
+                ORDER BY id ASC
+            ",
+        ],
+        [
+            'label' => 'Movimenti - allegati storico',
+            'sql' => "
+                SELECT 'movimenti_eventi' AS kind, id, allegato_path AS path, allegato_original_name AS name
+                FROM studenti_movimenti_eventi
+                WHERE allegato_path IS NOT NULL AND allegato_path <> ''
+                  AND allegato_drive_file_id IS NOT NULL AND allegato_drive_file_id <> ''
+                  AND allegato_storage_type = 'DRIVE'
+                ORDER BY id ASC
+            ",
+        ],
+        [
+            'label' => 'Colloqui - allegato scheda',
+            'sql' => "
+                SELECT 'colloqui_allegati' AS kind, id, allegato_path AS path, allegato_original_name AS name
+                FROM genitori_colloqui
+                WHERE allegato_path IS NOT NULL AND allegato_path <> ''
+                  AND allegato_drive_file_id IS NOT NULL AND allegato_drive_file_id <> ''
+                  AND allegato_storage_type = 'DRIVE'
+                ORDER BY id ASC
+            ",
+        ],
+        [
+            'label' => 'Colloqui - ricevute libri',
+            'sql' => "
+                SELECT 'colloqui_ricevute' AS kind, id, ricevuta_libri_path AS path, ricevuta_libri_original_name AS name
+                FROM genitori_colloqui
+                WHERE ricevuta_libri_path IS NOT NULL AND ricevuta_libri_path <> ''
+                  AND ricevuta_libri_drive_file_id IS NOT NULL AND ricevuta_libri_drive_file_id <> ''
+                  AND ricevuta_libri_storage_type = 'DRIVE'
+                ORDER BY id ASC
+            ",
+        ],
+        [
+            'label' => 'Colloqui - allegati incontri',
+            'sql' => "
+                SELECT 'colloqui_incontri' AS kind, id, path_file AS path, nome_file AS name
+                FROM genitori_colloqui_incontri_allegati
+                WHERE path_file IS NOT NULL AND path_file <> ''
+                  AND drive_file_id IS NOT NULL AND drive_file_id <> ''
+                  AND storage_type = 'DRIVE'
+                ORDER BY id ASC
+            ",
+        ],
+        [
+            'label' => 'Colloqui - allegati storico',
+            'sql' => "
+                SELECT 'colloqui_eventi' AS kind, id, allegato_path AS path, allegato_original_name AS name
+                FROM genitori_colloqui_eventi
+                WHERE allegato_path IS NOT NULL AND allegato_path <> ''
+                  AND allegato_drive_file_id IS NOT NULL AND allegato_drive_file_id <> ''
+                  AND allegato_storage_type = 'DRIVE'
+                ORDER BY id ASC
+            ",
+        ],
+        [
+            'label' => 'Iscrizioni - documenti pratica',
+            'sql' => "
+                SELECT 'iscrizioni_documenti' AS kind, id, file_path AS path, original_name AS name
+                FROM iscrizioni_prime_documenti
+                WHERE file_path IS NOT NULL AND file_path <> ''
+                  AND drive_file_id IS NOT NULL AND drive_file_id <> ''
+                  AND storage_type = 'DRIVE'
+                ORDER BY id ASC
+            ",
+        ],
+        [
+            'label' => 'Iscrizioni - allegati storico',
+            'sql' => "
+                SELECT 'iscrizioni_eventi' AS kind, id, allegato_path AS path, allegato_original_name AS name
+                FROM iscrizioni_prime_eventi
+                WHERE allegato_path IS NOT NULL AND allegato_path <> ''
+                  AND allegato_drive_file_id IS NOT NULL AND allegato_drive_file_id <> ''
+                  AND allegato_storage_type = 'DRIVE'
+                ORDER BY id ASC
+            ",
+        ],
+        [
+            'label' => 'Iscrizioni - cambio scuola riepilogo',
+            'sql' => "
+                SELECT 'iscrizioni_cambio' AS kind, id, allegato_path AS path, allegato_original_name AS name
+                FROM iscrizioni_prime_cambio_scuola
+                WHERE allegato_path IS NOT NULL AND allegato_path <> ''
+                  AND allegato_drive_file_id IS NOT NULL AND allegato_drive_file_id <> ''
+                  AND allegato_storage_type = 'DRIVE'
+                ORDER BY id ASC
+            ",
+        ],
+        [
+            'label' => 'Iscrizioni - cambio scuola storico',
+            'sql' => "
+                SELECT 'iscrizioni_cambio_eventi' AS kind, id, allegato_path AS path, allegato_original_name AS name
+                FROM iscrizioni_prime_cambio_scuola_eventi
+                WHERE allegato_path IS NOT NULL AND allegato_path <> ''
+                  AND allegato_drive_file_id IS NOT NULL AND allegato_drive_file_id <> ''
+                  AND allegato_storage_type = 'DRIVE'
+                ORDER BY id ASC
+            ",
+        ],
+        [
+            'label' => 'Iscrizioni - rinunce tablet',
+            'sql' => "
+                SELECT 'iscrizioni_tablet' AS kind, id, tablet_rinuncia_allegato_path AS path, tablet_rinuncia_allegato_original_name AS name
+                FROM iscrizioni_prime_pratiche
+                WHERE tablet_rinuncia_allegato_path IS NOT NULL AND tablet_rinuncia_allegato_path <> ''
+                  AND tablet_rinuncia_allegato_drive_file_id IS NOT NULL AND tablet_rinuncia_allegato_drive_file_id <> ''
+                  AND tablet_rinuncia_allegato_storage_type = 'DRIVE'
+                ORDER BY id ASC
+            ",
+        ],
+    ];
+}
+
+function mad_pending_local_path_keys(): array
+{
+    $pending = [];
+    foreach (mad_candidates() as $source) {
+        $rows = dbGetAll($source['sql']) ?: [];
+        foreach ($rows as $row) {
+            $key = mad_path_key($row);
+            if ($key !== '') {
+                $pending[$key] = true;
+            }
+        }
+    }
+    return $pending;
+}
+
+function mad_migrated_local_files(): array
+{
+    $pending = mad_pending_local_path_keys();
+    $files = [];
+    foreach (mad_migrated_sources() as $source) {
+        $rows = dbGetAll($source['sql']) ?: [];
+        foreach ($rows as $row) {
+            $key = mad_path_key($row);
+            if ($key === '' || isset($pending[$key])) {
+                continue;
+            }
+            if (!isset($files[$key])) {
+                $files[$key] = [
+                    'path' => (string)($row['path'] ?? ''),
+                    'absolute' => mad_absolute_path((string)($row['path'] ?? '')),
+                    'name' => (string)($row['name'] ?? ''),
+                    'sources' => [],
+                ];
+            }
+            $files[$key]['sources'][] = $source['label'] . ' #' . intval($row['id'] ?? 0);
+        }
+    }
+    return array_values($files);
+}
+
+function mad_is_safe_local_data_file(string $absolute): bool
+{
+    $real = realpath($absolute);
+    $dataRoot = realpath(mad_root_path() . '/data');
+    if (!$real || !$dataRoot || !is_file($real)) {
+        return false;
+    }
+    $realNorm = str_replace('\\', '/', $real);
+    $rootNorm = rtrim(str_replace('\\', '/', $dataRoot), '/') . '/';
+    return strpos($realNorm, $rootNorm) === 0;
+}
+
+function mad_migrated_local_file_count(): int
+{
+    $count = 0;
+    foreach (mad_migrated_local_files() as $file) {
+        if (mad_is_safe_local_data_file((string)$file['absolute'])) {
+            $count++;
+        }
+    }
+    return $count;
+}
+
+function mad_delete_migrated_local_files(): array
+{
+    $result = [
+        'read' => 0,
+        'deleted' => 0,
+        'skipped' => 0,
+        'errors' => [],
+    ];
+    foreach (mad_migrated_local_files() as $file) {
+        $result['read']++;
+        $absolute = (string)($file['absolute'] ?? '');
+        if (!mad_is_safe_local_data_file($absolute)) {
+            $result['skipped']++;
+            continue;
+        }
+        if (@unlink($absolute)) {
+            $result['deleted']++;
+            continue;
+        }
+        $result['errors'][] = [
+            'file' => $file['path'] ?? $absolute,
+            'error' => 'Impossibile cancellare il file locale',
+        ];
+    }
+    return $result;
+}
+
+function mad_local_cleanup_roots(): array
+{
+    $roots = [
+        mad_root_path() . '/data/movimenti_studenti',
+        mad_root_path() . '/data/genitori_colloqui',
+        mad_root_path() . '/data/iscrizioni_prime_uploads',
+        mad_root_path() . '/data/iscrizioni_prime_eventi',
+        mad_root_path() . '/data/iscrizioni_cambio_scuola',
+        mad_root_path() . '/data/iscrizioni_tablet_rinunce',
+    ];
+    $valid = [];
+    foreach ($roots as $root) {
+        $real = realpath($root);
+        if ($real && is_dir($real)) {
+            $valid[] = $real;
+        }
+    }
+    return $valid;
+}
+
+function mad_directory_is_empty(string $dir): bool
+{
+    $items = @scandir($dir);
+    if (!is_array($items)) {
+        return false;
+    }
+    foreach ($items as $item) {
+        if ($item !== '.' && $item !== '..') {
+            return false;
+        }
+    }
+    return true;
+}
+
+function mad_ignorable_local_file(string $path): bool
+{
+    $name = strtolower(basename($path));
+    return in_array($name, ['.htaccess', 'index.html', 'thumbs.db', '.ds_store'], true);
+}
+
+function mad_directory_is_empty_or_ignorable(string $dir): bool
+{
+    $items = @scandir($dir);
+    if (!is_array($items)) {
+        return false;
+    }
+    foreach ($items as $item) {
+        if ($item === '.' || $item === '..') {
+            continue;
+        }
+        $path = rtrim($dir, '/\\') . DIRECTORY_SEPARATOR . $item;
+        if (is_dir($path)) {
+            return false;
+        }
+        if (!mad_ignorable_local_file($path)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+function mad_delete_ignorable_files_in_dir(string $dir): void
+{
+    $items = @scandir($dir);
+    if (!is_array($items)) {
+        return;
+    }
+    foreach ($items as $item) {
+        if ($item === '.' || $item === '..') {
+            continue;
+        }
+        $path = rtrim($dir, '/\\') . DIRECTORY_SEPARATOR . $item;
+        if (is_file($path) && mad_ignorable_local_file($path)) {
+            @unlink($path);
+        }
+    }
+}
+
+function mad_empty_local_directory_count(): int
+{
+    $count = 0;
+    foreach (mad_local_cleanup_roots() as $root) {
+        $iterator = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($root, FilesystemIterator::SKIP_DOTS),
+            RecursiveIteratorIterator::CHILD_FIRST
+        );
+        foreach ($iterator as $item) {
+            if ($item->isDir() && mad_directory_is_empty_or_ignorable($item->getPathname())) {
+                $count++;
+            }
+        }
+    }
+    return $count;
+}
+
+function mad_delete_empty_local_directories(): array
+{
+    $result = [
+        'read' => 0,
+        'deleted' => 0,
+        'not_empty' => 0,
+        'errors' => [],
+    ];
+    foreach (mad_local_cleanup_roots() as $root) {
+        $iterator = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($root, FilesystemIterator::SKIP_DOTS),
+            RecursiveIteratorIterator::CHILD_FIRST
+        );
+        foreach ($iterator as $item) {
+            if (!$item->isDir()) {
+                continue;
+            }
+            $dir = $item->getPathname();
+            $result['read']++;
+            if (!mad_directory_is_empty_or_ignorable($dir)) {
+                $result['not_empty']++;
+                continue;
+            }
+            mad_delete_ignorable_files_in_dir($dir);
+            if (@rmdir($dir)) {
+                $result['deleted']++;
+                continue;
+            }
+            $result['errors'][] = [
+                'dir' => $dir,
+                'error' => 'Impossibile cancellare la cartella locale vuota',
+            ];
+        }
+    }
+    return $result;
+}
+
+function mad_remaining_local_directories(): array
+{
+    $rows = [];
+    foreach (mad_local_cleanup_roots() as $root) {
+        $iterator = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($root, FilesystemIterator::SKIP_DOTS),
+            RecursiveIteratorIterator::CHILD_FIRST
+        );
+        foreach ($iterator as $item) {
+            if (!$item->isDir()) {
+                continue;
+            }
+            $dir = $item->getPathname();
+            if (mad_directory_is_empty_or_ignorable($dir)) {
+                continue;
+            }
+            $files = [];
+            $items = @scandir($dir);
+            if (is_array($items)) {
+                foreach ($items as $child) {
+                    if ($child === '.' || $child === '..') {
+                        continue;
+                    }
+                    $childPath = rtrim($dir, '/\\') . DIRECTORY_SEPARATOR . $child;
+                    $files[] = $child . (is_dir($childPath) ? '/' : '');
+                }
+            }
+            $rows[] = [
+                'dir' => $dir,
+                'files' => implode(', ', array_slice($files, 0, 8)) . (count($files) > 8 ? ', ...' : ''),
+            ];
+        }
+    }
+    return $rows;
+}
+
 function mad_next_rows(int $limit): array
 {
     $rows = [];
@@ -530,6 +915,8 @@ $run = $action === 'run' || (string)($_GET['run'] ?? '') === '1';
 $runResult = null;
 $realignResult = null;
 $cleanupResult = null;
+$deleteLocalResult = null;
+$deleteLocalDirsResult = null;
 if ($run && $driveEnabled) {
     $runResult = mad_run_batch($limit);
 }
@@ -538,6 +925,12 @@ if ($action === 'realign_movimenti' && $driveEnabled) {
 }
 if ($action === 'cleanup_movimenti_empty' && $driveEnabled) {
     $cleanupResult = mad_cleanup_movimenti_empty_drive_folders();
+}
+if ($action === 'delete_migrated_local_files') {
+    $deleteLocalResult = mad_delete_migrated_local_files();
+}
+if ($action === 'delete_empty_local_dirs') {
+    $deleteLocalDirsResult = mad_delete_empty_local_directories();
 }
 
 $sources = mad_candidates();
@@ -549,7 +942,10 @@ foreach ($sources as $source) {
     $total += $count;
 }
 $uniqueTotal = mad_unique_file_count();
+$localMigratedCount = mad_migrated_local_file_count();
+$emptyLocalDirCount = mad_empty_local_directory_count();
 $previewRows = mad_next_rows(20);
+$remainingLocalDirs = mad_remaining_local_directories();
 
 ?>
 <!doctype html>
@@ -588,6 +984,8 @@ $previewRows = mad_next_rows(20);
             <span class="metric <?php echo $driveEnabled ? 'ok' : 'warn'; ?>">Drive: <?php echo $driveEnabled ? 'attivo' : 'non attivo'; ?></span>
             <span class="metric <?php echo $total > 0 ? 'warn' : 'ok'; ?>">Record da aggiornare: <?php echo intval($total); ?></span>
             <span class="metric <?php echo $uniqueTotal > 0 ? 'warn' : 'ok'; ?>">File unici da caricare: <?php echo intval($uniqueTotal); ?></span>
+            <span class="metric <?php echo $localMigratedCount > 0 ? 'warn' : 'ok'; ?>">File locali gia su Drive: <?php echo intval($localMigratedCount); ?></span>
+            <span class="metric <?php echo $emptyLocalDirCount > 0 ? 'warn' : 'ok'; ?>">Cartelle locali vuote: <?php echo intval($emptyLocalDirCount); ?></span>
             <form method="post" action="migraAllegatiDrive.php" class="form-inline" style="margin-top:14px;">
                 <input type="hidden" name="action" value="run">
                 <div class="form-group">
@@ -616,6 +1014,21 @@ $previewRows = mad_next_rows(20);
                     Cancella cartelle movimenti vuote
                 </button>
                 <span class="text-muted">Elimina solo cartelle Drive vuote gia registrate sugli allegati movimenti.</span>
+            </form>
+            <form method="post" action="migraAllegatiDrive.php" class="form-inline" style="margin-top:8px;">
+                <input type="hidden" name="action" value="delete_migrated_local_files">
+                <button type="submit" class="btn btn-danger" <?php echo $localMigratedCount <= 0 ? 'disabled' : ''; ?>
+                        onclick="return confirm('Cancellare dal server i file locali gia migrati su Drive? I record resteranno collegati a Drive.');">
+                    Cancella file locali gia migrati
+                </button>
+                <span class="text-muted">Cancella solo file dentro <code>data/</code> gia collegati a Drive.</span>
+            </form>
+            <form method="post" action="migraAllegatiDrive.php" class="form-inline" style="margin-top:8px;">
+                <input type="hidden" name="action" value="delete_empty_local_dirs">
+                <button type="submit" class="btn btn-default" <?php echo $emptyLocalDirCount <= 0 ? 'disabled' : ''; ?>>
+                    Cancella cartelle locali vuote
+                </button>
+                <span class="text-muted">Cancella solo sottocartelle vuote nelle aree allegati sotto <code>data/</code>.</span>
             </form>
         </div>
     </div>
@@ -709,6 +1122,56 @@ $previewRows = mad_next_rows(20);
         <?php endif; ?>
     <?php endif; ?>
 
+    <?php if ($deleteLocalResult): ?>
+        <div class="alert alert-info">
+            Pulizia file locali: file letti <?php echo intval($deleteLocalResult['read']); ?>,
+            cancellati <?php echo intval($deleteLocalResult['deleted']); ?>,
+            saltati <?php echo intval($deleteLocalResult['skipped']); ?>,
+            errori <?php echo count($deleteLocalResult['errors']); ?>.
+        </div>
+        <?php if (!empty($deleteLocalResult['errors'])): ?>
+            <div class="panel panel-danger">
+                <div class="panel-heading"><strong>Errori cancellazione file locali</strong></div>
+                <table class="table table-condensed">
+                    <thead><tr><th>File</th><th>Errore</th></tr></thead>
+                    <tbody>
+                    <?php foreach ($deleteLocalResult['errors'] as $error): ?>
+                        <tr>
+                            <td><code><?php echo mad_h($error['file']); ?></code></td>
+                            <td><?php echo mad_h($error['error']); ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        <?php endif; ?>
+    <?php endif; ?>
+
+    <?php if ($deleteLocalDirsResult): ?>
+        <div class="alert alert-info">
+            Pulizia cartelle locali: cartelle lette <?php echo intval($deleteLocalDirsResult['read']); ?>,
+            cancellate <?php echo intval($deleteLocalDirsResult['deleted']); ?>,
+            non vuote <?php echo intval($deleteLocalDirsResult['not_empty']); ?>,
+            errori <?php echo count($deleteLocalDirsResult['errors']); ?>.
+        </div>
+        <?php if (!empty($deleteLocalDirsResult['errors'])): ?>
+            <div class="panel panel-danger">
+                <div class="panel-heading"><strong>Errori cancellazione cartelle locali</strong></div>
+                <table class="table table-condensed">
+                    <thead><tr><th>Cartella</th><th>Errore</th></tr></thead>
+                    <tbody>
+                    <?php foreach ($deleteLocalDirsResult['errors'] as $error): ?>
+                        <tr>
+                            <td><code><?php echo mad_h($error['dir']); ?></code></td>
+                            <td><?php echo mad_h($error['error']); ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        <?php endif; ?>
+    <?php endif; ?>
+
     <div class="row">
         <div class="col-md-5">
             <div class="panel panel-default">
@@ -741,6 +1204,23 @@ $previewRows = mad_next_rows(20);
                             <td><?php echo intval($row['id']); ?></td>
                             <td><?php echo mad_h($row['name'] ?: basename((string)$row['path'])); ?></td>
                             <td><code><?php echo mad_h($row['path']); ?></code></td>
+                        </tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+            <div class="panel panel-default">
+                <div class="panel-heading"><strong>Cartelle locali ancora non vuote</strong></div>
+                <table class="table table-condensed table-striped">
+                    <thead><tr><th>Cartella</th><th>Contenuto</th></tr></thead>
+                    <tbody>
+                    <?php if (!$remainingLocalDirs): ?>
+                        <tr><td colspan="2" class="text-muted">Nessuna cartella locale non vuota nelle aree allegati.</td></tr>
+                    <?php endif; ?>
+                    <?php foreach (array_slice($remainingLocalDirs, 0, 30) as $row): ?>
+                        <tr>
+                            <td><code><?php echo mad_h($row['dir']); ?></code></td>
+                            <td><?php echo mad_h($row['files']); ?></td>
                         </tr>
                     <?php endforeach; ?>
                     </tbody>
