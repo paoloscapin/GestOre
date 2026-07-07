@@ -21,6 +21,14 @@ if (session_status() == PHP_SESSION_NONE) {
 // configurazione globale
 require_once __DIR__ . '/Config.php';
 
+// --- INIZIO BYPASS AUTENTICAZIONE LOCALE ---
+$__username = 'ssantini'; // Username che userai nel database
+$__useremail = 'sebastiano.santini@gmail.com'; 
+$session->set('__username', $__username);
+$session->set('__useremail', $__useremail);
+// --- FINE BYPASS ---
+
+
 // se la session non contiene username, vai alla pagina di login (passando come location la pagina richiesta
 if (!isset($__username) && !$session->has('__username')) {
     if (!isset($__gClient)) {

@@ -13,6 +13,7 @@
 <html>
 <head>
 <?php
+error_reporting(E_ALL & ~E_DEPRECATED);
 require_once __DIR__ . '/common/checkSession.php';
 
 // if the session contains the role, go to the home corresponding to that role

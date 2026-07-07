@@ -60,8 +60,8 @@ function oreFatteReadViaggi($soloTotale, $docente_id, $operatore, $ultimo_contro
 		$oreString = oreToDisplay($ore);
 		$diariaString =  formatNoZeroDiariaViaggi($diaria);
 		$rimborsato = $viaggio['rimborsato'];
-		$diariaIcon = ($diaria == 0)? ' ' : ($rimborsato == 0)? '<span class="glyphicon glyphicon-option-horizontal text-warning data-toggle="tooltip" data-placement="left" data-html="true" title="da liquidare""></span>' : '<span class="glyphicon glyphicon-saved text-success data-toggle="tooltip" data-placement="left" data-html="true" title="liquidato""></span>';
 
+		$diariaIcon = ($diaria == 0) ? ' ' : ( ($rimborsato == 0) ? '<span class="glyphicon glyphicon-option-horizontal text-warning data-toggle="tooltip" data-placement="left" data-html="true" title="da liquidare""></span>' : '<span class="glyphicon glyphicon-saved text-success data-toggle="tooltip" data-placement="left" data-html="true" title="liquidato""></span>' );
 		$dataViaggi .= '<tr>
 			<td>'.strftime("%d/%m/%Y", strtotime($viaggio['data_partenza'])).'</td>
 			<td>'.$viaggio['tipo_viaggio'].'</td>

@@ -1,5 +1,5 @@
 <?php
-
+error_reporting(E_ALL & ~E_DEPRECATED & ~E_NOTICE & ~E_WARNING);
 /**
  *  This file is part of GestOre
  *  @author     Paolo Scapin <paolo.scapin@gmail.com>

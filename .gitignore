@@ -3,5 +3,7 @@
 /uploads/
 /common/__Environment.php
 /GestOre.json
+/dev-login.php
+/checkSession.php
 common/dompdf/vendor/dompdf/dompdf/lib/fonts/DejaVuSans-Bold.ufm.json
 common/dompdf/vendor/dompdf/dompdf/lib/fonts/DejaVuSans.ufm.json
