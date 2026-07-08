@@ -1,5 +1,5 @@
 <?php
-// Disabilita i Warning/Notice di PHP 8 per mantenere l'interfaccia pulita
+// Disabilita i Warning per pulizia interfaccia
 error_reporting(E_ALL & ~E_DEPRECATED & ~E_NOTICE & ~E_WARNING);
 
 require_once __DIR__ . '/../common/checkSession.php';
@@ -10,8 +10,10 @@ if (!haRuolo('dirigente')) {
 }
 
 require_once __DIR__ . '/../docente/oreFatteAggiorna.php';
+// Includiamo il file contenente la funzione dedicata alle diarie
+require_once __DIR__ . '/../docente/viaggioDiariaPrevistaReadRecords.php';
 
-// Query per estrarre i docenti con le ore di recupero (alias ore_recupero_tot)
+// Query estrazione docenti con ore di recupero
 $query_docenti = "
     SELECT d.id, d.cognome, d.nome,
     (SELECT SUM(numero_ore) FROM corso_di_recupero cr WHERE cr.docente_id = d.id AND cr.anno_scolastico_id = $__anno_scolastico_corrente_id) as ore_recupero_tot
@@ -57,60 +59,41 @@ $docenti = dbGetAll($query_docenti);
                         foreach ($docenti as $row) {
                             $dati = oreFatteAggiorna(true, $row['id'], 'dirigente', '', false);
                             
-                            // --- ALGORITMO DI COMPENSAZIONE FUIS ---
-                            // 1. Dati base
-                            $sost_fatte = $dati['oreSostituzione'];
-                            $sost_dov = $dati['oreSostituzioniDovute'];
-                            $funz_fatte = $dati['oreFunzionali'];
-                            $funz_dov = $dati['oreFunzionaliDovute'];
-                            $stud_fatte = $dati['oreConStudenti'];
-                            $stud_dov = $dati['oreConStudentiDovute'];
+                            // --- UTILIZZO FUNZIONE CORE PER LA DIARIA ---
+                            // Chiamiamo la funzione di sistema per recuperare i dati pronti
+                            $diaria_data = viaggioDiariaPrevistaReadRecords(true, $row['id'], 'dirigente', '', true);
+
+                            $euro_diaria = (float)($diaria_data['diariaImporto'] ?? 0);
                             
-                            $delta_insegnamento = ($sost_fatte + $stud_fatte) - ($sost_dov + $stud_dov);
-                            $delta_funz = $funz_fatte - $funz_dov;
-                            
-                            $pagare_stud = 0;
-                            $pagare_funz = 0;
+                            // 1. Calcolo ore eccedenti
+                            $sost_delta = $dati['oreSostituzione'] - $dati['oreSostituzioniDovute'];
+                            $stud_delta = $dati['oreConStudenti'] - $dati['oreConStudentiDovute'];
+                            $funz_delta = $dati['oreFunzionali'] - $dati['oreFunzionaliDovute'];
                             
                             // Logica di compensazione
-                            if ($delta_insegnamento >= 0 && $delta_funz >= 0) {
-                                $pagare_stud = $delta_insegnamento;
-                                $pagare_funz = $delta_funz;
-                            } elseif ($delta_insegnamento > 0 && $delta_funz < 0) {
-                                // 1 ora Insegnamento copre 1 ora Funzionale di debito
-                                $pagare_stud = max(0, $delta_insegnamento - abs($delta_funz));
-                            } elseif ($delta_insegnamento < 0 && $delta_funz > 0) {
-                                // 2 ore Funzionali coprono 1 ora di debito Insegnamento
-                                $pagare_funz = max(0, $delta_funz - (abs($delta_insegnamento) * 2));
+                            $tot_insegnamento = ($sost_delta > 0 ? $sost_delta : 0) + ($stud_delta > 0 ? $stud_delta : 0);
+                            $tot_funz_deficit = ($funz_delta < 0 ? abs($funz_delta) : 0);
+                            $tot_stud_deficit = ($stud_delta < 0 ? abs($stud_delta) : 0);
+                            $tot_funz_eccedenza = ($funz_delta > 0 ? $funz_delta : 0);
+
+                            $pagare_stud = 0;
+                            $pagare_funz = 0;
+
+                            if ($tot_insegnamento > $tot_funz_deficit) {
+                                $pagare_stud = $tot_insegnamento - $tot_funz_deficit;
+                            } elseif ($tot_funz_eccedenza > ($tot_stud_deficit * 2)) {
+                                $pagare_funz = $tot_funz_eccedenza - ($tot_stud_deficit * 2);
                             }
-                            
+
                             $euro_ore = ($pagare_stud * 38.50) + ($pagare_funz * 19.225);
                             
                             // 2. Corsi Recupero
                             $ore_rec = (int)($row['ore_recupero_tot'] ?? 0);
                             $euro_rec = max(0, $ore_rec - 10) * 55;
                             
-                            // 3. Estrai l'importo della Diaria Viaggi
-                            // Assicurati che $dati['diariaImporto'] esista. Fai un cast a float per sicurezza.
-
-                            $q = "SELECT giorni_senza_pernottamento, giorni_con_pernottamento 
-                                  FROM viaggio_diaria_prevista 
-                                  WHERE docente_id = {$row['id']} 
-                                  AND anno_scolastico_id = $__anno_scolastico_corrente_id";
-                            $res = dbGetAll($q);
-                            
-                            // Estraiamo i valori in modo sicuro dai risultati dell'array
-                            $g = (int)($res[0]['giorni_senza_pernottamento'] ?? 0);
-                            $n = (int)($res[0]['giorni_con_pernottamento'] ?? 0);
-                            
-                            $euro_diaria = ($g * 70) + ($n * 100);
-
-                            #$euro_diaria = isset($dati['diariaImporto']) ? (float)$dati['diariaImporto'] : 0.0;
-                            
-                            // 4. Totale Stimato (Ore + Recupero + Diaria)
+                            // 3. Totale Stimato
                             $totale_stimato = $euro_ore + $euro_rec + $euro_diaria;
 
-                            // Logica badge delta
                             $badge = function($fatte, $dovute) {
                                 $delta = $fatte - $dovute;
                                 if ($delta > 0) return "<span class='label label-danger badge-delta'>+$delta</span>";
