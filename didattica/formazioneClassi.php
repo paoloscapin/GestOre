@@ -215,6 +215,21 @@ function fc_unassigned_groups(array $students, int $targetClassYear): array
             height: 30px;
             padding: 4px 7px;
         }
+        .fc-snapshot-modal .modal-dialog {
+            width: min(720px, calc(100vw - 30px));
+        }
+        .fc-snapshot-modal .fc-snapshot-form {
+            display: grid;
+            gap: 12px;
+        }
+        .fc-snapshot-modal .fc-snapshot-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .fc-snapshot-modal .fc-snapshot-row .form-control {
+            flex: 1 1 auto;
+        }
         .fc-address-section {
             --fc-work-height: calc(100vh - 300px);
         }
@@ -356,6 +371,31 @@ function fc_unassigned_groups(array $students, int $targetClassYear): array
             color: #fff;
             font-size: 11px;
             font-weight: 700;
+        }
+        .fc-student.fc-student-external-failed {
+            border-color: #f97316;
+            border-left-color: #dc2626;
+            box-shadow: inset 0 0 0 2px rgba(220, 38, 38, .25), 0 1px 5px rgba(220, 38, 38, .22);
+        }
+        .fc-failed-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: #dc2626;
+            border: 1px solid #991b1b;
+            border-radius: 999px;
+            color: #fff;
+            font-size: 11px;
+            font-weight: 900;
+            line-height: 1;
+            padding: 4px 8px;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+        .fc-failed-badge::before {
+            content: "\e101";
+            font-family: "Glyphicons Halflings";
+            font-size: 10px;
         }
         .fc-student.fc-student-promosso {
             border-left-color: #2563eb;
@@ -2092,16 +2132,8 @@ function fcAutoAssign(button) {
                 if (status) status.textContent = json && json.message ? json.message : 'Distribuzione non salvata.';
                 return;
             }
-            const assignments = json.assignments || {};
-            Object.keys(assignments).forEach(function (rowId) {
-                const card = layout.querySelector('.fc-student[data-row-id="' + fcCssEscape(rowId) + '"]');
-                const targetZone = layout.querySelector('.fc-dropzone[data-target-label="' + fcCssEscape(assignments[rowId]) + '"]');
-                if (card && targetZone) {
-                    fcMoveCard(card, targetZone);
-                }
-            });
-            fcRefreshAllStats(layout);
             if (status) status.textContent = json.message || 'Distribuzione automatica salvata.';
+            return fcEnsureSectionLoaded(activeTipo, section.dataset.address || '', 'Ricaricamento formazione', undefined, true);
         })
         .catch(() => {
             if (status) status.textContent = 'Errore di rete durante la distribuzione automatica.';
@@ -2276,7 +2308,7 @@ function fcCompactAndSortEmptySidePanels(scope) {
 }
 
 function fcStatsFromZone(zone) {
-    const stats = {count: 0, maschi: 0, femmine: 0, media_generale: null, voto_matematica: null, voto_italiano: null, voto_capacita_relazionale: null, dsa: 0, fascia_c: 0, legge_104: 0};
+    const stats = {count: 0, maschi: 0, femmine: 0, media_generale: null, voto_matematica: null, voto_italiano: null, voto_capacita_relazionale: null, dsa: 0, fascia_c: 0, legge_104: 0, bocciati: 0};
     const sums = {media_generale: 0, voto_matematica: 0, voto_italiano: 0, voto_capacita_relazionale: 0};
     const counts = {media_generale: 0, voto_matematica: 0, voto_italiano: 0, voto_capacita_relazionale: 0};
     const bins = {
@@ -2297,6 +2329,7 @@ function fcStatsFromZone(zone) {
         if (String(card.dataset.dsa || '') === '1') stats.dsa++;
         if (String(card.dataset.fascia_c || '') === '1') stats.fascia_c++;
         if (String(card.dataset.legge_104 || '') === '1') stats.legge_104++;
+        if (String(card.dataset.bocciato || '') === '1') stats.bocciati++;
         Object.keys(sums).forEach(function (key) {
             const raw = card.getAttribute('data-' + key) || '';
             if (raw === '') return;
@@ -2382,7 +2415,7 @@ function fcRefreshSummaryScale(allStats, scope) {
 }
 
 function fcIsIntegerStat(key) {
-    return ['count', 'maschi', 'femmine', 'dsa', 'fascia_c', 'legge_104'].includes(key);
+    return ['count', 'maschi', 'femmine', 'dsa', 'fascia_c', 'legge_104', 'bocciati'].includes(key);
 }
 
 function fcBarWidth(key, value, maxValue) {
@@ -2411,14 +2444,20 @@ function fcCssEscape(value) {
 </html>
 <?php
 
-function fc_render_stats(array $stats): string
+function fc_render_stats(array $stats, int $targetClassYear = 0): string
 {
-    return '<div class="fc-stats">'
+    $html = '<div class="fc-stats">'
         . '<div class="fc-stat"><strong data-stat="count">' . intval($stats['count'] ?? 0) . '</strong>studenti</div>'
+        . '<div class="fc-stat"><strong data-stat="bocciati">' . intval($stats['bocciati'] ?? 0) . '</strong>bocciati</div>'
         . '<div class="fc-stat"><strong><span data-stat="maschi">' . intval($stats['maschi'] ?? 0) . '</span>/<span data-stat="femmine">' . intval($stats['femmine'] ?? 0) . '</span></strong>M/F</div>'
-        . '<div class="fc-stat"><strong data-stat="media_generale">' . formazioneClassiH(formazioneClassiFormatAvg($stats['media_generale'] ?? null)) . '</strong>media</div>'
-        . '<div class="fc-stat"><strong data-stat="voto_matematica">' . formazioneClassiH(formazioneClassiFormatAvg($stats['voto_matematica'] ?? null)) . '</strong>matematica</div>'
-        . '<div class="fc-stat"><strong data-stat="voto_capacita_relazionale">' . formazioneClassiH(formazioneClassiFormatAvg($stats['voto_capacita_relazionale'] ?? null)) . '</strong>capacita rel.</div>'
+        . '<div class="fc-stat"><strong data-stat="media_generale">' . formazioneClassiH(formazioneClassiFormatAvg($stats['media_generale'] ?? null)) . '</strong>' . ($targetClassYear === 1 ? 'voto medie' : 'media') . '</div>'
+        . '<div class="fc-stat"><strong data-stat="voto_matematica">' . formazioneClassiH(formazioneClassiFormatAvg($stats['voto_matematica'] ?? null)) . '</strong>matematica</div>';
+    if ($targetClassYear === 1) {
+        $html .= '<div class="fc-stat"><strong data-stat="voto_italiano">' . formazioneClassiH(formazioneClassiFormatAvg($stats['voto_italiano'] ?? null)) . '</strong>italiano</div>';
+    } else {
+        $html .= '<div class="fc-stat"><strong data-stat="voto_capacita_relazionale">' . formazioneClassiH(formazioneClassiFormatAvg($stats['voto_capacita_relazionale'] ?? null)) . '</strong>capacita rel.</div>';
+    }
+    return $html
         . '<div class="fc-stat"><strong data-stat="dsa">' . intval($stats['dsa'] ?? 0) . '</strong>DSA</div>'
         . '<div class="fc-stat"><strong data-stat="fascia_c">' . intval($stats['fascia_c'] ?? 0) . '</strong>fascia C</div>'
         . '<div class="fc-stat"><strong data-stat="legge_104">' . intval($stats['legge_104'] ?? 0) . '</strong>104</div>'
@@ -2431,9 +2470,9 @@ function fc_render_address_section(string $addressKey, array $state, array $clas
     $sessionId = intval($state['session']['id'] ?? 0);
     $showAutoDistribution = formazioneClassiAutoDistributionAllowedForYear($targetClassYear);
     ?>
-    <div class="fc-address-section" data-address="<?php echo formazioneClassiH($addressKey); ?>">
+        <div class="fc-address-section" data-address="<?php echo formazioneClassiH($addressKey); ?>">
         <div class="fc-compact-dashboard">
-            <?php echo fc_render_compact_dashboard($state['classes'], $classColors); ?>
+            <?php echo fc_render_compact_dashboard($state['classes'], $classColors, $targetClassYear); ?>
         </div>
         <?php if ($showAutoDistribution): ?>
         <div class="fc-auto-panel">
@@ -2452,29 +2491,65 @@ function fc_render_address_section(string $addressKey, array $state, array $clas
             <button type="button" class="btn btn-primary btn-sm fc-auto-assign">
                 <span class="glyphicon glyphicon-flash"></span> Distribuisci da piazzare
             </button>
+            <button type="button" class="btn btn-default btn-sm" data-toggle="modal" data-target="#fc_snapshot_modal_<?php echo intval($sessionId); ?>">
+                <span class="glyphicon glyphicon-camera"></span> Fotografie
+            </button>
         </div>
-        <?php endif; ?>
-        <?php $snapshots = formazioneClassiSnapshots($sessionId); ?>
+        <?php else: ?>
         <div class="fc-auto-panel">
             <div class="fc-auto-title">
                 <span class="glyphicon glyphicon-camera"></span>
                 Fotografie
             </div>
-            <input type="text" class="form-control input-sm fc-snapshot-name" placeholder="Nome salvataggio">
-            <button type="button" class="btn btn-success btn-sm fc-snapshot-save">
-                <span class="glyphicon glyphicon-floppy-disk"></span> Salva fotografia
+            <button type="button" class="btn btn-default btn-sm" data-toggle="modal" data-target="#fc_snapshot_modal_<?php echo intval($sessionId); ?>">
+                Apri fotografie
             </button>
-            <select class="form-control input-sm fc-snapshot-select">
-                <option value="">Richiama fotografia...</option>
-                <?php foreach ($snapshots as $snapshot): ?>
-                    <option value="<?php echo intval($snapshot['id']); ?>">
-                        <?php echo formazioneClassiH($snapshot['nome'] . ' - ' . date('d/m/Y H:i', strtotime((string)$snapshot['created_at'])) . ' (' . intval($snapshot['studenti']) . ')'); ?>
-                    </option>
-                <?php endforeach; ?>
-            </select>
-            <button type="button" class="btn btn-warning btn-sm fc-snapshot-apply">
-                <span class="glyphicon glyphicon-repeat"></span> Applica
-            </button>
+        </div>
+        <?php endif; ?>
+        <?php $snapshots = formazioneClassiSnapshots($sessionId); ?>
+        <div class="modal fade fc-snapshot-modal" id="fc_snapshot_modal_<?php echo intval($sessionId); ?>" tabindex="-1" role="dialog" aria-labelledby="fc_snapshot_modal_title_<?php echo intval($sessionId); ?>">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Chiudi"><span aria-hidden="true">&times;</span></button>
+                        <h4 class="modal-title" id="fc_snapshot_modal_title_<?php echo intval($sessionId); ?>">
+                            <span class="glyphicon glyphicon-camera"></span> Fotografie formazione
+                        </h4>
+                    </div>
+                    <div class="modal-body">
+                        <div class="fc-snapshot-form">
+                            <div>
+                                <label>Salva la situazione attuale</label>
+                                <div class="fc-snapshot-row">
+                                    <input type="text" class="form-control input-sm fc-snapshot-name" placeholder="Nome salvataggio">
+                                    <button type="button" class="btn btn-success btn-sm fc-snapshot-save">
+                                        <span class="glyphicon glyphicon-floppy-disk"></span> Salva fotografia
+                                    </button>
+                                </div>
+                            </div>
+                            <div>
+                                <label>Richiama una fotografia salvata</label>
+                                <div class="fc-snapshot-row">
+                                    <select class="form-control input-sm fc-snapshot-select">
+                                        <option value="">Richiama fotografia...</option>
+                                        <?php foreach ($snapshots as $snapshot): ?>
+                                            <option value="<?php echo intval($snapshot['id']); ?>">
+                                                <?php echo formazioneClassiH($snapshot['nome'] . ' - ' . date('d/m/Y H:i', strtotime((string)$snapshot['created_at'])) . ' (' . intval($snapshot['studenti']) . ')'); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <button type="button" class="btn btn-warning btn-sm fc-snapshot-apply">
+                                        <span class="glyphicon glyphicon-repeat"></span> Applica
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default btn-sm" data-dismiss="modal">Chiudi</button>
+                    </div>
+                </div>
+            </div>
         </div>
         <div class="fc-layout" data-session-id="<?php echo intval($sessionId); ?>">
             <div class="fc-classes-window">
@@ -2497,7 +2572,7 @@ function fc_render_address_section(string $addressKey, array $state, array $clas
                                     <?php echo $classLocked ? '<span class="glyphicon glyphicon-lock"></span>' : '<span class="fc-lock-symbol" aria-hidden="true">&#128275;</span>'; ?> <?php echo $classLocked ? 'Sblocca classe' : 'Blocca classe'; ?>
                                 </button>
                             </div>
-                            <?php echo fc_render_stats($stats); ?>
+                            <?php echo fc_render_stats($stats, $targetClassYear); ?>
                             <div class="fc-dropzone" data-target-label="<?php echo formazioneClassiH($class['label']); ?>">
                                 <?php if (empty($class['students'])): ?>
                                     <div class="fc-empty">Trascina qui gli studenti</div>
@@ -2518,7 +2593,7 @@ function fc_render_address_section(string $addressKey, array $state, array $clas
                         <div class="fc-class-title">Neo iscritti esterni</div>
                         <span class="label label-success"><?php echo count($unassignedGroups['neo_iscritti']); ?></span>
                     </div>
-                    <?php echo fc_render_stats(formazioneClassiStats($unassignedGroups['neo_iscritti'])); ?>
+                    <?php echo fc_render_stats(formazioneClassiStats($unassignedGroups['neo_iscritti']), $targetClassYear); ?>
                     <div class="fc-dropzone" data-target-label="" data-empty-text="Nessun neo iscritto esterno da piazzare">
                         <?php if (empty($unassignedGroups['neo_iscritti'])): ?>
                             <div class="fc-empty">Nessun neo iscritto esterno da piazzare</div>
@@ -2535,7 +2610,7 @@ function fc_render_address_section(string $addressKey, array $state, array $clas
                             <div class="fc-class-title">Promossi di seconda</div>
                             <span class="label label-primary"><?php echo count($unassignedGroups['promossi_seconda']); ?></span>
                         </div>
-                        <?php echo fc_render_stats(formazioneClassiStats($unassignedGroups['promossi_seconda'])); ?>
+                        <?php echo fc_render_stats(formazioneClassiStats($unassignedGroups['promossi_seconda']), $targetClassYear); ?>
                         <div class="fc-dropzone" data-target-label="" data-empty-text="Nessun promosso di seconda da piazzare">
                             <?php if (empty($unassignedGroups['promossi_seconda'])): ?>
                                 <div class="fc-empty">Nessun promosso di seconda da piazzare</div>
@@ -2553,7 +2628,7 @@ function fc_render_address_section(string $addressKey, array $state, array $clas
                             <div class="fc-class-title">Altri da piazzare</div>
                             <span class="label label-default"><?php echo count($unassignedGroups['altri']); ?></span>
                         </div>
-                        <?php echo fc_render_stats(formazioneClassiStats($unassignedGroups['altri'])); ?>
+                        <?php echo fc_render_stats(formazioneClassiStats($unassignedGroups['altri']), $targetClassYear); ?>
                         <div class="fc-dropzone" data-target-label="" data-empty-text="Nessun altro studente da piazzare">
                             <?php foreach ($unassignedGroups['altri'] as $student): ?>
                                 <?php echo fc_render_student($student, $targetClassYear); ?>
@@ -2568,7 +2643,7 @@ function fc_render_address_section(string $addressKey, array $state, array $clas
                             <div class="fc-class-title">Bocciati terza</div>
                             <span class="label label-danger"><?php echo count($unassignedGroups['bocciati_terza']); ?></span>
                         </div>
-                        <?php echo fc_render_stats(formazioneClassiStats($unassignedGroups['bocciati_terza'])); ?>
+                        <?php echo fc_render_stats(formazioneClassiStats($unassignedGroups['bocciati_terza']), $targetClassYear); ?>
                         <div class="fc-dropzone" data-target-label="" data-empty-text="Nessun bocciato di terza da piazzare">
                             <?php if (empty($unassignedGroups['bocciati_terza'])): ?>
                                 <div class="fc-empty">Nessun bocciato di terza da piazzare</div>
@@ -2584,7 +2659,7 @@ function fc_render_address_section(string $addressKey, array $state, array $clas
                             <div class="fc-class-title">Bocciati</div>
                             <span class="label label-danger"><?php echo count($unassignedGroups['bocciati']); ?></span>
                         </div>
-                        <?php echo fc_render_stats(formazioneClassiStats($unassignedGroups['bocciati'])); ?>
+                        <?php echo fc_render_stats(formazioneClassiStats($unassignedGroups['bocciati']), $targetClassYear); ?>
                         <div class="fc-dropzone" data-target-label="" data-empty-text="Nessun bocciato da piazzare">
                             <?php if (empty($unassignedGroups['bocciati'])): ?>
                                 <div class="fc-empty">Nessun bocciato da piazzare</div>
@@ -2602,7 +2677,7 @@ function fc_render_address_section(string $addressKey, array $state, array $clas
                             <div class="fc-class-title">Bocciati seconda</div>
                             <span class="label label-default"><?php echo count($unassignedGroups['bocciati_seconda']); ?></span>
                         </div>
-                        <?php echo fc_render_stats(formazioneClassiStats($unassignedGroups['bocciati_seconda'])); ?>
+                        <?php echo fc_render_stats(formazioneClassiStats($unassignedGroups['bocciati_seconda']), $targetClassYear); ?>
                         <div class="fc-dropzone" data-target-label="" data-readonly="1" data-empty-text="Nessun bocciato di seconda">
                             <?php if (empty($unassignedGroups['bocciati_seconda'])): ?>
                                 <div class="fc-empty">Nessun bocciato di seconda</div>
@@ -2684,6 +2759,9 @@ function fc_render_student(array $student, int $targetClassYear = 0): string
     if (!empty($student['bocciato_perso'])) {
         $classes[] = 'fc-student-lost';
     }
+    if (!empty($student['bocciato_altra_scuola'])) {
+        $classes[] = 'fc-student-external-failed';
+    }
     if (($student['curvatura_design'] ?? '') === 'design') {
         $classes[] = 'fc-cat-design';
     } elseif (($student['curvatura_design'] ?? '') === 'normale') {
@@ -2709,6 +2787,7 @@ function fc_render_student(array $student, int $targetClassYear = 0): string
         . ' data-dsa="' . $hasDsa . '"'
         . ' data-fascia_c="' . $hasFasciaC . '"'
         . ' data-legge_104="' . $has104 . '"'
+        . ' data-bocciato="' . (((string)($student['gruppo_origine'] ?? '') === 'bocciato' || !empty($student['bocciato_altra_scuola']) || !empty($student['doppio_bocciato_non_consecutivo'])) ? '1' : '0') . '"'
         . ' data-media_generale="' . formazioneClassiH(fc_float_attr($student['media_generale'] ?? null)) . '"'
         . ' data-voto_matematica="' . formazioneClassiH(fc_float_attr($student['voto_matematica'] ?? null)) . '"'
         . ' data-voto_italiano="' . formazioneClassiH(fc_float_attr($student['voto_italiano'] ?? null)) . '"'
@@ -2720,8 +2799,15 @@ function fc_render_student(array $student, int $targetClassYear = 0): string
     $lockIcon = $locked ? '<span class="glyphicon glyphicon-lock"></span>' : '<span class="fc-lock-symbol" aria-hidden="true">&#128275;</span>';
     $html .= '<button type="button" class="fc-lock-btn fc-student-lock ' . ($locked ? 'locked' : '') . '" data-locked="' . ($locked ? '1' : '0') . '" title="Blocca o sblocca questo studente">' . $lockIcon . ' ' . ($locked ? 'Sblocca' : 'Blocca') . '</button>';
     $html .= '</div>';
+    $badges = [];
+    if (!empty($student['bocciato_altra_scuola'])) {
+        $badges[] = '<span class="fc-failed-badge" title="Segnalato nei movimenti o nei colloqui">Bocciato altra scuola</span>';
+    }
     if ($isTabletStudent) {
-        $html .= '<div class="fc-student-badges"><span class="fc-tablet-badge" title="' . formazioneClassiH($tabletInfo['source'] ?? 'tablet') . '">Tablet</span></div>';
+        $badges[] = '<span class="fc-tablet-badge" title="' . formazioneClassiH($tabletInfo['source'] ?? 'tablet') . '">Tablet</span>';
+    }
+    if ($badges) {
+        $html .= '<div class="fc-student-badges">' . implode('', $badges) . '</div>';
     }
     $meta = [];
     $studentGroup = (string)($student['gruppo_origine'] ?? '');
@@ -2750,12 +2836,17 @@ function fc_render_student(array $student, int $targetClassYear = 0): string
     if (!empty($student['doppio_bocciato_non_consecutivo'])) {
         $meta[] = 'doppio bocciato non consecutivo';
     }
+    if (!empty($student['bocciato_altra_scuola'])) {
+        $meta[] = 'bocciato in altra scuola';
+    }
     $html .= '<div class="fc-student-meta">' . formazioneClassiH(implode(' · ', $meta)) . '</div>';
     $html .= '<div class="fc-student-values">';
     $html .= fc_render_grade_chip($targetClassYear === 1 ? 'Medie' : 'Med', $student['media_generale'] ?? null);
     $html .= fc_render_grade_chip('Mat', $student['voto_matematica'] ?? null);
     $html .= fc_render_grade_chip('Ita', $student['voto_italiano'] ?? null);
-    $html .= fc_render_grade_chip('Rel', $student['voto_capacita_relazionale'] ?? null);
+    if ($targetClassYear !== 1) {
+        $html .= fc_render_grade_chip('Rel', $student['voto_capacita_relazionale'] ?? null);
+    }
     $html .= '</div>';
     $statusChips = '';
     foreach (($student['attributi_riservati'] ?? []) as $attr) {
@@ -2806,7 +2897,7 @@ function fc_render_student(array $student, int $targetClassYear = 0): string
     return $html;
 }
 
-function fc_summary_indicators(array $classes): array
+function fc_summary_indicators(array $classes, int $targetClassYear = 0): array
 {
     $max = [
         'count' => 1,
@@ -2821,21 +2912,24 @@ function fc_summary_indicators(array $classes): array
         }
     }
 
-    return [
+    $indicators = [
         'count' => ['label' => 'Numero studenti', 'max' => $max['count'], 'format' => 'int'],
-        'media_generale' => ['label' => 'Media generale', 'max' => 10, 'format' => 'avg', 'grade_distribution' => true],
+        'media_generale' => ['label' => $targetClassYear === 1 ? 'Voto medie' : 'Media generale', 'max' => 10, 'format' => 'avg', 'grade_distribution' => true],
         'voto_matematica' => ['label' => 'Matematica', 'max' => 10, 'format' => 'avg', 'grade_distribution' => true],
         'voto_italiano' => ['label' => 'Italiano', 'max' => 10, 'format' => 'avg', 'grade_distribution' => true],
-        'voto_capacita_relazionale' => ['label' => 'Capacita relazionale', 'max' => 10, 'format' => 'avg', 'grade_distribution' => true],
         'dsa' => ['label' => 'DSA', 'max' => $max['dsa'], 'format' => 'int', 'hide_if_empty' => true],
         'fascia_c' => ['label' => 'Fascia C', 'max' => $max['fascia_c'], 'format' => 'int', 'hide_if_empty' => true],
         'legge_104' => ['label' => '104', 'max' => $max['legge_104'], 'format' => 'int', 'hide_if_empty' => true],
     ];
+    if ($targetClassYear !== 1) {
+        $indicators['voto_capacita_relazionale'] = ['label' => 'Capacita relazionale', 'max' => 10, 'format' => 'avg', 'grade_distribution' => true];
+    }
+    return $indicators;
 }
 
-function fc_visible_summary_indicators(array $classes): array
+function fc_visible_summary_indicators(array $classes, int $targetClassYear = 0): array
 {
-    $indicators = fc_summary_indicators($classes);
+    $indicators = fc_summary_indicators($classes, $targetClassYear);
     foreach ($indicators as $key => $indicator) {
         if ($key === 'count') {
             continue;
@@ -2868,7 +2962,7 @@ function fc_visible_summary_indicators(array $classes): array
     return $indicators;
 }
 
-function fc_compact_table_columns(array $visibleIndicators): array
+function fc_compact_table_columns(array $visibleIndicators, int $targetClassYear = 0): array
 {
     $columns = [
         ['key' => 'classe', 'label' => 'Classe'],
@@ -2876,7 +2970,7 @@ function fc_compact_table_columns(array $visibleIndicators): array
         ['key' => 'mf', 'label' => 'M/F'],
     ];
     $labels = [
-        'media_generale' => 'Media',
+        'media_generale' => $targetClassYear === 1 ? 'Voto medie' : 'Media',
         'voto_matematica' => 'Mat.',
         'voto_italiano' => 'Ita.',
         'voto_capacita_relazionale' => 'Cap. rel.',
@@ -2897,10 +2991,10 @@ function fc_compact_table_columns(array $visibleIndicators): array
     return $columns;
 }
 
-function fc_render_compact_dashboard(array $classes, array $classColors): string
+function fc_render_compact_dashboard(array $classes, array $classColors, int $targetClassYear = 0): string
 {
-    $visibleIndicators = fc_visible_summary_indicators($classes);
-    $tableColumns = fc_compact_table_columns($visibleIndicators);
+    $visibleIndicators = fc_visible_summary_indicators($classes, $targetClassYear);
+    $tableColumns = fc_compact_table_columns($visibleIndicators, $targetClassYear);
     $html = '<div class="fc-compact-grid">';
     $html .= '<section class="fc-compact-panel fc-compact-panel-wide">';
     $html .= '<div class="fc-summary-title">Quadro numerico classi</div>';
