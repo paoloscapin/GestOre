@@ -464,6 +464,7 @@ function studentiMovimentiFindOrCreateStudentForEntrata(array $fields): int
             LIMIT 1
         ") ?? 0);
         if ($studentId > 0) {
+            dbExec("UPDATE studente SET attivo = 1 WHERE id = " . dbI($studentId) . " LIMIT 1");
             return $studentId;
         }
     }
@@ -476,6 +477,7 @@ function studentiMovimentiFindOrCreateStudentForEntrata(array $fields): int
         LIMIT 1
     ") ?? 0);
     if ($studentId > 0) {
+        dbExec("UPDATE studente SET attivo = 1 WHERE id = " . dbI($studentId) . " LIMIT 1");
         return $studentId;
     }
 
@@ -492,6 +494,7 @@ function studentiMovimentiFindOrCreateStudentForEntrata(array $fields): int
             LIMIT 1
         ") ?? 0);
         if ($studentId > 0) {
+            dbExec("UPDATE studente SET attivo = 1 WHERE id = " . dbI($studentId) . " LIMIT 1");
             return $studentId;
         }
     }
@@ -518,6 +521,70 @@ function studentiMovimentiFindOrCreateStudentForEntrata(array $fields): int
     ");
 
     return intval(dblastId());
+}
+
+function studentiMovimentiEnsureStudentsForEntrate(): array
+{
+    studentiMovimentiEnsureTables();
+    $inactiveLinked = intval(dbGetValue("
+        SELECT COUNT(*)
+        FROM studenti_movimenti_pratiche p
+        INNER JOIN studente s ON s.id = p.id_studente
+        WHERE p.tipo_pratica = 'entrata'
+          AND p.stato_pratica <> 'annullata'
+          AND COALESCE(p.id_studente, 0) > 0
+          AND COALESCE(s.attivo, 0) = 0
+    ") ?? 0);
+    if ($inactiveLinked > 0) {
+        dbExec("
+            UPDATE studente s
+            INNER JOIN studenti_movimenti_pratiche p ON p.id_studente = s.id
+            SET s.attivo = 1
+            WHERE p.tipo_pratica = 'entrata'
+              AND p.stato_pratica <> 'annullata'
+              AND COALESCE(p.id_studente, 0) > 0
+              AND COALESCE(s.attivo, 0) = 0
+        ");
+    }
+
+    $rows = dbGetAll("
+        SELECT *
+        FROM studenti_movimenti_pratiche
+        WHERE tipo_pratica = 'entrata'
+          AND stato_pratica <> 'annullata'
+          AND COALESCE(id_studente, 0) = 0
+          AND TRIM(COALESCE(cognome, '')) <> ''
+          AND TRIM(COALESCE(nome, '')) <> ''
+        ORDER BY id ASC
+    ") ?: [];
+
+    $linked = 0;
+    $skipped = 0;
+    $errors = [];
+    foreach ($rows as $row) {
+        try {
+            $studentId = studentiMovimentiFindOrCreateStudentForEntrata($row);
+            if ($studentId <= 0) {
+                $skipped++;
+                continue;
+            }
+            dbExec("
+                UPDATE studenti_movimenti_pratiche
+                SET id_studente = " . dbI($studentId) . ",
+                    updated_at = NOW()
+                WHERE id = " . dbI($row['id'] ?? 0) . "
+                LIMIT 1
+            ");
+            $linked++;
+        } catch (Throwable $e) {
+            $skipped++;
+            if (count($errors) < 20) {
+                $errors[] = trim((string)($row['cognome'] ?? '') . ' ' . (string)($row['nome'] ?? '')) . ': ' . $e->getMessage();
+            }
+        }
+    }
+
+    return ['read' => count($rows), 'linked' => $linked, 'activated' => $inactiveLinked, 'skipped' => $skipped, 'errors' => $errors];
 }
 
 function studentiMovimentiSchoolYearForIscrizione(string $tipoIscrizione): string
@@ -764,6 +831,19 @@ function studentiMovimentiUpdateIscrizioneContactsFromEntrata(int $praticaId, ar
             ? dbQ($value)
             : "CASE WHEN COALESCE(" . $field . ", '') = '' THEN " . dbQ($value) . " ELSE " . $field . " END");
     }
+    if ($force) {
+        $tipoIscrizione = studentiMovimentiTipoIscrizioneForEntrata($fields);
+        $annoCorso = $tipoIscrizione === 'terze' ? 3 : ($tipoIscrizione === 'prime' ? 1 : intval($fields['anno_corso'] ?? 0));
+        $indirizzoNome = studentiMovimentiIndirizzoNomeById(intval($fields['id_indirizzo_gestore'] ?? 0));
+        $corsoStudi = $tipoIscrizione === 'prime'
+            ? ($indirizzoNome !== '' ? $indirizzoNome : 'BIENNIO SETTORE TECNOLOGICO')
+            : ($indirizzoNome !== '' ? $indirizzoNome : trim((string)($fields['indirizzo_destinazione'] ?? '')));
+        $sets[] = 'tipo_iscrizione = ' . dbQ($tipoIscrizione !== '' ? $tipoIscrizione : 'terze');
+        $sets[] = 'anno_corso = ' . dbI($annoCorso > 0 ? $annoCorso : null);
+        $sets[] = 'corso_studi = ' . dbQ($corsoStudi);
+        $sets[] = 'id_indirizzo_gestore = ' . dbI($fields['id_indirizzo_gestore'] ?? null);
+        $sets[] = 'scuola_provenienza = ' . dbQ($fields['scuola_provenienza'] ?? null);
+    }
     if (!$sets) {
         return;
     }
@@ -781,13 +861,31 @@ function studentiMovimentiEnsureIscrizioneForEntrata(array &$fields, int $moveme
     if (($fields['tipo_pratica'] ?? '') !== 'entrata') {
         return;
     }
-    if (intval($fields['id_pratica_iscrizione'] ?? 0) > 0) {
-        studentiMovimentiUpdateIscrizioneContactsFromEntrata(intval($fields['id_pratica_iscrizione']), $fields);
-        return;
-    }
-
     $tipoIscrizione = studentiMovimentiTipoIscrizioneForEntrata($fields);
     if (!in_array($tipoIscrizione, ['prime', 'terze'], true)) {
+        $linkedPracticeId = intval($fields['id_pratica_iscrizione'] ?? 0);
+        if ($linkedPracticeId > 0) {
+            $linked = dbGetFirst("SELECT raw_prime_json FROM iscrizioni_prime_pratiche WHERE id = " . dbI($linkedPracticeId) . " LIMIT 1") ?: [];
+            $raw = json_decode((string)($linked['raw_prime_json'] ?? ''), true);
+            if (is_array($raw) && (($raw['FONTE'] ?? '') === 'movimenti_entrata')) {
+                dbExec("
+                    UPDATE iscrizioni_prime_pratiche
+                    SET stato = 'annullata',
+                        note_interne = CONCAT(COALESCE(note_interne, ''), '\nPratica annullata automaticamente: movimento entrata non piu riferito a prime/terze.'),
+                        updated_at = NOW()
+                    WHERE id = " . dbI($linkedPracticeId) . "
+                    LIMIT 1
+                ");
+            }
+        }
+        $fields['id_pratica_iscrizione'] = null;
+        return;
+    }
+    if (intval($fields['id_pratica_iscrizione'] ?? 0) > 0) {
+        $linked = dbGetFirst("SELECT raw_prime_json FROM iscrizioni_prime_pratiche WHERE id = " . dbI($fields['id_pratica_iscrizione']) . " LIMIT 1") ?: [];
+        $raw = json_decode((string)($linked['raw_prime_json'] ?? ''), true);
+        studentiMovimentiUpdateIscrizioneContactsFromEntrata(intval($fields['id_pratica_iscrizione']), $fields, is_array($raw) && (($raw['FONTE'] ?? '') === 'movimenti_entrata'));
+        studentiMovimentiSyncGeneratedIscrizioneDocuments($movementId, intval($fields['id_pratica_iscrizione']));
         return;
     }
 
@@ -814,6 +912,7 @@ function studentiMovimentiEnsureIscrizioneForEntrata(array &$fields, int $moveme
         $fields['id_pratica_iscrizione'] = intval($existing['id']);
         $raw = json_decode((string)($existing['raw_prime_json'] ?? ''), true);
         studentiMovimentiUpdateIscrizioneContactsFromEntrata(intval($existing['id']), $fields, is_array($raw) && (($raw['FONTE'] ?? '') === 'movimenti_entrata'));
+        studentiMovimentiSyncGeneratedIscrizioneDocuments($movementId, intval($existing['id']));
         return;
     }
 
@@ -885,6 +984,134 @@ function studentiMovimentiEnsureIscrizioneForEntrata(array &$fields, int $moveme
     $praticaId = intval(dblastId());
     iscrizioniPrimeEnsureDocumentRows($praticaId);
     $fields['id_pratica_iscrizione'] = $praticaId;
+    studentiMovimentiSyncGeneratedIscrizioneDocuments($movementId, $praticaId);
+}
+
+function studentiMovimentiSyncGeneratedIscrizioneDocuments(int $movementId, int $praticaId = 0): int
+{
+    if ($movementId <= 0) {
+        return 0;
+    }
+    if ($praticaId <= 0) {
+        $praticaId = intval(dbGetValue("
+            SELECT id_pratica_iscrizione
+            FROM studenti_movimenti_pratiche
+            WHERE id = " . dbI($movementId) . "
+            LIMIT 1
+        ") ?? 0);
+    }
+    if ($praticaId <= 0) {
+        return 0;
+    }
+
+    $pratica = dbGetFirst("SELECT id, tipo_iscrizione, raw_prime_json FROM iscrizioni_prime_pratiche WHERE id = " . dbI($praticaId) . " LIMIT 1") ?: [];
+    $raw = json_decode((string)($pratica['raw_prime_json'] ?? ''), true);
+    if (!is_array($raw) || (($raw['FONTE'] ?? '') !== 'movimenti_entrata')) {
+        return 0;
+    }
+
+    iscrizioniPrimeEnsureDocumentRows($praticaId, $pratica);
+    $tipoIscrizione = iscrizioniPrimeNormalizeTipoIscrizione((string)($pratica['tipo_iscrizione'] ?? 'prime'));
+    $allowed = array_fill_keys(array_keys(iscrizioniPrimeDocumentTypes($pratica)), true);
+    $allowed['nulla_osta'] = true;
+    $typeMap = $tipoIscrizione === 'terze'
+        ? [
+            'pagella' => 'pagella_seconda',
+            'pagella_precedente' => 'pagella_seconda',
+            'documento_identita_studente' => 'documento_cf_studente',
+            'codice_fiscale_studente' => 'documento_cf_studente',
+            'documento_identita_genitore_1' => 'documento_cf_genitore_1',
+            'codice_fiscale_genitore_1' => 'documento_cf_genitore_1',
+            'documento_identita_genitore_2' => 'documento_cf_genitore_2',
+            'codice_fiscale_genitore_2' => 'documento_cf_genitore_2',
+            'documenti_identita' => 'documento_cf_studente',
+            'documenti_entrata' => 'documento_cf_studente',
+            'nulla_osta' => 'nulla_osta',
+            'nulla_osta_entrata' => 'nulla_osta',
+            'richiesta_nulla_osta' => 'nulla_osta',
+            'domanda_nulla_osta' => 'nulla_osta',
+            'altro' => 'altro',
+        ]
+        : [
+            'pagella' => 'pagella',
+            'pagella_precedente' => 'pagella',
+            'documento_identita_studente' => 'documento_identita_studente',
+            'codice_fiscale_studente' => 'codice_fiscale_studente',
+            'documento_identita_genitore_1' => 'documento_identita_genitore_1',
+            'codice_fiscale_genitore_1' => 'codice_fiscale_genitore_1',
+            'documento_identita_genitore_2' => 'documento_identita_genitore_2',
+            'codice_fiscale_genitore_2' => 'codice_fiscale_genitore_2',
+            'documenti_identita' => 'documento_identita_studente',
+            'documenti_entrata' => 'documento_identita_studente',
+            'nulla_osta' => 'nulla_osta',
+            'nulla_osta_entrata' => 'nulla_osta',
+            'richiesta_nulla_osta' => 'nulla_osta',
+            'domanda_nulla_osta' => 'nulla_osta',
+            'altro' => 'altro',
+        ];
+
+    $attachments = dbGetAll("
+        SELECT *
+        FROM studenti_movimenti_allegati
+        WHERE id_pratica = " . dbI($movementId) . "
+        ORDER BY id ASC
+    ") ?: [];
+    $managedTypes = array_values(array_unique(array_filter(array_map(static function (string $targetType) use ($allowed): string {
+        return isset($allowed[$targetType]) ? $targetType : '';
+    }, array_values($typeMap)))));
+    if ($managedTypes) {
+        dbExec("
+            UPDATE iscrizioni_prime_documenti
+            SET stato = 'mancante',
+                original_name = NULL,
+                file_path = NULL,
+                mime_type = NULL,
+                file_size = NULL,
+                storage_type = 'LOCAL',
+                drive_file_id = NULL,
+                drive_web_view_link = NULL,
+                drive_folder_id = NULL,
+                uploaded_at = NULL
+            WHERE pratica_id = " . dbI($praticaId) . "
+              AND tipo_documento IN (" . implode(', ', array_map('dbQ', $managedTypes)) . ")
+        ");
+    }
+    $synced = 0;
+    foreach ($attachments as $attachment) {
+        $sourceType = trim((string)($attachment['tipo_allegato'] ?? ''));
+        $targetType = $typeMap[$sourceType] ?? '';
+        if ($targetType === '' || !isset($allowed[$targetType])) {
+            continue;
+        }
+        $hasFile = trim((string)($attachment['path_file'] ?? '')) !== ''
+            || trim((string)($attachment['drive_file_id'] ?? '')) !== '';
+        if (!$hasFile) {
+            continue;
+        }
+        dbExec("
+            INSERT IGNORE INTO iscrizioni_prime_documenti (pratica_id, tipo_documento, stato)
+            VALUES (" . dbI($praticaId) . ", " . dbQ($targetType) . ", 'mancante')
+        ");
+        dbExec("
+            UPDATE iscrizioni_prime_documenti
+            SET stato = 'caricato',
+                original_name = " . dbQ($attachment['nome_file'] ?? null) . ",
+                file_path = " . dbQ($attachment['path_file'] ?? null) . ",
+                mime_type = " . dbQ($attachment['mime_type'] ?? null) . ",
+                file_size = " . dbI($attachment['dimensione'] ?? null) . ",
+                storage_type = " . dbQ($attachment['storage_type'] ?? 'LOCAL') . ",
+                drive_file_id = " . dbQ($attachment['drive_file_id'] ?? null) . ",
+                drive_web_view_link = " . dbQ($attachment['drive_web_view_link'] ?? null) . ",
+                drive_folder_id = " . dbQ($attachment['drive_folder_id'] ?? null) . ",
+                uploaded_at = NOW()
+            WHERE pratica_id = " . dbI($praticaId) . "
+              AND tipo_documento = " . dbQ($targetType) . "
+            LIMIT 1
+        ");
+        $synced++;
+    }
+
+    return $synced;
 }
 
 function studentiMovimentiEnsureIscrizioniForEntrate(): array
@@ -1485,6 +1712,11 @@ function studentiMovimentiAddEvent(int $practiceId, string $type, string $descri
     if ($practiceId <= 0) {
         return 0;
     }
+    $eventIndirizzoDestinazione = trim((string)($fields['indirizzo_destinazione'] ?? ''));
+    $gestoreAddressName = studentiMovimentiIndirizzoNomeById(intval($fields['id_indirizzo_gestore'] ?? 0));
+    if ($gestoreAddressName !== '') {
+        $eventIndirizzoDestinazione = $gestoreAddressName;
+    }
     $linkedColloquioId = intval($fields['id_colloquio_genitori'] ?? 0);
     if ($type === 'colloquio_genitori' && $linkedColloquioId > 0) {
         $existingEvent = dbGetFirst("
@@ -1504,7 +1736,7 @@ function studentiMovimentiAddEvent(int $practiceId, string $type, string $descri
                 'tipo_pratica' => $fields['tipo_pratica'] ?? null,
                 'id_istituto_destinazione' => $fields['id_istituto_destinazione'] ?? null,
                 'scuola_destinazione' => $fields['scuola_destinazione'] ?? null,
-                'indirizzo_destinazione' => $fields['indirizzo_destinazione'] ?? null,
+                'indirizzo_destinazione' => $eventIndirizzoDestinazione,
                 'id_istituto_provenienza' => $fields['id_istituto_provenienza'] ?? null,
                 'scuola_provenienza' => $fields['scuola_provenienza'] ?? null,
                 'indirizzo_provenienza' => $fields['indirizzo_provenienza'] ?? null,
@@ -1535,7 +1767,7 @@ function studentiMovimentiAddEvent(int $practiceId, string $type, string $descri
                     tipo_pratica = " . dbQ($fields['tipo_pratica'] ?? null) . ",
                     id_istituto_destinazione = " . dbI($fields['id_istituto_destinazione'] ?? null) . ",
                     scuola_destinazione = " . dbQ($fields['scuola_destinazione'] ?? null) . ",
-                    indirizzo_destinazione = " . dbQ($fields['indirizzo_destinazione'] ?? null) . ",
+                    indirizzo_destinazione = " . dbQ($eventIndirizzoDestinazione) . ",
                     id_istituto_provenienza = " . dbI($fields['id_istituto_provenienza'] ?? null) . ",
                     scuola_provenienza = " . dbQ($fields['scuola_provenienza'] ?? null) . ",
                     indirizzo_provenienza = " . dbQ($fields['indirizzo_provenienza'] ?? null) . ",
@@ -1572,7 +1804,7 @@ function studentiMovimentiAddEvent(int $practiceId, string $type, string $descri
             " . dbQ($fields['tipo_pratica'] ?? null) . ",
             " . dbI($fields['id_istituto_destinazione'] ?? null) . ",
             " . dbQ($fields['scuola_destinazione'] ?? null) . ",
-            " . dbQ($fields['indirizzo_destinazione'] ?? null) . ",
+            " . dbQ($eventIndirizzoDestinazione) . ",
             " . dbI($fields['id_istituto_provenienza'] ?? null) . ",
             " . dbQ($fields['scuola_provenienza'] ?? null) . ",
             " . dbQ($fields['indirizzo_provenienza'] ?? null) . ",
@@ -1777,6 +2009,7 @@ function studentiMovimentiDeleteAttachment(int $attachmentId): bool
     if ($normalizedPath !== '' && strpos($normalizedPath, $baseDir) === 0 && is_file($path)) {
         @unlink($path);
     }
+    studentiMovimentiSyncGeneratedIscrizioneDocuments(intval($attachment['id_pratica'] ?? 0));
     return true;
 }
 
@@ -2262,6 +2495,7 @@ function studentiMovimentiAttachFile(int $practiceId, array $file, string $type)
             LIMIT 1
         ");
     }
+    studentiMovimentiSyncGeneratedIscrizioneDocuments($practiceId);
 }
 
 function studentiMovimentiAttachFiles(int $practiceId, array $files, string $type): int

@@ -108,6 +108,16 @@ $materieGestore = dbGetAll("
 ") ?: [];
 $indirizziGestore = iscrizioniPrimeGestoreAddressOptions();
 try {
+    $entrateStudentiSync = studentiMovimentiEnsureStudentsForEntrate();
+    if (intval($entrateStudentiSync['linked'] ?? 0) > 0 && $message === '') {
+        $message = 'Studenti GestOre collegati/create per entrate: ' . intval($entrateStudentiSync['linked']) . '.';
+    }
+    if (intval($entrateStudentiSync['activated'] ?? 0) > 0 && $message === '') {
+        $message = 'Studenti GestOre riattivati per entrate: ' . intval($entrateStudentiSync['activated']) . '.';
+    }
+    if (!empty($entrateStudentiSync['errors']) && $error === '') {
+        $error = 'Alcune entrate non hanno ancora lo studente GestOre: ' . implode(' | ', $entrateStudentiSync['errors']);
+    }
     $entrateIscrizioniSync = studentiMovimentiEnsureIscrizioniForEntrate();
     if (intval($entrateIscrizioniSync['linked'] ?? 0) > 0 && $message === '') {
         $message = 'Pratiche iscrizione collegate/create per entrate prime-terze: ' . intval($entrateIscrizioniSync['linked']) . '.';
@@ -165,6 +175,9 @@ $pratiche = dbGetAll("
            pre.curvatura_design AS preiscrizione_terze_curvatura_design,
            pre.id_indirizzo_gestore AS preiscrizione_terze_indirizzo_id,
            ind_pre.nome AS preiscrizione_terze_indirizzo_nome,
+           linked_pratica.id AS linked_pratica_id,
+           linked_pratica.tipo_iscrizione AS linked_pratica_tipo_iscrizione,
+           linked_pratica.stato AS linked_pratica_stato,
            COUNT(a.id) AS allegati_count
     FROM studenti_movimenti_pratiche p
     LEFT JOIN studente s ON s.id = p.id_studente
@@ -193,6 +206,7 @@ $pratiche = dbGetAll("
         LIMIT 1
     )
     LEFT JOIN indirizzo ind_pre ON ind_pre.id = pre.id_indirizzo_gestore
+    LEFT JOIN iscrizioni_prime_pratiche linked_pratica ON linked_pratica.id = p.id_pratica_iscrizione
     LEFT JOIN studenti_movimenti_allegati a ON a.id_pratica = p.id
     GROUP BY p.id
     ORDER BY COALESCE(p.anno_corso, 99) ASC,
@@ -316,7 +330,13 @@ function ms_iscrizione_pratica_url(array $row): string
     if ($praticaId <= 0) {
         return '';
     }
+    if (intval($row['linked_pratica_id'] ?? 0) !== $praticaId || trim((string)($row['linked_pratica_stato'] ?? '')) === 'annullata') {
+        return '';
+    }
     $tipoIscrizione = intval($row['anno_corso'] ?? 0) === 3 ? 'terze' : 'prime';
+    if ((string)($row['linked_pratica_tipo_iscrizione'] ?? '') !== $tipoIscrizione) {
+        return '';
+    }
     return 'iscrizioniPrimeDomande.php?tipo_iscrizione=' . rawurlencode($tipoIscrizione)
         . '&stato=tutte&open_pratica_id=' . $praticaId
         . '#pratica-' . $praticaId;
@@ -874,6 +894,18 @@ function ms_matches_filters(array $row, string $filterText, string $filterState,
         .ms-doc-inline-upload input[type="file"] {
             flex: 1 1 190px;
             min-width: 0;
+        }
+        .ms-doc-upload-tools {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            margin: 0 0 10px;
+        }
+        .ms-doc-upload-status {
+            color: #475569;
+            font-size: 12px;
+            font-weight: 700;
         }
         .ms-doc-extra-title {
             color: #60718a;
@@ -2257,13 +2289,18 @@ function msRenderPracticeDocs(practiceId) {
         const inputId = 'ms_doc_file_' + document.key;
         const buttonText = matches.length ? 'Aggiungi' : 'Carica';
         return '<div class="ms-doc-inline-upload">' +
-            '<input type="file" id="' + msEscape(inputId) + '" class="form-control input-sm" accept="application/pdf,image/jpeg,image/png" multiple>' +
+            '<input type="file" id="' + msEscape(inputId) + '" class="form-control input-sm ms-doc-upload-input" data-tipo-documento="' + msEscape(document.key) + '" accept="application/pdf,image/jpeg,image/png" multiple>' +
             '<button type="button" class="btn btn-xs btn-success" onclick="msUploadPracticeAttachments(\'' + msEscape(document.key) + '\', \'' + msEscape(inputId) + '\')">' +
             '<span class="glyphicon glyphicon-plus"></span> ' + buttonText +
             '</button>' +
             '</div>';
     }
-    let html = '<table class="ms-doc-table"><colgroup><col style="width:30%"><col style="width:12%"><col style="width:58%"></colgroup>' +
+    let html = '<div class="ms-doc-upload-tools">' +
+        '<button type="button" class="btn btn-sm btn-success" onclick="msUploadSelectedPracticeAttachments(event)">' +
+        '<span class="glyphicon glyphicon-upload"></span> Carica tutti i file selezionati</button>' +
+        '<span class="ms-doc-upload-status" id="ms_doc_upload_all_status"></span>' +
+        '</div>' +
+        '<table class="ms-doc-table"><colgroup><col style="width:30%"><col style="width:12%"><col style="width:58%"></colgroup>' +
         '<thead><tr><th>Documento</th><th>Stato</th><th>File</th></tr></thead><tbody>';
     documents.forEach(function (document) {
         const matches = document.checkOnly ? [] : attachmentsForDocument(document);
@@ -2324,25 +2361,98 @@ function msUploadPracticeAttachments(type, inputId) {
         window.alert('Seleziona almeno un documento da caricare.');
         return;
     }
-    const data = new FormData();
-    data.append('action', 'add_practice_attachment');
-    data.append('id', practiceId);
-    data.append('tipo_allegato', type || 'altro');
-    Array.prototype.forEach.call(fileInput.files, function (file) {
-        data.append('allegato[]', file);
-    });
     msShowWait('Caricamento documento', 'Sto caricando il documento nella pratica...');
-    fetch(window.location.href, {
-        method: 'POST',
-        body: data,
-        credentials: 'same-origin'
-    }).then(function () {
+    msUploadPracticeAttachmentFiles(practiceId, type || 'altro', fileInput.files).then(function () {
         window.location.href = 'movimentiStudenti.php?open_movimento_id=' + practiceId;
     }).catch(function () {
         const overlay = document.getElementById('msWaitOverlay');
         if (overlay) overlay.classList.remove('is-visible');
         window.alert('Caricamento documento non riuscito.');
     });
+}
+
+function msUploadPracticeAttachmentFiles(practiceId, type, files) {
+    const data = new FormData();
+    data.append('action', 'add_practice_attachment');
+    data.append('id', practiceId);
+    data.append('tipo_allegato', type || 'altro');
+    Array.prototype.forEach.call(files, function (file) {
+        data.append('allegato[]', file);
+    });
+    return fetch(window.location.href, {
+        method: 'POST',
+        body: data,
+        credentials: 'same-origin'
+    });
+}
+
+async function msUploadSelectedPracticeAttachments(event) {
+    if (event) event.preventDefault();
+    const practiceId = Number(document.getElementById('ms_id').value || 0);
+    if (!practiceId) {
+        window.alert('Salva prima la pratica, poi potrai caricare documenti.');
+        return false;
+    }
+    const inputs = Array.from(document.querySelectorAll('#ms_docs_content .ms-doc-upload-input')).filter(function (input) {
+        return input.files && input.files.length;
+    });
+    const status = document.getElementById('ms_doc_upload_all_status');
+    const trigger = event ? event.currentTarget : null;
+    if (!inputs.length) {
+        if (status) {
+            status.textContent = 'Seleziona almeno un file in una riga documento.';
+            status.style.color = '#b91c1c';
+        }
+        return false;
+    }
+    if (trigger) {
+        trigger.disabled = true;
+    }
+    document.querySelectorAll('#ms_docs_content .ms-doc-inline-upload button').forEach(function (button) {
+        button.disabled = true;
+    });
+    msShowWait('Caricamento allegati', 'Sto salvando tutti i file selezionati...');
+
+    let uploaded = 0;
+    let errors = 0;
+    for (const input of inputs) {
+        if (status) {
+            status.textContent = 'Caricamento ' + (uploaded + errors + 1) + ' di ' + inputs.length + '...';
+            status.style.color = '#475569';
+        }
+        try {
+            const response = await msUploadPracticeAttachmentFiles(practiceId, input.dataset.tipoDocumento || 'altro', input.files);
+            if (!response.ok) {
+                errors++;
+            } else {
+                uploaded++;
+            }
+        } catch (e) {
+            errors++;
+        }
+    }
+
+    if (uploaded > 0) {
+        if (errors > 0) {
+            window.alert(uploaded + ' righe caricate, ' + errors + ' con errore.');
+        }
+        window.location.href = 'movimentiStudenti.php?open_movimento_id=' + practiceId;
+        return false;
+    }
+
+    const overlay = document.getElementById('msWaitOverlay');
+    if (overlay) overlay.classList.remove('is-visible');
+    if (status) {
+        status.textContent = 'Nessun documento caricato.';
+        status.style.color = '#b91c1c';
+    }
+    if (trigger) {
+        trigger.disabled = false;
+    }
+    document.querySelectorAll('#ms_docs_content .ms-doc-inline-upload button').forEach(function (button) {
+        button.disabled = false;
+    });
+    return false;
 }
 
 function msSubmitHiddenPost(fields) {
@@ -2491,7 +2601,7 @@ function msRenderHistory(practiceId) {
             row.tipo_pratica ? 'Tipo: ' + row.tipo_pratica : '',
             row.stato_pratica ? 'Stato: ' + row.stato_pratica : '',
             row.scuola_destinazione ? 'Destinazione: ' + row.scuola_destinazione : '',
-            row.indirizzo_destinazione ? 'Indirizzo destinazione: ' + row.indirizzo_destinazione : '',
+            row.indirizzo_destinazione ? 'Indirizzo/GestOre: ' + row.indirizzo_destinazione : '',
             row.scuola_provenienza ? 'Provenienza: ' + row.scuola_provenienza : '',
             row.tipo_allegato ? 'Tipo allegato: ' + row.tipo_allegato : '',
         ].filter(Boolean).join(' - ');
@@ -2802,6 +2912,11 @@ document.querySelectorAll('.ms-note-field').forEach(function (element) {
 
 document.getElementById('msPracticeForm').addEventListener('submit', function () {
     msShowWait('Salvataggio pratica', 'Sto salvando i dati della pratica...');
+    const url = new URL(window.location.href);
+    if (url.searchParams.has('open_movimento_id')) {
+        url.searchParams.delete('open_movimento_id');
+        window.history.replaceState({}, '', url.toString());
+    }
     msSyncVisibleNote();
     msSyncSubjectNotes();
     msSyncSchoolHidden('ms_id_istituto_provenienza', 'ms_scuola_provenienza', 'ms_scuola_provenienza_altro');

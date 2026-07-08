@@ -279,7 +279,9 @@ $statsTotale = intval($stats['inviate'] ?? 0)
     + intval($stats['da_integrare'] ?? 0)
     + intval($stats['annullate'] ?? 0);
 
-$labels = array_merge(iscrizioniPrimeDocumentTypes($tipoIscrizione), iscrizioniPrimeSecretaryDocumentTypes($tipoIscrizione));
+$labels = array_merge(iscrizioniPrimeDocumentTypes($tipoIscrizione), iscrizioniPrimeSecretaryDocumentTypes($tipoIscrizione), [
+    'nulla_osta' => 'Nulla osta',
+]);
 $eventiPratiche = [];
 foreach ($pratiche as $praticaEvento) {
     $eventiPratiche[intval($praticaEvento['id'] ?? 0)] = ipd_filter_duplicate_integration_events(iscrizioniPrimeEventsForPratica($praticaEvento));

@@ -520,6 +520,20 @@ function genitoriColloquiSyncContactsToMovement(int $movementId, array $fields):
                 $updates[] = "`$target` = " . dbQ($value);
             }
         }
+        $indirizzoIscrizione = trim((string)($fields['indirizzo_iscrizione'] ?? ''));
+        if ($indirizzoIscrizione !== '') {
+            $indirizzoGestoreId = intval(dbGetValue("
+                SELECT id
+                FROM indirizzo
+                WHERE TRIM(nome) = " . dbQ($indirizzoIscrizione) . "
+                   OR TRIM(nome_breve) = " . dbQ($indirizzoIscrizione) . "
+                ORDER BY id ASC
+                LIMIT 1
+            ") ?? 0);
+            if ($indirizzoGestoreId > 0) {
+                $updates[] = "`id_indirizzo_gestore` = " . dbI($indirizzoGestoreId);
+            }
+        }
     } elseif ($ambito === 'uscita') {
         foreach ([
             'id_istituto_destinazione',
@@ -578,6 +592,26 @@ function genitoriColloquiSyncContactsToMovement(int $movementId, array $fields):
         WHERE id = " . dbI($movementId) . "
         LIMIT 1
     ");
+    if ($ambito === 'entrata') {
+        try {
+            $movement = dbGetFirst("SELECT * FROM studenti_movimenti_pratiche WHERE id = " . dbI($movementId) . " LIMIT 1") ?: [];
+            if ($movement) {
+                studentiMovimentiEnsureIscrizioneForEntrata($movement, $movementId);
+                dbExec("
+                    UPDATE studenti_movimenti_pratiche
+                    SET id_pratica_iscrizione = " . dbI($movement['id_pratica_iscrizione'] ?? null) . ",
+                        updated_at = NOW()
+                    WHERE id = " . dbI($movementId) . "
+                    LIMIT 1
+                ");
+            }
+        } catch (Throwable $e) {
+            studentiMovimentiAddEvent($movementId, 'sync_colloqui_errore', 'Errore sincronizzazione iscrizione da colloquio', [
+                'tipo_pratica' => 'entrata',
+                'note' => $e->getMessage(),
+            ], genitoriColloquiActor());
+        }
+    }
 }
 
 function genitoriColloquiClearEsamiIntegrativiForMovement(int $movementId): int
