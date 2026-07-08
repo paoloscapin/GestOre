@@ -11,7 +11,9 @@ try {
     $sessionId = intval($_POST['session_id'] ?? 0);
     $rowIds = $_POST['row_ids'] ?? [];
     $targetLabels = $_POST['target_labels'] ?? [];
+    $targetCounts = $_POST['target_counts'] ?? [];
     $weights = $_POST['weights'] ?? [];
+    $tabletFilter = formazioneClassiNormalizeTabletFilter((string)($_POST['tablet_filter'] ?? 'all'));
 
     if (!is_array($rowIds)) {
         $rowIds = [$rowIds];
@@ -22,9 +24,12 @@ try {
     if (!is_array($weights)) {
         $weights = [];
     }
+    if (!is_array($targetCounts)) {
+        $targetCounts = [];
+    }
 
     echo json_encode(
-        formazioneClassiAutoAssign($sessionId, $rowIds, $targetLabels, $weights),
+        formazioneClassiAutoAssign($sessionId, $rowIds, $targetLabels, $weights, $tabletFilter, $targetCounts),
         JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
     );
 } catch (Throwable $e) {
