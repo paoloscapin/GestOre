@@ -48,6 +48,7 @@ $docenti = dbGetAll($query_docenti);
                             <th>Funzionali<br><small>(Fatte / Pianif.)</small></th>
                             <th>Studenti<br><small>(Fatte / Pianif.)</small></th>
                             <th>Corsi Recupero<br><small>(h / €)</small></th>
+                            <th>Diaria Viaggi<br><small>(€)</small></th>
                             <th>Totale Stimato</th>
                         </tr>
                     </thead>
@@ -89,10 +90,27 @@ $docenti = dbGetAll($query_docenti);
                             $ore_rec = (int)($row['ore_recupero_tot'] ?? 0);
                             $euro_rec = max(0, $ore_rec - 10) * 55;
                             
-                            // 3. Totale (Include Diaria già calcolata in $dati['diariaImporto'])
-                            $totale_stimato = $euro_ore + $euro_rec + $dati['diariaImporto'];
+                            // 3. Estrai l'importo della Diaria Viaggi
+                            // Assicurati che $dati['diariaImporto'] esista. Fai un cast a float per sicurezza.
+
+                            $q = "SELECT giorni_senza_pernottamento, giorni_con_pernottamento 
+                                  FROM viaggio_diaria_prevista 
+                                  WHERE docente_id = {$row['id']} 
+                                  AND anno_scolastico_id = $__anno_scolastico_corrente_id";
+                            $res = dbGetAll($q);
                             
-                            // Badge helper
+                            // Estraiamo i valori in modo sicuro dai risultati dell'array
+                            $g = (int)($res[0]['giorni_senza_pernottamento'] ?? 0);
+                            $n = (int)($res[0]['giorni_con_pernottamento'] ?? 0);
+                            
+                            $euro_diaria = ($g * 70) + ($n * 100);
+
+                            #$euro_diaria = isset($dati['diariaImporto']) ? (float)$dati['diariaImporto'] : 0.0;
+                            
+                            // 4. Totale Stimato (Ore + Recupero + Diaria)
+                            $totale_stimato = $euro_ore + $euro_rec + $euro_diaria;
+
+                            // Logica badge delta
                             $badge = function($fatte, $dovute) {
                                 $delta = $fatte - $dovute;
                                 if ($delta > 0) return "<span class='label label-danger badge-delta'>+$delta</span>";
@@ -102,23 +120,17 @@ $docenti = dbGetAll($query_docenti);
                             ?>
                             <tr>
                                 <td class="text-left"><strong><?php echo htmlspecialchars($row['cognome'] . ' ' . $row['nome']); ?></strong></td>
-                                
-                                <td><?php echo "{$sost_fatte} / {$sost_dov}"; ?> <?php echo $badge($sost_fatte, $sost_dov); ?></td>
-                                
-                                <td><?php echo "{$funz_fatte} / {$funz_dov}"; ?> <?php echo $badge($funz_fatte, $funz_dov); ?></td>
-                                
-                                <td><?php echo "{$stud_fatte} / {$stud_dov}"; ?> <?php echo $badge($stud_fatte, $stud_dov); ?></td>
-                                
+                                <td><?php echo "{$dati['oreSostituzione']} / {$dati['oreSostituzioniDovute']}"; ?> <?php echo $badge($dati['oreSostituzione'], $dati['oreSostituzioniDovute']); ?></td>
+                                <td><?php echo "{$dati['oreFunzionali']} / {$dati['oreFunzionaliDovute']}"; ?> <?php echo $badge($dati['oreFunzionali'], $dati['oreFunzionaliDovute']); ?></td>
+                                <td><?php echo "{$dati['oreConStudenti']} / {$dati['oreConStudentiDovute']}"; ?> <?php echo $badge($dati['oreConStudenti'], $dati['oreConStudentiDovute']); ?></td>
                                 <td>
                                     <?php echo $ore_rec . " h"; ?><br>
                                     <small class="text-muted"><?php echo number_format($euro_rec, 2, ',', '.'); ?> €</small>
                                 </td>
-                                
                                 <td>
-                                    <span class="highlight-import">
-                                        <?php echo number_format($totale_stimato, 2, ',', '.'); ?> €
-                                    </span>
+                                    <?php echo number_format($euro_diaria, 2, ',', '.'); ?> €
                                 </td>
+                                <td class="highlight-import"><?php echo number_format($totale_stimato, 2, ',', '.'); ?> €</td>
                             </tr>
                         <?php } ?>
                     </tbody>
