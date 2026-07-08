@@ -2055,6 +2055,7 @@ function formazioneClassiState(int $sourceYearId, int $targetYearId, string $tip
             s.codice_fiscale,
             s.sesso,
             mp_status.id AS movimento_pratica_id,
+            mp_status.bocciato_altra_scuola AS movimento_bocciato_altra_scuola,
             mp_status.doppio_bocciato_non_consecutivo AS movimento_doppio_bocciato_non_consecutivo,
             mp_note.note AS movimento_note,
             mp_note.tipo_pratica AS movimento_tipo_pratica,
@@ -2218,6 +2219,7 @@ function formazioneClassiStudentView(array $row): array
     $outgoingState = trim((string)(($activeOutgoingId > 0 ? $row['uscita_attiva_stato_pratica'] : $row['uscita_stato_pratica']) ?? ''));
     $outgoingUpdated = trim((string)(($activeOutgoingId > 0 ? $row['uscita_attiva_updated_at'] : $row['uscita_updated_at']) ?? ''));
     $doubleNonConsecutive = intval($row['movimento_doppio_bocciato_non_consecutivo'] ?? 0);
+    $externalFailedYear = intval($row['movimento_bocciato_altra_scuola'] ?? 0) > 0;
     if ($doubleNonConsecutive > 0) {
         $outgoingId = 0;
         $confirmedOutgoingId = 0;
@@ -2261,6 +2263,7 @@ function formazioneClassiStudentView(array $row): array
         'uscita_tipo_pratica' => $outgoingType,
         'uscita_stato_pratica' => $outgoingState,
         'uscita_updated_at' => $outgoingUpdated,
+        'bocciato_altra_scuola' => $externalFailedYear ? 1 : 0,
         'media_generale' => formazioneClassiNullableFloat($row['media_generale'] ?? null),
         'voto_matematica' => formazioneClassiNullableFloat($row['voto_matematica'] ?? null),
         'voto_italiano' => formazioneClassiNullableFloat($row['voto_italiano'] ?? null),
@@ -2405,6 +2408,7 @@ function formazioneClassiStats(array $students): array
         'dsa' => 0,
         'fascia_c' => 0,
         'legge_104' => 0,
+        'bocciati' => 0,
     ];
     foreach (['media_generale', 'voto_matematica', 'voto_italiano', 'voto_capacita_relazionale'] as $field) {
         $stats[$field . '_bins'] = array_fill_keys([6, 7, 8, 9, 10], 0);
@@ -2424,6 +2428,11 @@ function formazioneClassiStats(array $students): array
         }
         if (formazioneClassiStudentHasAttr($student, STUD_ATTR_Q4M9)) {
             $stats['legge_104']++;
+        }
+        if ((string)($student['gruppo_origine'] ?? '') === 'bocciato'
+            || !empty($student['bocciato_altra_scuola'])
+            || !empty($student['doppio_bocciato_non_consecutivo'])) {
+            $stats['bocciati']++;
         }
     }
     foreach (['media_generale', 'voto_matematica', 'voto_italiano', 'voto_capacita_relazionale'] as $field) {
@@ -2696,6 +2705,7 @@ function formazioneClassiAutoAssign(int $sessionId, array $rowIds, array $target
     if (empty($targetLabels)) {
         return ['ok' => false, 'message' => 'Nessuna classe attiva disponibile per la distribuzione automatica.'];
     }
+    formazioneClassiPruneCatCurvatureAssignments($sessionId, $targetClassYear);
     $targetCountLimits = [];
     foreach ($targetCounts as $label => $value) {
         $label = trim((string)$label);
@@ -2752,7 +2762,7 @@ function formazioneClassiAutoAssign(int $sessionId, array $rowIds, array $target
         $tabletCandidateCondition = " AND COALESCE(f.richiesta_tablet, 0) <> 1";
     }
     $candidateCondition = $targetClassYear === 1
-        ? "f.gruppo_origine IN ('neo_iscritto', 'promosso') AND f.fonte_valori = 'iscrizioni'" . $tabletCandidateCondition
+        ? "f.gruppo_origine IN ('neo_iscritto', 'promosso') AND f.fonte_valori IN ('iscrizioni', 'movimenti')" . $tabletCandidateCondition
         : "f.gruppo_origine IN ('promosso', 'neo_iscritto')";
 
     $allRows = dbGetAll("
@@ -2803,7 +2813,7 @@ function formazioneClassiAutoAssign(int $sessionId, array $rowIds, array $target
             && (
                 ($targetClassYear === 1
                     && in_array((string)($row['gruppo_origine'] ?? ''), ['neo_iscritto', 'promosso'], true)
-                    && (string)($row['fonte_valori'] ?? '') === 'iscrizioni'
+                    && in_array((string)($row['fonte_valori'] ?? ''), ['iscrizioni', 'movimenti'], true)
                     && ($tabletFilter === 'all'
                         || ($tabletFilter === 'tablet' && intval($row['richiesta_tablet'] ?? 0) === 1)
                         || ($tabletFilter === 'non_tablet' && intval($row['richiesta_tablet'] ?? 0) !== 1)))
@@ -2891,6 +2901,9 @@ function formazioneClassiAutoAssign(int $sessionId, array $rowIds, array $target
         }
         $eligibleLabels = formazioneClassiAutoEligibleLabels($targetLabels, $buckets, $row, $remainingRows, $minCount, $maxCount, $femalePairTarget, $femaleSingleRemainder);
         $curvatureLabels = formazioneClassiAutoCurvatureEligibleLabels($eligibleLabels, $row, $targetClassYear);
+        if (empty($curvatureLabels)) {
+            $curvatureLabels = formazioneClassiAutoCurvatureEligibleLabels($targetLabels, $row, $targetClassYear);
+        }
         if (!empty($curvatureLabels)) {
             $eligibleLabels = $curvatureLabels;
         }
@@ -2957,10 +2970,17 @@ function formazioneClassiAutoAssign(int $sessionId, array $rowIds, array $target
     formazioneClassiAutoBalanceCounts($assignments, $assignedRows, $buckets, $targetLabels, $metricKeys, $minTargetCount, $maxCount, $minFemalesPerClass, $targetCountLimits, $targetClassYear);
 
     foreach ($assignments as $rowId => $label) {
+        $id = intval($rowId);
+        if (!isset($assignedRows[$id]) || !formazioneClassiAutoRowCompatibleWithLabel($assignedRows[$id], (string)$label, $targetClassYear)) {
+            unset($assignments[$rowId]);
+        }
+    }
+
+    foreach ($assignments as $rowId => $label) {
         $targetClass = formazioneClassiLocalClassByLabel($label);
         $classId = $targetClass ? intval($targetClass['id']) : null;
         $updateCandidateWhere = $targetClassYear === 1
-            ? "AND gruppo_origine IN ('neo_iscritto', 'promosso') AND fonte_valori = 'iscrizioni'"
+            ? "AND gruppo_origine IN ('neo_iscritto', 'promosso') AND fonte_valori IN ('iscrizioni', 'movimenti')"
             : "AND gruppo_origine IN ('promosso', 'neo_iscritto')";
         dbExec("
             UPDATE formazione_classi_studenti
@@ -2975,6 +2995,7 @@ function formazioneClassiAutoAssign(int $sessionId, array $rowIds, array $target
             LIMIT 1
         ");
     }
+    formazioneClassiPruneCatCurvatureAssignments($sessionId, $targetClassYear);
     dbExec("UPDATE formazione_classi_sessioni SET updated_at = NOW() WHERE id = " . dbI($sessionId) . " LIMIT 1");
 
     return [
@@ -3205,7 +3226,7 @@ function formazioneClassiAutoCurvatureEligibleLabels(array $labels, array $row, 
         }
         return true;
     }));
-    return $filtered ?: $labels;
+    return $filtered;
 }
 
 function formazioneClassiAutoRowCompatibleWithLabel(array $row, string $label, int $targetClassYear): bool
