@@ -44,9 +44,19 @@ register_shutdown_function(static function (): void {
 try {
 iscrizioniPrimeEnsureSchema();
 $tipoIscrizione = iscrizioniPrimeNormalizeTipoIscrizione($_GET['tipo_iscrizione'] ?? 'prime');
+$gestoreContactsSynced = iscrizioniPrimeSyncGestoreContactsForMissingPracticeRows($tipoIscrizione);
 $effectiveInternal = iscrizioniPrimeEffectiveInternalCondition('p');
 $effectiveExternal = iscrizioniPrimeEffectiveExternalCondition('p');
-$movimentiRequiredColumns = ['id', 'tipo_pratica', 'stato_pratica', 'codice_fiscale', 'classe_origine', 'classe_richiesta', 'updated_at'];
+$excludeMovementArchivedWhere = "
+    NOT (
+        p.stato = 'annullata'
+        AND (
+            COALESCE(p.raw_prime_json, '') LIKE '%movimenti_entrata%'
+            OR COALESCE(p.note_interne, '') LIKE '%non e una iscrizione iniziale prime/terze%'
+        )
+    )
+";
+$movimentiRequiredColumns = ['id', 'tipo_pratica', 'stato_pratica', 'codice_fiscale', 'classe_origine', 'classe_richiesta', 'id_pratica_iscrizione', 'updated_at'];
 $movimentiEnabled = dbGetFirst("SHOW TABLES LIKE 'studenti_movimenti_pratiche'") !== null;
 if ($movimentiEnabled) {
     foreach ($movimentiRequiredColumns as $column) {
@@ -60,11 +70,15 @@ $movimentiSelect = $movimentiEnabled
     ? "movimento_reiscrizione.id AS movimento_reiscrizione_id,
         movimento_reiscrizione.stato_pratica AS movimento_reiscrizione_stato,
         movimento_reiscrizione.classe_origine AS movimento_reiscrizione_classe_origine,
-        movimento_reiscrizione.classe_richiesta AS movimento_reiscrizione_classe_richiesta"
+        movimento_reiscrizione.classe_richiesta AS movimento_reiscrizione_classe_richiesta,
+        movimento_entrata.id AS movimento_entrata_id,
+        movimento_entrata.stato_pratica AS movimento_entrata_stato"
     : "NULL AS movimento_reiscrizione_id,
         NULL AS movimento_reiscrizione_stato,
         NULL AS movimento_reiscrizione_classe_origine,
-        NULL AS movimento_reiscrizione_classe_richiesta";
+        NULL AS movimento_reiscrizione_classe_richiesta,
+        NULL AS movimento_entrata_id,
+        NULL AS movimento_entrata_stato";
 $movimentiJoin = $movimentiEnabled ? "
     LEFT JOIN studenti_movimenti_pratiche movimento_reiscrizione
       ON movimento_reiscrizione.id = (
@@ -76,6 +90,16 @@ $movimentiJoin = $movimentiEnabled ? "
             AND m2.codice_fiscale <> ''
             AND UPPER(TRIM(m2.codice_fiscale)) = UPPER(TRIM(p.codice_fiscale))
           ORDER BY m2.updated_at DESC, m2.id DESC
+          LIMIT 1
+      )
+    LEFT JOIN studenti_movimenti_pratiche movimento_entrata
+      ON movimento_entrata.id = (
+          SELECT me.id
+          FROM studenti_movimenti_pratiche me
+          WHERE me.tipo_pratica = 'entrata'
+            AND me.stato_pratica <> 'annullata'
+            AND me.id_pratica_iscrizione = p.id
+          ORDER BY me.updated_at DESC, me.id DESC
           LIMIT 1
       )" : "";
 
@@ -103,6 +127,7 @@ $stats = dbGetFirst("
         SUM((email_genitore_1 IS NOT NULL OR email_genitore_2 IS NOT NULL) AND $effectiveExternal) AS esterni_con_email
     FROM iscrizioni_prime_pratiche p
     WHERE p.tipo_iscrizione = " . dbQ($tipoIscrizione) . "
+      AND $excludeMovementArchivedWhere
 ");
 
 $mailStats = dbGetFirst("
@@ -165,6 +190,7 @@ $rows = dbGetAll("
         p.tablet_note,
         p.tablet_rinuncia_allegato_original_name,
         p.raw_dsa_json,
+        CASE WHEN COALESCE(p.raw_prime_json, '') LIKE '%movimenti_entrata%' THEN 1 ELSE 0 END AS generata_movimenti_entrata,
         p.updated_at,
         COALESCE(mail_log.mail_reali, 0) AS mail_reali,
         COALESCE(mail_log.mail_test, 0) AS mail_test,
@@ -253,6 +279,7 @@ $rows = dbGetAll("
     LEFT JOIN iscrizioni_prime_cambio_scuola cambio ON cambio.pratica_id = p.id
     $movimentiJoin
     WHERE p.tipo_iscrizione = " . dbQ($tipoIscrizione) . "
+      AND $excludeMovementArchivedWhere
     ORDER BY p.cognome ASC, p.nome ASC
 ");
 

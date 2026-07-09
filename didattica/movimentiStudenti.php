@@ -115,6 +115,9 @@ try {
     if (intval($entrateStudentiSync['activated'] ?? 0) > 0 && $message === '') {
         $message = 'Studenti GestOre riattivati per entrate: ' . intval($entrateStudentiSync['activated']) . '.';
     }
+    if (intval($entrateStudentiSync['parents_linked'] ?? 0) > 0 && $message === '') {
+        $message = 'Genitori GestOre collegati/aggiornati per entrate: ' . intval($entrateStudentiSync['parents_linked']) . '.';
+    }
     if (!empty($entrateStudentiSync['errors']) && $error === '') {
         $error = 'Alcune entrate non hanno ancora lo studente GestOre: ' . implode(' | ', $entrateStudentiSync['errors']);
     }

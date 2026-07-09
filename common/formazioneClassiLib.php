@@ -1365,24 +1365,30 @@ function formazioneClassiPruneTerzaRowsByPracticeAddress(int $sessionId, int $ta
     }
 
     $rows = dbGetAll("
-        SELECT f.id, f.classe_origine_label, s.codice_fiscale
+        SELECT f.id, f.classe_origine_label, f.fonte_valori, f.gruppo_origine, s.codice_fiscale
         FROM formazione_classi_studenti f
         LEFT JOIN studente s ON s.id = f.id_studente
         WHERE f.id_sessione = " . dbI($sessionId) . "
-          AND COALESCE(f.bloccato, 0) = 0
-          AND COALESCE(f.assegnazione_manuale, 0) = 0
-          AND f.fonte_valori = 'iscrizioni'
+          AND (
+              f.fonte_valori = 'iscrizioni'
+              OR f.fonte_valori = 'mastercom'
+          )
           AND TRIM(COALESCE(s.codice_fiscale, '')) <> ''
     ") ?: [];
 
     foreach ($rows as $row) {
         $practice = formazioneClassiTerzaPracticeByCf($targetYearId, (string)($row['codice_fiscale'] ?? ''));
-        if (preg_match('/^2DS\b/u', formazioneClassiNorm((string)($row['classe_origine_label'] ?? '')))) {
-            $practiceAddress = 'DIGITAL SCIENCE';
-        } elseif (intval($practice['id_indirizzo_gestore'] ?? 0) <= 0) {
-            $practiceAddress = '';
-        } else {
+        if (intval($practice['id_indirizzo_gestore'] ?? 0) > 0) {
             $practiceAddress = formazioneClassiAddressKeyFromPractice($practice, 3);
+        } elseif (preg_match('/^2DS\b/u', formazioneClassiNorm((string)($row['classe_origine_label'] ?? '')))) {
+            $practiceAddress = 'DIGITAL SCIENCE';
+        } else {
+            $practiceAddress = '';
+        }
+        if ($practiceAddress === ''
+            && (string)($row['fonte_valori'] ?? '') === 'mastercom'
+            && (string)($row['gruppo_origine'] ?? '') === 'bocciato') {
+            continue;
         }
         if ($practiceAddress === '' || !formazioneClassiAddressKeysMatchStrict($practiceAddress, $indirizzo)) {
             dbExec("DELETE FROM formazione_classi_studenti WHERE id = " . dbI($row['id'] ?? 0) . " LIMIT 1");
@@ -2439,6 +2445,12 @@ function formazioneClassiStats(array $students): array
         $sum = 0.0;
         $count = 0;
         foreach ($activeStudents as $student) {
+            $isFailedStudent = (string)($student['gruppo_origine'] ?? '') === 'bocciato'
+                || !empty($student['bocciato_altra_scuola'])
+                || !empty($student['doppio_bocciato_non_consecutivo']);
+            if ($isFailedStudent && in_array($field, ['media_generale', 'voto_matematica', 'voto_italiano'], true)) {
+                continue;
+            }
             if (($student[$field] ?? null) === null) {
                 continue;
             }
@@ -2669,6 +2681,70 @@ function formazioneClassiApplySnapshot(int $sessionId, int $snapshotId): array
     return ['ok' => true, 'message' => 'Fotografia applicata.'];
 }
 
+function formazioneClassiSyncTerzaStudentAddressChange(string $schoolYear, string $codiceFiscale, string $newAddress): void
+{
+    $schoolYear = trim($schoolYear);
+    $codiceFiscale = strtoupper(trim($codiceFiscale));
+    $newAddress = trim($newAddress);
+    if ($schoolYear === '' || $codiceFiscale === '') {
+        return;
+    }
+
+    $studentId = intval(dbGetValue("
+        SELECT id
+        FROM studente
+        WHERE UPPER(TRIM(codice_fiscale)) = " . dbQ($codiceFiscale) . "
+        ORDER BY id DESC
+        LIMIT 1
+    ") ?? 0);
+    if ($studentId <= 0) {
+        return;
+    }
+
+    $rows = dbGetAll("
+        SELECT
+            f.id,
+            f.id_classe_provvisoria,
+            f.classe_provvisoria_label,
+            f.fonte_valori,
+            f.gruppo_origine,
+            s.id AS session_id,
+            s.indirizzo AS session_address
+        FROM formazione_classi_studenti f
+        INNER JOIN formazione_classi_sessioni s ON s.id = f.id_sessione
+        INNER JOIN anno_scolastico a ON a.id = s.id_anno_scolastico_target
+        WHERE f.id_studente = " . dbI($studentId) . "
+          AND s.tipo_formazione = 'terze'
+          AND a.anno = " . dbQ($schoolYear) . "
+    ") ?: [];
+
+    foreach ($rows as $row) {
+        $sessionAddress = trim((string)($row['session_address'] ?? ''));
+        $sessionMatches = $newAddress !== '' && formazioneClassiAddressKeysMatchStrict($sessionAddress, $newAddress);
+        if (!$sessionMatches) {
+            dbExec("DELETE FROM formazione_classi_studenti WHERE id = " . dbI($row['id'] ?? 0) . " LIMIT 1");
+            continue;
+        }
+
+        $classLabel = trim((string)($row['classe_provvisoria_label'] ?? ''));
+        if ($classLabel === '') {
+            continue;
+        }
+        $classAddress = formazioneClassiClassLabelAddressKey($classLabel);
+        if ($classAddress !== '' && !formazioneClassiAddressKeysMatchStrict($classAddress, $newAddress)) {
+            dbExec("
+                UPDATE formazione_classi_studenti
+                SET id_classe_provvisoria = NULL,
+                    classe_provvisoria_label = NULL,
+                    assegnazione_manuale = 0,
+                    updated_at = NOW()
+                WHERE id = " . dbI($row['id'] ?? 0) . "
+                LIMIT 1
+            ");
+        }
+    }
+}
+
 function formazioneClassiAutoAssign(int $sessionId, array $rowIds, array $targetLabels, array $weights = [], string $tabletFilter = 'all', array $targetCounts = []): array
 {
     $rowIds = array_values(array_unique(array_filter(array_map('intval', $rowIds), static function (int $id): bool {
@@ -2869,6 +2945,25 @@ function formazioneClassiAutoAssign(int $sessionId, array $rowIds, array $target
     $minFemalesPerClass = $totalFemales >= ($classCount * 2) ? 2 : 0;
 
     $candidates = array_values($candidateById);
+
+    if (!empty($targetCountLimits)) {
+        $availableSlots = 0;
+        foreach ($targetLabels as $label) {
+            $labelMaxCount = formazioneClassiAutoEffectiveMaxForLabel($label, $targetCountLimits, $maxCount);
+            if ($labelMaxCount <= 0) {
+                $availableSlots = PHP_INT_MAX;
+                break;
+            }
+            $availableSlots += max(0, $labelMaxCount - intval($buckets[$label]['count'] ?? 0));
+        }
+        if ($availableSlots !== PHP_INT_MAX && count($candidateById) > $availableSlots) {
+            return [
+                'ok' => false,
+                'message' => 'Gli obiettivi impostati non bastano: posti disponibili ' . $availableSlots . ', studenti da distribuire ' . count($candidateById) . '.',
+            ];
+        }
+    }
+
     usort($candidates, static function (array $a, array $b) use ($weights, $metricKeys): int {
         $priorityA = formazioneClassiAutoPriority($a);
         $priorityB = formazioneClassiAutoPriority($b);
@@ -2899,21 +2994,13 @@ function formazioneClassiAutoAssign(int $sessionId, array $rowIds, array $target
                 $minCount = $count;
             }
         }
-        $eligibleLabels = formazioneClassiAutoEligibleLabels($targetLabels, $buckets, $row, $remainingRows, $minCount, $maxCount, $femalePairTarget, $femaleSingleRemainder);
+        $eligibleLabels = formazioneClassiAutoEligibleLabels($targetLabels, $buckets, $row, $remainingRows, $minCount, $maxCount, $femalePairTarget, $femaleSingleRemainder, $targetCountLimits);
         $curvatureLabels = formazioneClassiAutoCurvatureEligibleLabels($eligibleLabels, $row, $targetClassYear);
         if (empty($curvatureLabels)) {
             $curvatureLabels = formazioneClassiAutoCurvatureEligibleLabels($targetLabels, $row, $targetClassYear);
         }
         if (!empty($curvatureLabels)) {
             $eligibleLabels = $curvatureLabels;
-        }
-        if (!empty($targetCountLimits)) {
-            $limitedLabels = array_values(array_filter($eligibleLabels, static function (string $label) use ($buckets, $targetCountLimits): bool {
-                return !isset($targetCountLimits[$label]) || intval($buckets[$label]['count'] ?? 0) < intval($targetCountLimits[$label]);
-            }));
-            if (!empty($limitedLabels)) {
-                $eligibleLabels = $limitedLabels;
-            }
         }
         foreach ($eligibleLabels as $label) {
             $cost = formazioneClassiAutoClassCost(
@@ -2938,7 +3025,7 @@ function formazioneClassiAutoAssign(int $sessionId, array $rowIds, array $target
             }
         }
         if ($bestLabel === '') {
-            $bestLabel = formazioneClassiAutoLeastFilledLabelForRow($targetLabels, $buckets, $row, $targetClassYear);
+            $bestLabel = formazioneClassiAutoLeastFilledLabelForRow($targetLabels, $buckets, $row, $targetClassYear, $maxCount, $targetCountLimits);
             if ($bestLabel === '') {
                 continue;
             }
@@ -3082,6 +3169,18 @@ function formazioneClassiAutoScore(array $row, array $weights, array $metricKeys
     return $score;
 }
 
+function formazioneClassiAutoEffectiveMaxForLabel(string $label, array $targetCountLimits, int $defaultMaxCount): int
+{
+    $limit = intval($targetCountLimits[$label] ?? 0);
+    if ($limit > 0) {
+        return $limit;
+    }
+    if (!empty($targetCountLimits)) {
+        return 0;
+    }
+    return max(0, $defaultMaxCount);
+}
+
 function formazioneClassiAutoPriority(array $row): int
 {
     $sesso = strtoupper(trim((string)($row['sesso'] ?? '')));
@@ -3112,12 +3211,13 @@ function formazioneClassiAutoRowHasAttr(array $row, string $code): bool
     return false;
 }
 
-function formazioneClassiAutoLabelsWithMinCounter(array $labels, array $buckets, string $counter, int $maxCount): array
+function formazioneClassiAutoLabelsWithMinCounter(array $labels, array $buckets, string $counter, int $maxCount, array $targetCountLimits = []): array
 {
     $best = [];
     $min = null;
     foreach ($labels as $label) {
-        if ($maxCount > 0 && intval($buckets[$label]['count'] ?? 0) >= $maxCount) {
+        $labelMaxCount = formazioneClassiAutoEffectiveMaxForLabel($label, $targetCountLimits, $maxCount);
+        if ($labelMaxCount > 0 && intval($buckets[$label]['count'] ?? 0) >= $labelMaxCount) {
             continue;
         }
         $value = intval($buckets[$label][$counter] ?? 0);
@@ -3131,7 +3231,7 @@ function formazioneClassiAutoLabelsWithMinCounter(array $labels, array $buckets,
     return $best;
 }
 
-function formazioneClassiAutoEligibleLabels(array $targetLabels, array $buckets, array $row, array $remainingRows, ?int $minCount, int $maxCount, int $femalePairTarget, int $femaleSingleRemainder): array
+function formazioneClassiAutoEligibleLabels(array $targetLabels, array $buckets, array $row, array $remainingRows, ?int $minCount, int $maxCount, int $femalePairTarget, int $femaleSingleRemainder, array $targetCountLimits = []): array
 {
     $underMin = array_values(array_filter($targetLabels, static function (string $label) use ($buckets, $minCount): bool {
         return intval($buckets[$label]['count'] ?? 0) === intval($minCount);
@@ -3152,24 +3252,27 @@ function formazioneClassiAutoEligibleLabels(array $targetLabels, array $buckets,
         }
 
         if ($pairedClasses < $femalePairTarget) {
-            $completePairLabels = array_values(array_filter($targetLabels, static function (string $label) use ($buckets, $maxCount): bool {
+            $completePairLabels = array_values(array_filter($targetLabels, static function (string $label) use ($buckets, $maxCount, $targetCountLimits): bool {
+                $labelMaxCount = formazioneClassiAutoEffectiveMaxForLabel($label, $targetCountLimits, $maxCount);
                 return intval($buckets[$label]['femmine'] ?? 0) === 1
-                    && ($maxCount <= 0 || intval($buckets[$label]['count'] ?? 0) < $maxCount);
+                    && ($labelMaxCount <= 0 || intval($buckets[$label]['count'] ?? 0) < $labelMaxCount);
             }));
             if ($completePairLabels) {
                 return $completePairLabels;
             }
-            $emptyFemaleLabels = array_values(array_filter($targetLabels, static function (string $label) use ($buckets, $maxCount): bool {
+            $emptyFemaleLabels = array_values(array_filter($targetLabels, static function (string $label) use ($buckets, $maxCount, $targetCountLimits): bool {
+                $labelMaxCount = formazioneClassiAutoEffectiveMaxForLabel($label, $targetCountLimits, $maxCount);
                 return intval($buckets[$label]['femmine'] ?? 0) === 0
-                    && ($maxCount <= 0 || intval($buckets[$label]['count'] ?? 0) < $maxCount);
+                    && ($labelMaxCount <= 0 || intval($buckets[$label]['count'] ?? 0) < $labelMaxCount);
             }));
             if ($emptyFemaleLabels) {
                 return $emptyFemaleLabels;
             }
         } elseif ($femaleSingleRemainder > 0 && $singleClasses < $femaleSingleRemainder) {
-            $emptyFemaleLabels = array_values(array_filter($targetLabels, static function (string $label) use ($buckets, $maxCount): bool {
+            $emptyFemaleLabels = array_values(array_filter($targetLabels, static function (string $label) use ($buckets, $maxCount, $targetCountLimits): bool {
+                $labelMaxCount = formazioneClassiAutoEffectiveMaxForLabel($label, $targetCountLimits, $maxCount);
                 return intval($buckets[$label]['femmine'] ?? 0) === 0
-                    && ($maxCount <= 0 || intval($buckets[$label]['count'] ?? 0) < $maxCount);
+                    && ($labelMaxCount <= 0 || intval($buckets[$label]['count'] ?? 0) < $labelMaxCount);
             }));
             if ($emptyFemaleLabels) {
                 return $emptyFemaleLabels;
@@ -3178,25 +3281,35 @@ function formazioneClassiAutoEligibleLabels(array $targetLabels, array $buckets,
     }
 
     if (formazioneClassiAutoRowHasAttr($row, STUD_ATTR_R7A2)) {
-        $leastDsa = formazioneClassiAutoLabelsWithMinCounter($labels, $buckets, 'dsa', $maxCount);
+        $leastDsa = formazioneClassiAutoLabelsWithMinCounter($labels, $buckets, 'dsa', $maxCount, $targetCountLimits);
         if ($leastDsa) {
             return $leastDsa;
         }
     }
 
     if (formazioneClassiAutoRowHasAttr($row, STUD_ATTR_Q4M9)) {
-        $least104 = formazioneClassiAutoLabelsWithMinCounter($labels, $buckets, 'legge_104', $maxCount);
+        $least104 = formazioneClassiAutoLabelsWithMinCounter($labels, $buckets, 'legge_104', $maxCount, $targetCountLimits);
         if ($least104) {
             return $least104;
         }
     }
 
-    if ($maxCount > 0) {
-        $notFull = array_values(array_filter($labels, static function (string $label) use ($buckets, $maxCount): bool {
-            return intval($buckets[$label]['count'] ?? 0) < $maxCount;
+    if ($maxCount > 0 || !empty($targetCountLimits)) {
+        $notFull = array_values(array_filter($labels, static function (string $label) use ($buckets, $maxCount, $targetCountLimits): bool {
+            $labelMaxCount = formazioneClassiAutoEffectiveMaxForLabel($label, $targetCountLimits, $maxCount);
+            return $labelMaxCount <= 0 || intval($buckets[$label]['count'] ?? 0) < $labelMaxCount;
         }));
         if ($notFull) {
             return $notFull;
+        }
+        if ($labels !== $targetLabels) {
+            $notFull = array_values(array_filter($targetLabels, static function (string $label) use ($buckets, $maxCount, $targetCountLimits): bool {
+                $labelMaxCount = formazioneClassiAutoEffectiveMaxForLabel($label, $targetCountLimits, $maxCount);
+                return $labelMaxCount <= 0 || intval($buckets[$label]['count'] ?? 0) < $labelMaxCount;
+            }));
+            if ($notFull) {
+                return $notFull;
+            }
         }
     }
 
@@ -3404,12 +3517,16 @@ function formazioneClassiAutoOptimizeAssignments(array &$assignments, array $ass
     }
 }
 
-function formazioneClassiAutoLeastFilledLabel(array $targetLabels, array $buckets): string
+function formazioneClassiAutoLeastFilledLabel(array $targetLabels, array $buckets, int $maxCount = 0, array $targetCountLimits = []): string
 {
     $bestLabel = '';
     $bestCount = null;
     foreach ($targetLabels as $label) {
         $count = intval($buckets[$label]['count'] ?? 0);
+        $labelMaxCount = formazioneClassiAutoEffectiveMaxForLabel($label, $targetCountLimits, $maxCount);
+        if ($labelMaxCount > 0 && $count >= $labelMaxCount) {
+            continue;
+        }
         if ($bestCount === null || $count < $bestCount || ($count === $bestCount && strnatcasecmp($label, $bestLabel) < 0)) {
             $bestCount = $count;
             $bestLabel = $label;
@@ -3418,12 +3535,12 @@ function formazioneClassiAutoLeastFilledLabel(array $targetLabels, array $bucket
     return $bestLabel;
 }
 
-function formazioneClassiAutoLeastFilledLabelForRow(array $targetLabels, array $buckets, array $row, int $targetClassYear): string
+function formazioneClassiAutoLeastFilledLabelForRow(array $targetLabels, array $buckets, array $row, int $targetClassYear, int $maxCount = 0, array $targetCountLimits = []): string
 {
     $compatibleLabels = array_values(array_filter($targetLabels, static function (string $label) use ($row, $targetClassYear): bool {
         return formazioneClassiAutoRowCompatibleWithLabel($row, $label, $targetClassYear);
     }));
-    return formazioneClassiAutoLeastFilledLabel($compatibleLabels ?: $targetLabels, $buckets);
+    return formazioneClassiAutoLeastFilledLabel($compatibleLabels ?: $targetLabels, $buckets, $maxCount, $targetCountLimits);
 }
 
 function formazioneClassiAutoBalanceCounts(array &$assignments, array $assignedRows, array &$buckets, array $targetLabels, array $metricKeys, int $minCount, int $maxCount, int $minFemalesPerClass = 0, array $targetCountLimits = [], int $targetClassYear = 0): void
@@ -3438,12 +3555,11 @@ function formazioneClassiAutoBalanceCounts(array &$assignments, array $assignedR
         $needLabel = '';
         foreach ($targetLabels as $label) {
             $count = intval($buckets[$label]['count'] ?? 0);
-            $labelMaxCount = intval($targetCountLimits[$label] ?? $maxCount);
-            $labelMaxCount = $labelMaxCount > 0 ? min($maxCount, $labelMaxCount) : $maxCount;
-            if ($count > $labelMaxCount && ($donorLabel === '' || $count > intval($buckets[$donorLabel]['count'] ?? 0))) {
+            $labelMaxCount = formazioneClassiAutoEffectiveMaxForLabel($label, $targetCountLimits, $maxCount);
+            if ($labelMaxCount > 0 && $count > $labelMaxCount && ($donorLabel === '' || $count > intval($buckets[$donorLabel]['count'] ?? 0))) {
                 $donorLabel = $label;
             }
-            if ($count < $minCount && $count < $labelMaxCount && ($needLabel === '' || $count < intval($buckets[$needLabel]['count'] ?? 0))) {
+            if ($count < $minCount && ($labelMaxCount <= 0 || $count < $labelMaxCount) && ($needLabel === '' || $count < intval($buckets[$needLabel]['count'] ?? 0))) {
                 $needLabel = $label;
             }
         }
@@ -3451,9 +3567,8 @@ function formazioneClassiAutoBalanceCounts(array &$assignments, array $assignedR
         if ($donorLabel !== '' && $needLabel === '') {
             foreach ($targetLabels as $label) {
                 $count = intval($buckets[$label]['count'] ?? 0);
-                $labelMaxCount = intval($targetCountLimits[$label] ?? $maxCount);
-                $labelMaxCount = $labelMaxCount > 0 ? min($maxCount, $labelMaxCount) : $maxCount;
-                if ($label !== $donorLabel && $count < $labelMaxCount && ($needLabel === '' || $count < intval($buckets[$needLabel]['count'] ?? 0))) {
+                $labelMaxCount = formazioneClassiAutoEffectiveMaxForLabel($label, $targetCountLimits, $maxCount);
+                if ($label !== $donorLabel && ($labelMaxCount <= 0 || $count < $labelMaxCount) && ($needLabel === '' || $count < intval($buckets[$needLabel]['count'] ?? 0))) {
                     $needLabel = $label;
                 }
             }

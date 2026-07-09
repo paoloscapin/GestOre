@@ -7103,7 +7103,7 @@ function iscrizioniPrimeMarkCurrentStudentsAsInternal(string $tipoIscrizione = '
     return max(0, $after - $before);
 }
 
-function iscrizioniPrimeStudentIdForCurrentYear(string $cf): int
+function iscrizioniPrimeStudentIdForCurrentYear(string $cf, bool $includeProvisionalClasses = true): int
 {
     global $__anno_scolastico_corrente_id;
 
@@ -7120,8 +7120,11 @@ function iscrizioniPrimeStudentIdForCurrentYear(string $cf): int
                 ON sf.id_studente = s.id
                AND sf.id_anno_scolastico = " . dbI($annoCorrenteId) . "
                AND sf.id_classe <> 0
+        INNER JOIN classi c
+                ON c.id = sf.id_classe
         WHERE s.codice_fiscale = " . dbQ($cf) . "
           AND s.attivo = 1
+          " . ($includeProvisionalClasses ? '' : "AND UPPER(TRIM(c.classe)) NOT IN ('MEDIE', 'EE')") . "
         LIMIT 1
     ") ?? 0);
 }
@@ -7441,7 +7444,7 @@ function iscrizioniPrimeSyncGestoreStudentAndParents(array $pratica): array
 
 function iscrizioniPrimeApplyInternalContacts(int $praticaId, string $cf): bool
 {
-    $studentId = iscrizioniPrimeStudentIdForCurrentYear($cf);
+    $studentId = iscrizioniPrimeStudentIdForCurrentYear($cf, true);
     if ($praticaId <= 0 || $studentId <= 0) {
         return false;
     }
@@ -7501,6 +7504,34 @@ function iscrizioniPrimeApplyInternalContacts(int $praticaId, string $cf): bool
     ");
 
     return true;
+}
+
+function iscrizioniPrimeSyncGestoreContactsForMissingPracticeRows(string $tipoIscrizione): int
+{
+    $tipoIscrizione = iscrizioniPrimeNormalizeTipoIscrizione($tipoIscrizione);
+    $rows = dbGetAll("
+        SELECT id, codice_fiscale
+        FROM iscrizioni_prime_pratiche
+        WHERE tipo_iscrizione = " . dbQ($tipoIscrizione) . "
+          AND stato IN ('importata', 'bozza', 'da_integrare')
+          AND TRIM(COALESCE(codice_fiscale, '')) <> ''
+          AND (
+                TRIM(COALESCE(email_genitore_1, '')) = ''
+             OR TRIM(COALESCE(responsabile_1_cognome, '')) = ''
+             OR TRIM(COALESCE(email_genitore_2, '')) = ''
+             OR TRIM(COALESCE(responsabile_2_cognome, '')) = ''
+          )
+        ORDER BY updated_at DESC, id DESC
+    ") ?: [];
+
+    $updated = 0;
+    foreach ($rows as $row) {
+        if (iscrizioniPrimeApplyInternalContacts(intval($row['id'] ?? 0), (string)($row['codice_fiscale'] ?? ''))) {
+            $updated++;
+        }
+    }
+
+    return $updated;
 }
 
 function iscrizioniPrimeUpsert(array $prime, ?array $dsa, string $tipoIscrizione = 'prime', ?bool $studenteInterno = null, ?array $licenzaMedia = null): array

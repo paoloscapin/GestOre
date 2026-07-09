@@ -119,6 +119,7 @@ $riepilogoTerze = $riepilogoIscrizioni['summary'] ?? [];
         .mail-badge-none { background: #fee2e2; color: #991b1b; }
         .mail-badge-skip { background: #e5e7eb; color: #374151; }
         .mail-badge-bounce { background: #fecaca; color: #7f1d1d; }
+        .mail-badge-movimenti { background: #ede9fe; color: #5b21b6; }
         .stud-attr-badge {
             display: inline-block;
             padding: 3px 7px;
@@ -817,9 +818,36 @@ function iscrizioniTerzeReadJsonResponse(response) {
     });
 }
 
-function iscrizioniTerzeStatoLabel(stato) {
+function iscrizioniTerzeDaMovimentiEntrata(row) {
+    return Number(row.movimento_entrata_id || 0) > 0 || Number(row.generata_movimenti_entrata || 0) > 0;
+}
+
+function iscrizioniTerzeHasMovimentiDuplicate(row) {
+    const cf = iscrizioniTerzeNormalizeSearch(row && row.codice_fiscale ? row.codice_fiscale : '').replace(/\s+/g, '');
+    if (!cf || iscrizioniTerzeDaMovimentiEntrata(row)) {
+        return false;
+    }
+    const stato = String(row.stato || '').toLowerCase();
+    if (!['importata', 'bozza'].includes(stato) || Number(row.mail_reali || 0) > 0) {
+        return false;
+    }
+    return iscrizioniTerzeRows.some(item => {
+        if (Number(item.id || 0) === Number(row.id || 0)) {
+            return false;
+        }
+        const itemCf = iscrizioniTerzeNormalizeSearch(item.codice_fiscale || '').replace(/\s+/g, '');
+        return itemCf === cf && iscrizioniTerzeDaMovimentiEntrata(item);
+    });
+}
+
+function iscrizioniTerzeStatoLabel(stato, row) {
+    if (row && iscrizioniTerzeDaMovimentiEntrata(row) && String(stato || '').toLowerCase() === 'importata') {
+        return 'Generata da entrata movimenti';
+    }
     const labels = {
         inviata: 'Inviata',
+        importata: 'Importata',
+        bozza: 'Compilabile',
         verifica_iniziale_ok: 'Verifica iniziale OK',
         verificata: 'Pratica completata',
         da_integrare: 'Da integrare',
@@ -1114,11 +1142,58 @@ function iscrizioniTerzeHasSubmittedPractice(row) {
 }
 
 function iscrizioniTerzePracticeButton(row) {
-    if (!iscrizioniTerzeHasSubmittedPractice(row)) {
-        return '';
+    let html = '';
+    if (iscrizioniTerzeHasSubmittedPractice(row) || iscrizioniTerzeDaMovimentiEntrata(row)) {
+        const url = 'iscrizioniPrimeDomande.php?tipo_iscrizione=terze&stato=tutte&open_pratica_id=' + encodeURIComponent(Number(row.id || 0)) + '#pratica-' + encodeURIComponent(Number(row.id || 0));
+        html += '<a class="btn btn-xs btn-success" href="' + url + '"><span class="glyphicon glyphicon-folder-open"></span> Pratica iscrizione</a> ';
     }
-    const url = 'iscrizioniPrimeDomande.php?tipo_iscrizione=terze&stato=tutte&open_pratica_id=' + encodeURIComponent(Number(row.id || 0)) + '#pratica-' + encodeURIComponent(Number(row.id || 0));
-    return '<a class="btn btn-xs btn-success" href="' + url + '"><span class="glyphicon glyphicon-folder-open"></span> Pratica</a> ';
+    if (Number(row.movimento_entrata_id || 0) > 0) {
+        const movementUrl = 'movimentiStudenti.php?sezione=entrate&open_movimento_id=' + encodeURIComponent(Number(row.movimento_entrata_id || 0));
+        html += '<a class="btn btn-xs btn-info" href="' + movementUrl + '"><span class="glyphicon glyphicon-transfer"></span> Movimento entrata</a> ';
+    }
+    return html;
+}
+
+async function iscrizioniTerzeArchiveDuplicate(id) {
+    const row = iscrizioniTerzeFindRowById(id);
+    if (!row) {
+        iscrizioniTerzeCompleteMailOverlay(false, 'Pratica non trovata', 'La riga non e piu presente in tabella.', '');
+        return;
+    }
+    if (!iscrizioniTerzeHasMovimentiDuplicate(row)) {
+        iscrizioniTerzeCompleteMailOverlay(false, 'Archiviazione non disponibile', 'Questa pratica non risulta un doppione importato di una entrata movimenti.', '');
+        return;
+    }
+    const confirmed = await iscrizioniTerzeConfirmMailDialog(
+        'Archiviare il doppione?',
+        'La pratica importata verra messa in Cambio scuola/annullata. La pratica collegata al movimento entrata resta attiva.',
+        '<strong>' + iscrizioniTerzeEscape((row.cognome || '') + ' ' + (row.nome || '')) + '</strong><br>CF ' + iscrizioniTerzeEscape(row.codice_fiscale || '')
+    );
+    if (!confirmed) {
+        return;
+    }
+
+    iscrizioniTerzeShowMailOverlay('Archiviazione doppione', 'GestOre sta archiviando la pratica importata non corretta.');
+    const data = new FormData();
+    data.append('id', Number(id || 0));
+    data.append('tipo_iscrizione', 'terze');
+
+    fetch('iscrizioniPrimeArchiveDuplicate.php', {
+        method: 'POST',
+        body: data,
+        credentials: 'same-origin'
+    })
+    .then(response => response.json().then(result => ({ok: response.ok, result})))
+    .then(payload => {
+        if (!payload.ok || !payload.result.ok) {
+            throw new Error(payload.result.message || 'Archiviazione non riuscita.');
+        }
+        iscrizioniTerzeCompleteMailOverlay(true, 'Doppione archiviato', payload.result.message || 'Pratica archiviata.', '');
+        iscrizioniTerzeLoadTable();
+    })
+    .catch(error => {
+        iscrizioniTerzeCompleteMailOverlay(false, 'Archiviazione non riuscita', error.message, '');
+    });
 }
 
 function iscrizioniTerzeAttributiHtml(row) {
@@ -1209,8 +1284,11 @@ function iscrizioniTerzeSaveIndirizzo(id, select) {
             const row = iscrizioniTerzeRows.find(item => Number(item.id) === Number(id));
             if (row) {
                 row.id_indirizzo_gestore = select.value || '';
-                const opt = iscrizioniTerzeIndirizziGestore.find(item => Number(item.id) === Number(select.value || 0));
-                row.indirizzo_gestore_nome = opt ? opt.nome : '';
+                row.indirizzo_gestore_nome = data.indirizzo_gestore_nome || '';
+                if (data.corso_studi) {
+                    row.corso_studi = data.corso_studi;
+                }
+                iscrizioniTerzeRenderTable();
             }
         })
         .catch(error => {
@@ -1267,6 +1345,14 @@ function iscrizioniTerzeUpdateSummary(summary) {
 }
 
 function iscrizioniTerzeMailStatus(row) {
+    if (iscrizioniTerzeDaMovimentiEntrata(row)) {
+        let html = '<span class="mail-badge mail-badge-movimenti">Entrata movimenti</span>';
+        html += '<br><small>pratica generata dalla pagina movimenti</small>';
+        if (row.movimento_entrata_stato) {
+            html += '<br><small>stato: ' + iscrizioniTerzeEscape(iscrizioniTerzeMovimentoStatoLabel(row.movimento_entrata_stato)) + '</small>';
+        }
+        return html;
+    }
     if (iscrizioniTerzeTipoEffettivo(row) === 'INTERNO') {
         return '<span class="mail-badge mail-badge-skip">Non richiesta</span>';
     }
@@ -1323,9 +1409,12 @@ function iscrizioniTerzeRenderTable() {
         const reiscrizione = Number(row.movimento_reiscrizione_id || 0) > 0
             ? '<br><span class="mail-badge mail-badge-real">Reiscrizione: ' + iscrizioniTerzeEscape(iscrizioniTerzeMovimentoStatoLabel(row.movimento_reiscrizione_stato)) + '</span>'
             : '';
+        const entrataMovimenti = iscrizioniTerzeDaMovimentiEntrata(row)
+            ? '<br><span class="mail-badge mail-badge-movimenti">Entrata movimenti</span>'
+            : '';
         const tipo = isInternal
-            ? '<span class="label label-default">interno</span>' + (row.classe_corrente_gestore ? '<br><small class="text-muted">' + iscrizioniTerzeEscape(row.classe_corrente_gestore) + '</small>' : '') + reiscrizione
-            : '<span class="label label-warning">esterno</span>' + (row.classe_corrente_gestore ? '<br><small class="text-muted">' + iscrizioniTerzeEscape(row.classe_corrente_gestore) + '</small>' : '') + reiscrizione;
+            ? '<span class="label label-default">interno</span>' + (row.classe_corrente_gestore ? '<br><small class="text-muted">' + iscrizioniTerzeEscape(row.classe_corrente_gestore) + '</small>' : '') + reiscrizione + entrataMovimenti
+            : '<span class="label label-warning">esterno</span>' + (row.classe_corrente_gestore ? '<br><small class="text-muted">' + iscrizioniTerzeEscape(row.classe_corrente_gestore) + '</small>' : '') + reiscrizione + entrataMovimenti;
         const testButton = isInternal
             ? '<span class="text-muted">non richiesto</span>'
             : '<button type="button" class="btn btn-xs btn-info" onclick="iscrizioniTerzeOpenTestLink(' + Number(row.id) + ')"><span class="glyphicon glyphicon-new-window"></span> Apri</button>';
@@ -1333,6 +1422,9 @@ function iscrizioniTerzeRenderTable() {
         const resendLinkButton = isInternal
             ? ''
             : ' <button type="button" class="btn btn-xs btn-warning" onclick="iscrizioniTerzeResendPracticeLink(' + Number(row.id) + ')"><span class="glyphicon glyphicon-share-alt"></span> Rimanda link</button>';
+        const duplicateButton = iscrizioniTerzeHasMovimentiDuplicate(row)
+            ? ' <button type="button" class="btn btn-xs btn-danger" onclick="iscrizioniTerzeArchiveDuplicate(' + Number(row.id) + ')"><span class="glyphicon glyphicon-trash"></span> Archivia doppione</button>'
+            : '';
 
         return '<tr>' +
             '<td><strong>' + iscrizioniTerzeEscape(row.cognome) + '</strong> ' + iscrizioniTerzeEscape(row.nome) + iscrizioniTerzeNoteBadge(row) + '</td>' +
@@ -1341,14 +1433,14 @@ function iscrizioniTerzeRenderTable() {
             '<td>' + iscrizioniTerzeIndirizzoSelect(row) + '</td>' +
             '<td>' + iscrizioniTerzeAttributiHtml(row) + '</td>' +
             '<td>' + tipo + '</td>' +
-            '<td>' + iscrizioniTerzeEscape(iscrizioniTerzeStatoLabel(row.stato)) + '</td>' +
+            '<td>' + iscrizioniTerzeEscape(iscrizioniTerzeStatoLabel(row.stato, row)) + '</td>' +
             '<td>' + (emails || '<span class="text-danger">mancante</span>') + '</td>' +
             '<td>' + iscrizioniTerzeMailStatus(row) + '</td>' +
             '<td>' + token + '</td>' +
             '<td>' + writeButton + ' ' + testButton + ' ' + iscrizioniTerzePracticeButton(row) +
                 '<button type="button" class="btn btn-xs btn-default" onclick="iscrizioniTerzeOpenParentsModal(' + Number(row.id) + ')"><span class="glyphicon glyphicon-user"></span> Genitori</button> ' +
                 '<button type="button" class="btn btn-xs btn-default" onclick="iscrizioniTerzeOpenFormationNote(' + Number(row.id) + ')"><span class="glyphicon glyphicon-pencil"></span> Note</button>' +
-                resendLinkButton + '</td>' +
+                resendLinkButton + duplicateButton + '</td>' +
             '</tr>';
     }).join('');
 
