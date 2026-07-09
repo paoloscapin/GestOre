@@ -672,9 +672,31 @@ function fc_unassigned_groups(array $students, int $targetClassYear): array
             opacity: .78;
             flex: 0 0 auto;
         }
-        .fc-bocciati-panel.fc-empty-panel .fc-stats,
-        .fc-bocciati-panel.fc-empty-panel .fc-dropzone {
+        .fc-bocciati-panel.fc-empty-panel .fc-stats {
             display: none;
+        }
+        .fc-bocciati-panel.fc-empty-panel .fc-dropzone {
+            display: block;
+            min-height: 34px;
+            padding: 6px 10px;
+            margin: 0;
+            border: 0;
+            border-top: 1px dashed #d7dee8;
+            background: transparent;
+        }
+        .fc-bocciati-panel.fc-empty-panel .fc-dropzone.fc-over {
+            background: #eef6ff;
+            box-shadow: inset 0 0 0 2px #93c5fd;
+        }
+        .fc-bocciati-panel.fc-empty-panel .fc-empty {
+            margin: 0;
+            padding: 0;
+            min-height: 0;
+            border: 0;
+            background: transparent;
+            color: #7b8794;
+            font-size: 12px;
+            text-align: left;
         }
         .fc-bocciati-panel.fc-empty-panel .fc-bocciati-heading {
             margin-bottom: 0;
@@ -1136,7 +1158,10 @@ function fc_unassigned_groups(array $students, int $targetClassYear): array
                             <span class="glyphicon glyphicon-info-sign"></span>
                         </button>
                         <a class="btn btn-success btn-sm" id="fc_export_xlsx" href="formazioneClassiExport.php?scope=all&anno_origine_id=<?php echo intval($sourceYearId); ?>&anno_target_id=<?php echo intval($targetYearId); ?>&tablet_filter=all">
-                            <span class="glyphicon glyphicon-download-alt"></span> Excel
+                            <span class="glyphicon glyphicon-download-alt"></span> Excel globale
+                        </a>
+                        <a class="btn btn-primary btn-sm" id="fc_export_current_xlsx" href="formazioneClassiExport.php?scope=current&tipo_formazione=<?php echo urlencode($tipoFormazione); ?>&indirizzo=<?php echo urlencode($indirizzo); ?>&anno_origine_id=<?php echo intval($sourceYearId); ?>&anno_target_id=<?php echo intval($targetYearId); ?>&tablet_filter=<?php echo urlencode($tabletFilter); ?>">
+                            <span class="glyphicon glyphicon-download-alt"></span> Excel selezione
                         </a>
                     </div>
                     <div class="fc-status" id="fc_status"></div>
@@ -1567,23 +1592,35 @@ function fcSaveCurrentSelection() {
 }
 
 function fcUpdateExportLink() {
-    const link = document.getElementById('fc_export_xlsx');
-    if (!link) {
-        return;
-    }
+    const globalLink = document.getElementById('fc_export_xlsx');
+    const currentLink = document.getElementById('fc_export_current_xlsx');
     const form = document.getElementById('fc_filter_form');
     const sourceYear = form?.querySelector('[name="anno_origine_id"]')?.value || '';
     const targetYear = form?.querySelector('[name="anno_target_id"]')?.value || '';
-    const url = new URL('formazioneClassiExport.php', window.location.href);
-    url.searchParams.set('scope', 'all');
-    if (sourceYear) {
-        url.searchParams.set('anno_origine_id', sourceYear);
+    const addYears = function (url) {
+        if (sourceYear) {
+            url.searchParams.set('anno_origine_id', sourceYear);
+        }
+        if (targetYear) {
+            url.searchParams.set('anno_target_id', targetYear);
+        }
+    };
+    if (globalLink) {
+        const url = new URL('formazioneClassiExport.php', window.location.href);
+        url.searchParams.set('scope', 'all');
+        addYears(url);
+        url.searchParams.set('tablet_filter', 'all');
+        globalLink.href = url.toString();
     }
-    if (targetYear) {
-        url.searchParams.set('anno_target_id', targetYear);
+    if (currentLink) {
+        const currentUrl = new URL('formazioneClassiExport.php', window.location.href);
+        currentUrl.searchParams.set('scope', 'current');
+        currentUrl.searchParams.set('tipo_formazione', fcActiveFormationType());
+        currentUrl.searchParams.set('indirizzo', document.getElementById('fc_indirizzo_select')?.value || '');
+        currentUrl.searchParams.set('tablet_filter', fcActiveTabletFilter());
+        addYears(currentUrl);
+        currentLink.href = currentUrl.toString();
     }
-    url.searchParams.set('tablet_filter', 'all');
-    link.href = url.toString();
 }
 
 function fcApplySavedSelection() {
@@ -1726,6 +1763,7 @@ function fcShowAddress(address) {
         url.searchParams.set('tablet_filter', fcActiveTabletFilter());
         window.history.replaceState({}, '', url.toString());
     }
+    fcUpdateExportLink();
     fcResizeWorkArea();
 }
 
@@ -1938,6 +1976,53 @@ function fcReloadSnapshotSection(context, text) {
     return fcEnsureSectionLoaded(context.tipo, context.address, text || 'Aggiornamento sezione', undefined, true);
 }
 
+function fcSnapshotOptionLabel(name, studentsCount) {
+    const now = new Date();
+    const pad = function (value) { return String(value).padStart(2, '0'); };
+    const stamp = pad(now.getDate()) + '/' + pad(now.getMonth() + 1) + '/' + now.getFullYear()
+        + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes());
+    const total = Number(studentsCount || 0);
+    return String(name || 'Fotografia') + ' - ' + stamp + ' (' + total + ')';
+}
+
+function fcAppendSnapshotOption(context, snapshotId, name) {
+    const select = context.section ? context.section.querySelector('.fc-snapshot-select') : null;
+    if (!select || !snapshotId) {
+        return;
+    }
+    const studentsCount = context.layout ? context.layout.querySelectorAll('.fc-student').length : 0;
+    const option = document.createElement('option');
+    option.value = String(snapshotId);
+    option.textContent = fcSnapshotOptionLabel(name, studentsCount);
+    option.selected = true;
+    const placeholder = select.querySelector('option[value=""]');
+    if (placeholder && placeholder.parentNode === select) {
+        select.insertBefore(option, placeholder.nextSibling);
+    } else {
+        select.appendChild(option);
+    }
+    select.value = String(snapshotId);
+}
+
+function fcCloseSnapshotModal(button) {
+    const modal = button ? button.closest('.modal') : null;
+    if (!modal) {
+        return;
+    }
+    if (window.jQuery && typeof window.jQuery.fn.modal === 'function') {
+        window.jQuery(modal).modal('hide');
+    } else {
+        modal.classList.remove('in');
+        modal.style.display = 'none';
+        modal.setAttribute('aria-hidden', 'true');
+    }
+    document.body.classList.remove('modal-open');
+    document.body.style.removeProperty('padding-right');
+    document.querySelectorAll('.modal-backdrop').forEach(function (backdrop) {
+        backdrop.remove();
+    });
+}
+
 function fcSaveSnapshot(button) {
     const context = fcSnapshotContext(button);
     const status = document.getElementById('fc_status');
@@ -1954,8 +2039,13 @@ function fcSaveSnapshot(button) {
                 if (status) status.textContent = json && json.message ? json.message : 'Fotografia non salvata.';
                 return;
             }
+            fcAppendSnapshotOption(context, Number(json.snapshot_id || 0), name);
+            fcCloseSnapshotModal(button);
+            if (input) {
+                input.value = '';
+            }
             if (status) status.textContent = json.message || 'Fotografia salvata.';
-            return fcReloadSnapshotSection(context, 'Aggiornamento fotografie');
+            return;
         })
         .catch(function () {
             if (status) status.textContent = 'Errore durante il salvataggio fotografia.';
@@ -1978,6 +2068,7 @@ function fcApplySnapshot(button) {
                 if (status) status.textContent = json && json.message ? json.message : 'Fotografia non applicata.';
                 return;
             }
+            fcCloseSnapshotModal(button);
             if (status) status.textContent = json.message || 'Fotografia applicata.';
             return fcReloadSnapshotSection(context, 'Ricaricamento formazione');
         })
@@ -2329,8 +2420,12 @@ function fcStatsFromZone(zone) {
         if (String(card.dataset.dsa || '') === '1') stats.dsa++;
         if (String(card.dataset.fascia_c || '') === '1') stats.fascia_c++;
         if (String(card.dataset.legge_104 || '') === '1') stats.legge_104++;
-        if (String(card.dataset.bocciato || '') === '1') stats.bocciati++;
+        const isFailedStudent = String(card.dataset.bocciato || '') === '1';
+        if (isFailedStudent) stats.bocciati++;
         Object.keys(sums).forEach(function (key) {
+            if (isFailedStudent && ['media_generale', 'voto_matematica', 'voto_italiano'].includes(key)) {
+                return;
+            }
             const raw = card.getAttribute('data-' + key) || '';
             if (raw === '') return;
             const value = Number(raw);

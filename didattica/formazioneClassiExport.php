@@ -102,7 +102,13 @@ foreach ($spreadsheet->getAllSheets() as $sheet) {
 
 $spreadsheet->setActiveSheetIndex(0);
 
-$fileName = 'formazione_classi_' . fce_clean_filename($targetYearLabel ?: 'anno') . '_' . date('Ymd_His') . '.xlsx';
+$fileParts = ['formazione_classi', $targetYearLabel ?: 'anno'];
+if ($scope === 'current') {
+    $currentBlock = $exportBlocks[0] ?? [];
+    $fileParts[] = $currentBlock['tipo_label'] ?? $selectedTipo;
+    $fileParts[] = $currentBlock['address_label'] ?? $selectedAddress;
+}
+$fileName = fce_clean_filename(implode('_', array_filter(array_map('strval', $fileParts), 'strlen'))) . '_' . date('Ymd_His') . '.xlsx';
 header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 header('Content-Disposition: attachment; filename="' . $fileName . '"');
 header('Cache-Control: max-age=0');
