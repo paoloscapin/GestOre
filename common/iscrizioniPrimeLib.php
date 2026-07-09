@@ -763,6 +763,10 @@ function iscrizioniPrimeNormalizeTerzeDigitalScienceAddress(): void
         if (!iscrizioniPrimeIsPromotedFromSecondaDigitalScience((string)($row['codice_fiscale'] ?? ''))) {
             continue;
         }
+        $currentAddressId = intval($row['id_indirizzo_gestore'] ?? 0);
+        if ($currentAddressId > 0 && $currentAddressId !== $digitalScienceAddressId) {
+            continue;
+        }
         if (intval($row['id_indirizzo_gestore'] ?? 0) === $digitalScienceAddressId
             && strtoupper(trim((string)($row['corso_studi'] ?? ''))) === 'DIGITAL SCIENCE') {
             continue;

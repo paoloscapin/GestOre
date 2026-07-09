@@ -21,7 +21,7 @@ try {
         }
     }
     $practice = dbGetFirst("
-        SELECT id, codice_fiscale, anno_corso
+        SELECT id, codice_fiscale, anno_scolastico, anno_corso, corso_studi
         FROM iscrizioni_prime_pratiche
         WHERE id = " . dbI($id) . "
           AND tipo_iscrizione = 'terze'
@@ -42,10 +42,14 @@ try {
     $corsoStudiSql = $idIndirizzo > 0
         ? 'corso_studi = ' . dbQ($indirizzoNome)
         : 'corso_studi = corso_studi';
+    $sceltaFormativaSql = $idIndirizzo > 0
+        ? 'scelta_formativa = ' . dbQ($indirizzoNome)
+        : 'scelta_formativa = scelta_formativa';
     dbExec("
         UPDATE iscrizioni_prime_pratiche
         SET id_indirizzo_gestore = " . dbI($idIndirizzo > 0 ? $idIndirizzo : null) . ",
             " . $corsoStudiSql . ",
+            " . $sceltaFormativaSql . ",
             updated_at = NOW()
         WHERE id = " . dbI($id) . "
           AND tipo_iscrizione = 'terze'

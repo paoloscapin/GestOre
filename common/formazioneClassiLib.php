@@ -1403,11 +1403,6 @@ function formazioneClassiSecondaPromossaMatchesTerzaAddress(array $row, array $s
         return true;
     }
 
-    $sourceLabel = (string)($row['classe_effettiva'] ?? '');
-    if (preg_match('/^2DS\b/u', formazioneClassiNorm($sourceLabel))) {
-        return formazioneClassiAddressKeysMatchStrict('DIGITAL SCIENCE', $indirizzo);
-    }
-
     $targetYearId = intval($session['id_anno_scolastico_target'] ?? 0);
     $cf = strtoupper(trim((string)($row['codice_fiscale_gestore'] ?? '')));
     if ($targetYearId <= 0 || $cf === '') {
@@ -1415,7 +1410,13 @@ function formazioneClassiSecondaPromossaMatchesTerzaAddress(array $row, array $s
     }
 
     $practice = formazioneClassiTerzaPracticeByCf($targetYearId, $cf);
-    $practiceAddress = formazioneClassiAddressKeyFromPractice($practice, 3);
+    $practiceAddress = intval($practice['id_indirizzo_gestore'] ?? 0) > 0
+        ? formazioneClassiAddressKeyFromPractice($practice, 3)
+        : '';
+    $sourceLabel = (string)($row['classe_effettiva'] ?? '');
+    if ($practiceAddress === '' && preg_match('/^2DS\b/u', formazioneClassiNorm($sourceLabel))) {
+        $practiceAddress = 'DIGITAL SCIENCE';
+    }
     if ($practiceAddress === '') {
         return false;
     }
@@ -1475,7 +1476,11 @@ function formazioneClassiTargetClassForTerza(array $row, array $session, string 
     }
 
     $sourceLabel = (string)($row['classe_effettiva'] ?? '');
-    if (preg_match('/^2DS\b/u', formazioneClassiNorm($sourceLabel))) {
+    $explicitPracticeAddress = intval($practice['id_indirizzo_gestore'] ?? 0) > 0
+        ? formazioneClassiAddressKeyFromPractice($practice, 3)
+        : '';
+    if (($explicitPracticeAddress === '' || formazioneClassiAddressKeysMatchStrict($explicitPracticeAddress, 'DIGITAL SCIENCE'))
+        && preg_match('/^2DS\b/u', formazioneClassiNorm($sourceLabel))) {
         $labels[] = '3DS';
     }
 
@@ -1611,6 +1616,8 @@ function formazioneClassiSyncIscrizioni(array $session, int $targetClassYear, st
         $studentId = intval($practice['id_studente_gestore'] ?? 0);
         $isOrigin2Ds = $targetClassYear === 3
             && preg_match('/^2DS\b/u', formazioneClassiNorm((string)($practice['classe_origine'] ?? '')));
+        $hasExplicitTerzaAddress = $targetClassYear === 3 && intval($practice['id_indirizzo_gestore'] ?? 0) > 0;
+        $explicitTerzaAddress = $hasExplicitTerzaAddress ? formazioneClassiAddressKeyFromPractice($practice, 3) : '';
         if ($targetClassYear === 3 && !$isOrigin2Ds && intval($practice['id_indirizzo_gestore'] ?? 0) <= 0) {
             continue;
         }
@@ -1647,7 +1654,7 @@ function formazioneClassiSyncIscrizioni(array $session, int $targetClassYear, st
                 $targetLabel = (string)($curvatureClass['label'] ?? '');
             }
         }
-        if ($isOrigin2Ds) {
+        if ($isOrigin2Ds && (!$hasExplicitTerzaAddress || formazioneClassiAddressKeysMatchStrict($explicitTerzaAddress, 'DIGITAL SCIENCE'))) {
             $address = 'DIGITAL SCIENCE';
             if (!$isBocciatoReiscrizione) {
                 $targetLabel = '3DS';
