@@ -4,6 +4,7 @@ require_once __DIR__ . '/connect.php';
 require_once __DIR__ . '/iscrizioniPrimeLib.php';
 require_once __DIR__ . '/studentiMovimentiLib.php';
 require_once __DIR__ . '/scuoleIstitutiLib.php';
+require_once __DIR__ . '/studentiAttributiRiservatiLib.php';
 
 function genitoriColloquiEnsureTables(): void
 {
@@ -464,6 +465,160 @@ function genitoriColloquiFindOrCreateStudentForEntrata(array $fields): int
     return intval(dblastId());
 }
 
+function genitoriColloquiFindPracticeForFields(array $fields): ?array
+{
+    $practiceId = intval($fields['id_pratica_iscrizione'] ?? 0);
+    if ($practiceId > 0) {
+        $practice = dbGetFirst("SELECT * FROM iscrizioni_prime_pratiche WHERE id = " . dbI($practiceId) . " LIMIT 1");
+        if ($practice) {
+            return $practice;
+        }
+    }
+
+    $cf = strtoupper(trim((string)($fields['codice_fiscale'] ?? '')));
+    if ($cf === '') {
+        return null;
+    }
+    $practice = dbGetFirst("
+        SELECT *
+        FROM iscrizioni_prime_pratiche
+        WHERE codice_fiscale IS NOT NULL
+          AND codice_fiscale <> ''
+          AND UPPER(TRIM(codice_fiscale)) = " . dbQ($cf) . "
+          AND (stato IS NULL OR stato <> 'annullata')
+        ORDER BY updated_at DESC, id DESC
+        LIMIT 1
+    ");
+
+    return $practice ?: null;
+}
+
+function genitoriColloquiSyncParentNoteToFormation(array $practice): void
+{
+    $cf = strtoupper(trim((string)($practice['codice_fiscale'] ?? '')));
+    if ($cf === '') {
+        return;
+    }
+    if (dbGetFirst("SHOW TABLES LIKE 'formazione_classi_studenti'") === null) {
+        return;
+    }
+    require_once __DIR__ . '/formazioneClassiLib.php';
+    $formationNote = function_exists('formazioneClassiPracticeNotes')
+        ? formazioneClassiPracticeNotes($practice)
+        : trim((string)($practice['note_genitori_iscrizione'] ?? ''));
+    dbExec("
+        UPDATE formazione_classi_studenti f
+        INNER JOIN studente s ON s.id = f.id_studente
+        SET f.note = " . dbQ($formationNote !== '' ? $formationNote : null) . ",
+            f.updated_at = NOW()
+        WHERE f.fonte_valori = 'iscrizioni'
+          AND UPPER(TRIM(COALESCE(s.codice_fiscale, ''))) = " . dbQ($cf) . "
+    ");
+}
+
+function genitoriColloquiSaveStudentReservedInfo(int $colloquioId, array $fields, array $data): void
+{
+    studentiAttrEnsureTables();
+    iscrizioniPrimeEnsureSchema();
+
+    $studentId = genitoriColloquiFindOrCreateStudentForEntrata($fields);
+    if ($studentId > 0) {
+        $attrs = [
+            STUD_ATTR_R7A2 => !empty($data['attr_dsa']),
+            STUD_ATTR_Q4M9 => !empty($data['attr_104']),
+            STUD_ATTR_Z8C3 => !empty($data['attr_fascia_c']),
+        ];
+        foreach ($attrs as $code => $active) {
+            studentiAttrUpsert($studentId, (string)$code, (bool)$active, 'colloquio_genitori', 'colloquio:' . $colloquioId);
+        }
+    }
+
+    if (!array_key_exists('note_genitori_iscrizione', $data)) {
+        return;
+    }
+    $practice = genitoriColloquiFindPracticeForFields($fields);
+    if (!$practice) {
+        return;
+    }
+    $note = trim((string)($data['note_genitori_iscrizione'] ?? ''));
+    dbExec("
+        UPDATE iscrizioni_prime_pratiche
+        SET note_genitori_iscrizione = " . dbQ($note !== '' ? $note : null) . ",
+            updated_at = NOW()
+        WHERE id = " . dbI($practice['id'] ?? 0) . "
+        LIMIT 1
+    ");
+    $practice['note_genitori_iscrizione'] = $note;
+    genitoriColloquiSyncParentNoteToFormation($practice);
+}
+
+function genitoriColloquiStudentExtrasByFiscalCodes(array $fiscalCodes): array
+{
+    studentiAttrEnsureTables();
+    iscrizioniPrimeEnsureSchema();
+    $codes = [];
+    foreach ($fiscalCodes as $cf) {
+        $cf = strtoupper(trim((string)$cf));
+        if ($cf !== '') {
+            $codes[$cf] = $cf;
+        }
+    }
+    if (!$codes) {
+        return [];
+    }
+    $quoted = implode(',', array_map('dbQ', array_values($codes)));
+    $extras = [];
+    foreach ($codes as $cf) {
+        $extras[$cf] = [
+            'attributi_riservati' => [],
+            'note_genitori_iscrizione' => '',
+            'id_pratica_iscrizione_note' => 0,
+        ];
+    }
+
+    $attrRows = dbGetAll("
+        SELECT UPPER(TRIM(s.codice_fiscale)) AS codice_fiscale, a.codice_attributo, a.fonte
+        FROM studente s
+        INNER JOIN studente_attributi_riservati a ON a.id_studente = s.id
+        WHERE a.attivo = 1
+          AND UPPER(TRIM(s.codice_fiscale)) IN ($quoted)
+        ORDER BY a.codice_attributo ASC
+    ") ?: [];
+    $attrsByCf = [];
+    foreach ($attrRows as $row) {
+        $cf = strtoupper(trim((string)($row['codice_fiscale'] ?? '')));
+        if ($cf === '') {
+            continue;
+        }
+        $attrsByCf[$cf][] = $row;
+    }
+    foreach ($attrsByCf as $cf => $rows) {
+        if (isset($extras[$cf])) {
+            $extras[$cf]['attributi_riservati'] = studentiAttrRowsToDisplay($rows);
+        }
+    }
+
+    $practiceRows = dbGetAll("
+        SELECT id, UPPER(TRIM(codice_fiscale)) AS codice_fiscale, note_genitori_iscrizione, updated_at
+        FROM iscrizioni_prime_pratiche
+        WHERE codice_fiscale IS NOT NULL
+          AND codice_fiscale <> ''
+          AND UPPER(TRIM(codice_fiscale)) IN ($quoted)
+          AND (stato IS NULL OR stato <> 'annullata')
+        ORDER BY updated_at DESC, id DESC
+    ") ?: [];
+    foreach ($practiceRows as $row) {
+        $cf = strtoupper(trim((string)($row['codice_fiscale'] ?? '')));
+        if ($cf === '' || !isset($extras[$cf]) || intval($extras[$cf]['id_pratica_iscrizione_note'] ?? 0) > 0) {
+            continue;
+        }
+        $extras[$cf]['note_genitori_iscrizione'] = trim((string)($row['note_genitori_iscrizione'] ?? ''));
+        $extras[$cf]['id_pratica_iscrizione_note'] = intval($row['id'] ?? 0);
+    }
+
+    return $extras;
+}
+
 function genitoriColloquiSyncContactsToMovement(int $movementId, array $fields): void
 {
     $ambito = (string)($fields['ambito'] ?? '');
@@ -836,6 +991,7 @@ function genitoriColloquiSave(array $data, ?array $file = null, ?array $receiptF
     }
 
     genitoriColloquiAddEvent($id, $id > 0 && intval($data['id'] ?? 0) > 0 ? 'aggiornamento' : 'creazione', 'Colloquio salvato', $fields);
+    genitoriColloquiSaveStudentReservedInfo($id, $fields, $data);
     genitoriColloquiSyncContactsToMovement(intval($fields['id_movimento'] ?? 0), $fields);
     if (in_array($fields['ambito'], ['entrata', 'iscrizione_prime', 'iscrizione_terze'], true)) {
         iscrizioniPrimeSyncBocciatoAltraScuola(!empty($fields['studente_bocciato']), [

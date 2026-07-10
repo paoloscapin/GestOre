@@ -71,6 +71,27 @@ try {
 $colloqui = genitoriColloquiAll();
 $iscrizioniOptions = genitoriColloquiIscrizioniOptions();
 $movimentiOptions = genitoriColloquiMovimentiOptions();
+$extraFiscalCodes = [];
+foreach ([$colloqui, $iscrizioniOptions, $movimentiOptions] as $sourceRows) {
+    foreach ($sourceRows as $sourceRow) {
+        $cf = strtoupper(trim((string)($sourceRow['codice_fiscale'] ?? '')));
+        if ($cf !== '') {
+            $extraFiscalCodes[$cf] = $cf;
+        }
+    }
+}
+$studentExtrasByCf = genitoriColloquiStudentExtrasByFiscalCodes(array_values($extraFiscalCodes));
+$applyStudentExtras = static function (array $row) use ($studentExtrasByCf): array {
+    $cf = strtoupper(trim((string)($row['codice_fiscale'] ?? '')));
+    $extras = $studentExtrasByCf[$cf] ?? [];
+    $row['attributi_riservati'] = $extras['attributi_riservati'] ?? [];
+    $row['note_genitori_iscrizione'] = $extras['note_genitori_iscrizione'] ?? '';
+    $row['id_pratica_iscrizione_note'] = intval($extras['id_pratica_iscrizione_note'] ?? 0);
+    return $row;
+};
+$colloqui = array_map($applyStudentExtras, $colloqui);
+$iscrizioniOptions = array_map($applyStudentExtras, $iscrizioniOptions);
+$movimentiOptions = array_map($applyStudentExtras, $movimentiOptions);
 $istitutiScuole = scuoleIstitutiAll();
 $indirizziArrivo = dbGetAll("
     SELECT id, nome
@@ -217,6 +238,11 @@ function cg_receipt_link(array $row): string
     }
     $name = trim((string)($row['ricevuta_libri_original_name'] ?? 'Ricevuta libri'));
     return '<a class="btn btn-xs btn-success" target="_blank" href="colloquiGenitoriAllegato.php?type=ricevuta&id=' . intval($row['id'] ?? 0) . '"><span class="glyphicon glyphicon-book"></span> ' . cg_h($name) . '</a>';
+}
+
+function cg_attr_codes(array $row): array
+{
+    return array_fill_keys(array_map(static fn($attr) => (string)($attr['codice'] ?? ''), (array)($row['attributi_riservati'] ?? [])), true);
 }
 
 ?>
@@ -489,6 +515,28 @@ function cg_receipt_link(array $row): string
         .cg-row-actions form {
             margin: 0;
         }
+        .cg-reserved-box {
+            border: 1px solid #c7d2fe;
+            border-left: 5px solid #4f46e5;
+            border-radius: 6px;
+            background: #eef2ff;
+            padding: 10px 12px;
+        }
+        .cg-reserved-checks {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+        .cg-reserved-checks label {
+            margin: 0;
+        }
+        .cg-attr-labels {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 5px;
+        }
         .cg-incontri-table td {
             vertical-align: top !important;
         }
@@ -620,10 +668,13 @@ function cg_receipt_link(array $row): string
                     $isMovementRequested = $hasLinkedMovement && $stato === 'richiesto';
                     [$destMain, $destDetail] = cg_destination_summary($row);
                     $parentContacts = cg_parent_contacts($row);
+                    $attrLabels = array_map(static fn($attr) => (string)($attr['label'] ?? $attr['codice'] ?? ''), (array)($row['attributi_riservati'] ?? []));
                     $searchText = implode(' ', array_filter([
                         $student,
                         $row['codice_fiscale'] ?? '',
                         implode(' ', $parentContacts),
+                        implode(' ', $attrLabels),
+                        $row['note_genitori_iscrizione'] ?? '',
                         $ambiti[$row['ambito'] ?? 'altro'] ?? ($row['ambito'] ?? ''),
                         $destMain,
                         $destDetail,
@@ -650,6 +701,16 @@ function cg_receipt_link(array $row): string
                             <?php endforeach; ?>
                             <?php if (!empty($row['studente_bocciato'])) : ?>
                                 <div><span class="label label-danger">Studente bocciato</span></div>
+                            <?php endif; ?>
+                            <?php if (!empty($row['attributi_riservati'])) : ?>
+                                <div class="cg-attr-labels">
+                                    <?php foreach ((array)$row['attributi_riservati'] as $attr) : ?>
+                                        <span class="label label-info"><?php echo cg_h($attr['label'] ?? $attr['codice'] ?? ''); ?></span>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endif; ?>
+                            <?php if (trim((string)($row['note_genitori_iscrizione'] ?? '')) !== '') : ?>
+                                <div class="cg-row-detail"><strong>Note genitori:</strong> <?php echo cg_h($row['note_genitori_iscrizione']); ?></div>
                             <?php endif; ?>
                         </td>
                         <td><?php echo cg_h($ambiti[$row['ambito'] ?? 'altro'] ?? ($row['ambito'] ?? '')); ?></td>
@@ -739,6 +800,7 @@ function cg_receipt_link(array $row): string
                                 <?php foreach ($iscrizioniOptions as $opt) : ?>
                                     <?php
                                     $label = trim((string)($opt['cognome'] ?? '') . ' ' . (string)($opt['nome'] ?? '')) . ' · ' . strtoupper((string)($opt['tipo_iscrizione'] ?? ''));
+                                    $optAttrCodes = cg_attr_codes($opt);
                                     ?>
                                     <option value="<?php echo intval($opt['id']); ?>"
                                             data-ambito="entrata"
@@ -759,7 +821,11 @@ function cg_receipt_link(array $row): string
                                             data-responsabile_2_cognome="<?php echo cg_h($opt['responsabile_2_cognome'] ?? ''); ?>"
                                             data-responsabile_2_nome="<?php echo cg_h($opt['responsabile_2_nome'] ?? ''); ?>"
                                             data-email_genitore_2="<?php echo cg_h($opt['email_genitore_2'] ?? ''); ?>"
-                                            data-telefono_genitore_2="<?php echo cg_h($opt['telefono_genitore_2'] ?? ''); ?>">
+                                            data-telefono_genitore_2="<?php echo cg_h($opt['telefono_genitore_2'] ?? ''); ?>"
+                                            data-attr_dsa="<?php echo isset($optAttrCodes[STUD_ATTR_R7A2]) ? '1' : '0'; ?>"
+                                            data-attr_104="<?php echo isset($optAttrCodes[STUD_ATTR_Q4M9]) ? '1' : '0'; ?>"
+                                            data-attr_fascia_c="<?php echo isset($optAttrCodes[STUD_ATTR_Z8C3]) ? '1' : '0'; ?>"
+                                            data-note_genitori_iscrizione="<?php echo cg_h($opt['note_genitori_iscrizione'] ?? ''); ?>">
                                         <?php echo cg_h($label); ?>
                                     </option>
                                 <?php endforeach; ?>
@@ -773,6 +839,7 @@ function cg_receipt_link(array $row): string
                                     <?php
                                     $label = trim((string)($opt['cognome'] ?? '') . ' ' . (string)($opt['nome'] ?? '')) . ' · ' . strtoupper((string)($opt['tipo_pratica'] ?? ''));
                                     $ambitoOpt = (string)($opt['tipo_pratica'] ?? '') === 'entrata' ? 'entrata' : 'uscita';
+                                    $optAttrCodes = cg_attr_codes($opt);
                                     ?>
                                     <option value="<?php echo intval($opt['id']); ?>"
                                             data-ambito="<?php echo cg_h($ambitoOpt); ?>"
@@ -798,7 +865,11 @@ function cg_receipt_link(array $row): string
                                             data-responsabile_2_cognome="<?php echo cg_h($opt['responsabile_2_cognome'] ?? ''); ?>"
                                             data-responsabile_2_nome="<?php echo cg_h($opt['responsabile_2_nome'] ?? ''); ?>"
                                             data-email_genitore_2="<?php echo cg_h($opt['email_genitore_2'] ?? ''); ?>"
-                                            data-telefono_genitore_2="<?php echo cg_h($opt['telefono_genitore_2'] ?? ''); ?>">
+                                            data-telefono_genitore_2="<?php echo cg_h($opt['telefono_genitore_2'] ?? ''); ?>"
+                                            data-attr_dsa="<?php echo isset($optAttrCodes[STUD_ATTR_R7A2]) ? '1' : '0'; ?>"
+                                            data-attr_104="<?php echo isset($optAttrCodes[STUD_ATTR_Q4M9]) ? '1' : '0'; ?>"
+                                            data-attr_fascia_c="<?php echo isset($optAttrCodes[STUD_ATTR_Z8C3]) ? '1' : '0'; ?>"
+                                            data-note_genitori_iscrizione="<?php echo cg_h($opt['note_genitori_iscrizione'] ?? ''); ?>">
                                         <?php echo cg_h($label); ?>
                                     </option>
                                 <?php endforeach; ?>
@@ -1002,6 +1073,17 @@ function cg_receipt_link(array $row): string
                     <div class="full">
                         <label for="cg_libri">Libri / materiali da prestare o restituire</label>
                         <textarea class="form-control" name="libri_note" id="cg_libri" rows="2"></textarea>
+                    </div>
+                    <div class="full cg-reserved-box">
+                        <strong>Informazioni riservate studente</strong>
+                        <div class="cg-reserved-checks" style="margin-top:8px;">
+                            <label><input type="checkbox" name="attr_dsa" id="cg_attr_dsa" value="1"> DSA</label>
+                            <label><input type="checkbox" name="attr_104" id="cg_attr_104" value="1"> 104</label>
+                            <label><input type="checkbox" name="attr_fascia_c" id="cg_attr_fascia_c" value="1"> Fascia C</label>
+                        </div>
+                        <label for="cg_note_genitori_iscrizione">Note genitori per pratica iscrizione / formazione classi</label>
+                        <textarea class="form-control" name="note_genitori_iscrizione" id="cg_note_genitori_iscrizione" rows="3"></textarea>
+                        <p class="help-block">Queste note vengono salvate nella pratica iscrizione collegata e saranno visibili anche in formazione classi.</p>
                     </div>
                     <div class="full">
                         <label for="cg_note">Note pratica generale</label>
@@ -1504,6 +1586,10 @@ function cg_receipt_link(array $row): string
         setValue('cg_responsabile_2_nome', '');
         setValue('cg_email_genitore_2', '');
         setValue('cg_telefono_genitore_2', '');
+        setChecked('cg_attr_dsa', 0);
+        setChecked('cg_attr_104', 0);
+        setChecked('cg_attr_fascia_c', 0);
+        setValue('cg_note_genitori_iscrizione', '');
         updateSourceSchoolOther('');
         updateAmbitoPanels();
     }
@@ -1586,6 +1672,10 @@ function cg_receipt_link(array $row): string
         setConditionalText('cg_carenze_attive', 'cg_carenze', '');
         setValue('cg_libri', '');
         setValue('cg_note', '');
+        setChecked('cg_attr_dsa', 0);
+        setChecked('cg_attr_104', 0);
+        setChecked('cg_attr_fascia_c', 0);
+        setValue('cg_note_genitori_iscrizione', '');
         setValue('cg_allegato', '');
         document.getElementById('cg_allegato_attuale').textContent = '';
         document.getElementById('cg_ricevuta_libri_attuale').textContent = '';
@@ -1626,6 +1716,10 @@ function cg_receipt_link(array $row): string
         setValue('cg_responsabile_2_nome', option.getAttribute('data-responsabile_2_nome') || '');
         setValue('cg_email_genitore_2', option.getAttribute('data-email_genitore_2') || '');
         setValue('cg_telefono_genitore_2', option.getAttribute('data-telefono_genitore_2') || '');
+        setChecked('cg_attr_dsa', option.getAttribute('data-attr_dsa') || 0);
+        setChecked('cg_attr_104', option.getAttribute('data-attr_104') || 0);
+        setChecked('cg_attr_fascia_c', option.getAttribute('data-attr_fascia_c') || 0);
+        setValue('cg_note_genitori_iscrizione', option.getAttribute('data-note_genitori_iscrizione') || '');
         refreshParentsVisibility();
         if (option.getAttribute('data-ambito') === 'entrata') {
             setValue('cg_classe_iscrizione', option.getAttribute('data-classe_iscrizione') || option.getAttribute('data-classe') || '');
@@ -1779,6 +1873,14 @@ function cg_receipt_link(array $row): string
             setConditionalText('cg_carenze_attive', 'cg_carenze', row.carenze_note || '');
             setValue('cg_libri', row.libri_note || '');
             setValue('cg_note', row.note || '');
+            var attrCodes = {};
+            (row.attributi_riservati || []).forEach(function (attr) {
+                if (attr && attr.codice) attrCodes[attr.codice] = true;
+            });
+            setChecked('cg_attr_dsa', attrCodes['<?php echo STUD_ATTR_R7A2; ?>'] ? 1 : 0);
+            setChecked('cg_attr_104', attrCodes['<?php echo STUD_ATTR_Q4M9; ?>'] ? 1 : 0);
+            setChecked('cg_attr_fascia_c', attrCodes['<?php echo STUD_ATTR_Z8C3; ?>'] ? 1 : 0);
+            setValue('cg_note_genitori_iscrizione', row.note_genitori_iscrizione || '');
             if (row.allegato_original_name) {
                 document.getElementById('cg_allegato_attuale').textContent = 'Allegato attuale: ' + row.allegato_original_name;
             }

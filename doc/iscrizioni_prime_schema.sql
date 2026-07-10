@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS `iscrizioni_prime_pratiche` (
   `dati_confermati_json` mediumtext DEFAULT NULL,
   `raw_prime_json` mediumtext DEFAULT NULL,
   `raw_dsa_json` mediumtext DEFAULT NULL,
+  `consiglio_orientativo` text DEFAULT NULL,
   `raw_anagrafica_json` mediumtext DEFAULT NULL,
   `note_interne` text DEFAULT NULL,
   `imported_at` datetime NOT NULL,

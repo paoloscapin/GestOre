@@ -41,6 +41,7 @@ function iscrizioniPrimeEnsureSchema(): void
           anno_esame_licenza varchar(20) DEFAULT NULL,
           esito_esame_licenza varchar(100) DEFAULT NULL,
           voto_esame_licenza varchar(20) DEFAULT NULL,
+          consiglio_orientativo text DEFAULT NULL,
           bocciato_altra_scuola tinyint NOT NULL DEFAULT 0,
           sezione_richiesta varchar(20) DEFAULT NULL,
           lingua_straniera_1 varchar(100) DEFAULT NULL,
@@ -411,6 +412,7 @@ function iscrizioniPrimeEnsureSchema(): void
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'anno_esame_licenza', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN anno_esame_licenza varchar(20) DEFAULT NULL AFTER scuola_provenienza");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'esito_esame_licenza', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN esito_esame_licenza varchar(100) DEFAULT NULL AFTER anno_esame_licenza");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'voto_esame_licenza', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN voto_esame_licenza varchar(20) DEFAULT NULL AFTER esito_esame_licenza");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'consiglio_orientativo', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN consiglio_orientativo text DEFAULT NULL AFTER voto_esame_licenza");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'bocciato_altra_scuola', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN bocciato_altra_scuola tinyint NOT NULL DEFAULT 0 AFTER voto_esame_licenza");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'sezione_richiesta', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN sezione_richiesta varchar(20) DEFAULT NULL AFTER voto_esame_licenza");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'lingua_straniera_1', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN lingua_straniera_1 varchar(100) DEFAULT NULL AFTER sezione_richiesta");
@@ -5731,6 +5733,662 @@ function iscrizioniPrimeDocumentPathForAppend(array $document, array &$temporary
     file_put_contents($temporaryPath, (string)($download['content'] ?? ''));
     $temporaryFiles[] = $temporaryPath;
     return $temporaryPath;
+}
+
+function iscrizioniPrimeNormalizeGradeValue($value): ?float
+{
+    $raw = trim((string)$value);
+    if ($raw === '') {
+        return null;
+    }
+
+    $raw = str_replace(',', '.', $raw);
+    if (!is_numeric($raw)) {
+        throw new InvalidArgumentException('Il voto deve essere numerico.');
+    }
+
+    $grade = round((float)$raw, 2);
+    if ($grade < 0 || $grade > 10) {
+        throw new InvalidArgumentException('Il voto deve essere compreso tra 0 e 10.');
+    }
+
+    return $grade;
+}
+
+function iscrizioniPrimeGradeText(?float $grade): string
+{
+    if ($grade === null) {
+        return '';
+    }
+    $text = number_format($grade, 2, ',', '');
+    return preg_replace('/,00$/', '', $text);
+}
+
+function iscrizioniPrimePagellaValuesForPratica(int $praticaId): array
+{
+    $pratica = dbGetFirst("
+        SELECT consiglio_orientativo
+        FROM iscrizioni_prime_pratiche
+        WHERE id = " . dbI($praticaId) . "
+        LIMIT 1
+    ") ?: [];
+
+    $rows = dbGetAll("
+        SELECT materia, voto, fonte, updated_at
+        FROM iscrizioni_prime_voti
+        WHERE pratica_id = " . dbI($praticaId) . "
+          AND materia IN ('Italiano', 'Matematica')
+        ORDER BY updated_at DESC, id DESC
+    ") ?: [];
+
+    $values = [
+        'italiano' => null,
+        'matematica' => null,
+        'fonte_italiano' => '',
+        'fonte_matematica' => '',
+        'consiglio_orientativo' => (string)($pratica['consiglio_orientativo'] ?? ''),
+    ];
+    foreach ($rows as $row) {
+        $key = strtolower((string)($row['materia'] ?? ''));
+        if (!array_key_exists($key, $values) || $values[$key] !== null) {
+            continue;
+        }
+        $values[$key] = $row['voto'] === null || $row['voto'] === '' ? null : round((float)$row['voto'], 2);
+        $values['fonte_' . $key] = (string)($row['fonte'] ?? '');
+    }
+
+    return $values;
+}
+
+function iscrizioniPrimeSavePagellaValues(int $praticaId, ?float $italiano, ?float $matematica, string $consiglio, string $fonte = 'manuale', ?int $documentoId = null): array
+{
+    $before = iscrizioniPrimePagellaValuesForPratica($praticaId);
+    $now = 'NOW()';
+    $subjects = [
+        'Italiano' => $italiano,
+        'Matematica' => $matematica,
+    ];
+
+    foreach ($subjects as $materia => $voto) {
+        dbExec("
+            DELETE FROM iscrizioni_prime_voti
+            WHERE pratica_id = " . dbI($praticaId) . "
+              AND materia = " . dbQ($materia) . "
+        ");
+        if ($voto === null) {
+            continue;
+        }
+        dbExec("
+            INSERT INTO iscrizioni_prime_voti
+                (pratica_id, documento_id, materia, voto, giudizio, fonte, verificato, created_at, updated_at)
+            VALUES
+                (" . dbI($praticaId) . ", " . ($documentoId ? dbI($documentoId) : 'NULL') . ", " . dbQ($materia) . ", " . dbF($voto) . ", NULL, " . dbQ($fonte) . ", 1, $now, $now)
+        ");
+    }
+
+    $consiglio = trim($consiglio);
+    dbExec("
+        UPDATE iscrizioni_prime_pratiche SET
+            consiglio_orientativo = " . dbQ($consiglio !== '' ? $consiglio : null) . ",
+            updated_at = NOW()
+        WHERE id = " . dbI($praticaId) . "
+        LIMIT 1
+    ");
+
+    $after = iscrizioniPrimePagellaValuesForPratica($praticaId);
+    $changes = [];
+    foreach (['italiano', 'matematica'] as $key) {
+        $old = $before[$key] === null ? null : round((float)$before[$key], 2);
+        $new = $after[$key] === null ? null : round((float)$after[$key], 2);
+        if ($old !== $new) {
+            $changes[$key] = ['prima' => $old, 'dopo' => $new];
+        }
+    }
+    if (trim((string)$before['consiglio_orientativo']) !== trim((string)$after['consiglio_orientativo'])) {
+        $changes['consiglio_orientativo'] = true;
+    }
+
+    if ($changes) {
+        iscrizioniPrimeRecordEvent($praticaId, 'valori_pagella', 'Valori pagella e consiglio orientativo aggiornati', [
+            'dettagli' => $changes,
+        ]);
+        iscrizioniPrimeSyncFormationClassPagellaValues($praticaId, $italiano, $matematica, $consiglio);
+    }
+
+    return ['values' => $after, 'changes' => count($changes)];
+}
+
+function iscrizioniPrimeSyncFormationClassPagellaValues(int $praticaId, ?float $italiano, ?float $matematica, string $consiglio): void
+{
+    if (dbGetFirst("SHOW TABLES LIKE 'formazione_classi_studenti'") === null
+        || dbGetFirst("SHOW TABLES LIKE 'formazione_classi_sessioni'") === null) {
+        return;
+    }
+
+    $practice = dbGetFirst("
+        SELECT codice_fiscale, anno_scolastico
+        FROM iscrizioni_prime_pratiche
+        WHERE id = " . dbI($praticaId) . "
+        LIMIT 1
+    ") ?: [];
+    $cf = strtoupper(trim((string)($practice['codice_fiscale'] ?? '')));
+    $schoolYear = iscrizioniPrimeNormalizeSchoolYear((string)($practice['anno_scolastico'] ?? ''));
+    if ($cf === '' || $schoolYear === '') {
+        return;
+    }
+
+    $studentId = intval(dbGetValue("
+        SELECT id
+        FROM studente
+        WHERE UPPER(TRIM(codice_fiscale)) = " . dbQ($cf) . "
+        LIMIT 1
+    ") ?? 0);
+    if ($studentId <= 0) {
+        return;
+    }
+
+    dbExec("
+        UPDATE formazione_classi_studenti f
+        INNER JOIN formazione_classi_sessioni sess ON sess.id = f.id_sessione
+        INNER JOIN anno_scolastico ay ON ay.id = sess.id_anno_scolastico_target
+        SET f.voto_italiano = " . dbF($italiano) . ",
+            f.voto_matematica = " . dbF($matematica) . ",
+            f.consiglio_orientativo = " . dbQ(trim($consiglio) !== '' ? trim($consiglio) : null) . ",
+            f.fonte_valori = 'iscrizioni',
+            f.updated_at = NOW()
+        WHERE f.id_studente = " . dbI($studentId) . "
+          AND sess.tipo_formazione = 'prime'
+          AND " . iscrizioniPrimeSchoolYearWhere('ay.anno', $schoolYear) . "
+    ");
+}
+
+function iscrizioniPrimePagellaDocumentForPratica(int $praticaId): ?array
+{
+    $row = dbGetFirst("
+        SELECT *
+        FROM iscrizioni_prime_documenti
+        WHERE pratica_id = " . dbI($praticaId) . "
+          AND tipo_documento IN ('pagella', 'pagella_seconda')
+          AND stato <> 'mancante'
+          AND (COALESCE(file_path, '') <> '' OR COALESCE(drive_file_id, '') <> '')
+        ORDER BY FIELD(tipo_documento, 'pagella', 'pagella_seconda')
+        LIMIT 1
+    ");
+
+    return $row ?: null;
+}
+
+function iscrizioniPrimeExtractTextFromPdfPath(string $path, ?string &$method = null, ?string &$detail = null): string
+{
+    $method = 'testo_pdf';
+    $detail = '';
+    if (!class_exists('\\Smalot\\PdfParser\\Parser')) {
+        $autoload = __DIR__ . '/vendor/autoload.php';
+        if (file_exists($autoload) && version_compare(PHP_VERSION, '8.2.0', '>=')) {
+            require_once $autoload;
+        }
+    }
+    if (!class_exists('\\Smalot\\PdfParser\\Parser')) {
+        $altAutoload = __DIR__ . '/vendor/smalot/pdfparser/alt_autoload.php-dist';
+        if (file_exists($altAutoload)) {
+            require_once $altAutoload;
+        }
+    }
+    if (!class_exists('\\Smalot\\PdfParser\\Parser')) {
+        throw new RuntimeException('Parser PDF non disponibile.');
+    }
+
+    $parser = new \Smalot\PdfParser\Parser();
+    $pdf = $parser->parseFile($path);
+    $text = trim((string)$pdf->getText());
+    if (iscrizioniPrimePdfTextLooksUseful($text)) {
+        return $text;
+    }
+
+    $method = 'ocr';
+    $text = iscrizioniPrimeExtractTextFromPdfOcr($path, $detail);
+    if ($text !== '') {
+        return $text;
+    }
+
+    $method = 'nessun_testo';
+    return '';
+}
+
+function iscrizioniPrimePdfTextLooksUseful(string $text): bool
+{
+    $clean = trim(preg_replace('/\s+/', ' ', $text));
+    if ($clean === '') {
+        return false;
+    }
+
+    $noise = [
+        'Powered by TCPDF (www.tcpdf.org)',
+    ];
+    if (in_array($clean, $noise, true)) {
+        return false;
+    }
+
+    if (preg_match('/\b(italiano|matematica|giudizio|orientativo|orientamento|comportamento|disciplin[ae])\b/iu', $clean)) {
+        return true;
+    }
+
+    return mb_strlen($clean, 'UTF-8') >= 120;
+}
+
+function iscrizioniPrimeCommandAvailable(string $command): bool
+{
+    if (trim($command) === '' || !function_exists('proc_open')) {
+        return false;
+    }
+
+    if (preg_match('/[\\\\\\/]/', $command)) {
+        return is_file($command) && is_executable($command);
+    }
+
+    $check = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN'
+        ? 'where ' . escapeshellarg($command)
+        : 'command -v ' . escapeshellarg($command);
+    $descriptors = [
+        1 => ['pipe', 'w'],
+        2 => ['pipe', 'w'],
+    ];
+    $process = @proc_open($check, $descriptors, $pipes);
+    if (!is_resource($process)) {
+        return false;
+    }
+    foreach ($pipes as $pipe) {
+        fclose($pipe);
+    }
+    return proc_close($process) === 0;
+}
+
+function iscrizioniPrimeOcrStatus(): array
+{
+    $pdftoppm = defined('ISCRIZIONI_PRIME_PDFTOPPM') ? (string)constant('ISCRIZIONI_PRIME_PDFTOPPM') : 'pdftoppm';
+    $tesseract = defined('ISCRIZIONI_PRIME_TESSERACT') ? (string)constant('ISCRIZIONI_PRIME_TESSERACT') : 'tesseract';
+    $magick = defined('ISCRIZIONI_PRIME_MAGICK') ? (string)constant('ISCRIZIONI_PRIME_MAGICK') : 'magick';
+    $procOpen = function_exists('proc_open');
+    $status = [
+        'proc_open' => $procOpen,
+        'pdftoppm' => $procOpen && iscrizioniPrimeCommandAvailable($pdftoppm),
+        'tesseract' => $procOpen && iscrizioniPrimeCommandAvailable($tesseract),
+        'magick' => $procOpen && iscrizioniPrimeCommandAvailable($magick),
+        'commands' => [
+            'pdftoppm' => $pdftoppm,
+            'tesseract' => $tesseract,
+            'magick' => $magick,
+        ],
+    ];
+    $status['ready'] = $status['proc_open'] && $status['pdftoppm'] && $status['tesseract'];
+
+    return $status;
+}
+
+function iscrizioniPrimeOcrStatusMessage(?array $status = null): string
+{
+    $status = $status ?? iscrizioniPrimeOcrStatus();
+    $missing = [];
+    if (empty($status['proc_open'])) {
+        $missing[] = 'proc_open PHP';
+    }
+    if (empty($status['pdftoppm'])) {
+        $missing[] = 'pdftoppm/Poppler';
+    }
+    if (empty($status['tesseract'])) {
+        $missing[] = 'tesseract OCR';
+    }
+
+    if (!empty($missing)) {
+        return 'OCR non configurato: mancano ' . implode(', ', $missing) . '.';
+    }
+
+    if (empty($status['magick'])) {
+        return 'OCR configurato. ImageMagick non disponibile: le foto scure possono essere meno leggibili.';
+    }
+
+    return 'OCR configurato.';
+}
+
+function iscrizioniPrimeRunCommand(string $command, int $timeoutSeconds = 45): array
+{
+    if (!function_exists('proc_open')) {
+        return ['code' => 127, 'stdout' => '', 'stderr' => 'proc_open non disponibile'];
+    }
+
+    $descriptors = [
+        1 => ['pipe', 'w'],
+        2 => ['pipe', 'w'],
+    ];
+    $process = @proc_open($command, $descriptors, $pipes);
+    if (!is_resource($process)) {
+        return ['code' => 127, 'stdout' => '', 'stderr' => 'Comando non avviabile'];
+    }
+
+    $stdout = '';
+    $stderr = '';
+    $started = time();
+    $exitCode = null;
+    foreach ([1, 2] as $index) {
+        stream_set_blocking($pipes[$index], false);
+    }
+    while (true) {
+        $status = proc_get_status($process);
+        $stdout .= stream_get_contents($pipes[1]);
+        $stderr .= stream_get_contents($pipes[2]);
+        if (!$status['running']) {
+            $exitCode = isset($status['exitcode']) ? intval($status['exitcode']) : null;
+            break;
+        }
+        if (time() - $started > $timeoutSeconds) {
+            proc_terminate($process);
+            $exitCode = 124;
+            break;
+        }
+        usleep(100000);
+    }
+    $stdout .= stream_get_contents($pipes[1]);
+    $stderr .= stream_get_contents($pipes[2]);
+    fclose($pipes[1]);
+    fclose($pipes[2]);
+    $closedCode = proc_close($process);
+    $code = $exitCode !== null && $exitCode >= 0 ? $exitCode : $closedCode;
+
+    return ['code' => $code, 'stdout' => $stdout, 'stderr' => $stderr];
+}
+
+function iscrizioniPrimeExtractTextFromPdfOcr(string $path, ?string &$detail = null): string
+{
+    $detail = '';
+    $ocrStatus = iscrizioniPrimeOcrStatus();
+    if (empty($ocrStatus['ready'])) {
+        $detail = iscrizioniPrimeOcrStatusMessage($ocrStatus);
+        return '';
+    }
+    $pdftoppm = (string)$ocrStatus['commands']['pdftoppm'];
+    $tesseract = (string)$ocrStatus['commands']['tesseract'];
+
+    $workDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'iscrizioni_ocr_' . bin2hex(random_bytes(6));
+    if (!mkdir($workDir, 0700, true) && !is_dir($workDir)) {
+        $detail = 'Impossibile creare la cartella temporanea OCR.';
+        return '';
+    }
+
+    $prefix = $workDir . DIRECTORY_SEPARATOR . 'pagina';
+    $convert = escapeshellarg($pdftoppm)
+        . ' -png -r 200 -f 1 -l 2 '
+        . escapeshellarg($path) . ' '
+        . escapeshellarg($prefix);
+    $converted = iscrizioniPrimeRunCommand($convert, 60);
+    if (($converted['code'] ?? 1) !== 0) {
+        iscrizioniPrimeRemoveDirectory($workDir);
+        $detail = 'Conversione OCR non riuscita: ' . trim((string)($converted['stderr'] ?? ''));
+        return '';
+    }
+
+    $images = glob($prefix . '*.png') ?: [];
+    sort($images);
+    $parts = [];
+    foreach ($images as $image) {
+        $variants = iscrizioniPrimeOcrImageVariants($image, $workDir);
+        $bestText = '';
+        $bestScore = 0;
+        foreach ($variants as $variant) {
+            foreach (iscrizioniPrimeOcrTesseractModes() as $mode) {
+                $ocr = escapeshellarg($tesseract)
+                    . ' ' . escapeshellarg($variant)
+                    . ' stdout -l ' . escapeshellarg($mode['lang'])
+                    . ' --psm ' . intval($mode['psm']);
+                $result = iscrizioniPrimeRunCommand($ocr, 75);
+                if (($result['code'] ?? 1) !== 0) {
+                    continue;
+                }
+                $currentText = trim((string)($result['stdout'] ?? ''));
+                $currentScore = iscrizioniPrimeOcrTextScore($currentText);
+                if ($currentScore > $bestScore) {
+                    $bestScore = $currentScore;
+                    $bestText = $currentText;
+                }
+            }
+        }
+        if ($bestText !== '') {
+            $parts[] = $bestText;
+        }
+    }
+    iscrizioniPrimeRemoveDirectory($workDir);
+
+    $text = trim(implode("\n", array_filter($parts, static fn($part) => trim((string)$part) !== '')));
+    if ($text === '') {
+        $detail = 'OCR eseguito ma non ha trovato testo utile nella pagella.';
+    }
+
+    return $text;
+}
+
+function iscrizioniPrimeOcrTesseractModes(): array
+{
+    return [
+        ['lang' => 'ita+eng', 'psm' => 1],
+        ['lang' => 'ita+eng', 'psm' => 6],
+        ['lang' => 'ita+eng', 'psm' => 11],
+        ['lang' => 'ita+eng', 'psm' => 12],
+        ['lang' => 'eng', 'psm' => 1],
+        ['lang' => 'eng', 'psm' => 6],
+    ];
+}
+
+function iscrizioniPrimeOcrImageVariants(string $image, string $workDir): array
+{
+    $variants = [$image];
+    $magick = defined('ISCRIZIONI_PRIME_MAGICK') ? (string)constant('ISCRIZIONI_PRIME_MAGICK') : 'magick';
+    if (!iscrizioniPrimeCommandAvailable($magick)) {
+        return $variants;
+    }
+
+    $normalized = $workDir . DIRECTORY_SEPARATOR . pathinfo($image, PATHINFO_FILENAME) . '_ocr.png';
+    $command = escapeshellarg($magick)
+        . ' ' . escapeshellarg($image)
+        . ' -auto-orient -colorspace Gray -normalize -contrast-stretch 1%x1% -sharpen 0x1 '
+        . escapeshellarg($normalized);
+    $result = iscrizioniPrimeRunCommand($command, 45);
+    if (($result['code'] ?? 1) === 0 && is_file($normalized) && filesize($normalized) > 0) {
+        $variants[] = $normalized;
+    }
+
+    return $variants;
+}
+
+function iscrizioniPrimeOcrTextScore(string $text): int
+{
+    $clean = trim(preg_replace('/\s+/', ' ', $text));
+    if ($clean === '') {
+        return 0;
+    }
+
+    $score = min(2000, mb_strlen($clean, 'UTF-8'));
+    foreach (['italiano', 'matematica', 'giudizio', 'globale', 'orientativo', 'consiglio', 'apprendimento', 'relazionale'] as $keyword) {
+        if (stripos($clean, $keyword) !== false) {
+            $score += 500;
+        }
+    }
+
+    return $score;
+}
+
+function iscrizioniPrimeRemoveDirectory(string $dir): void
+{
+    if (!is_dir($dir)) {
+        return;
+    }
+    $items = scandir($dir);
+    if ($items !== false) {
+        foreach ($items as $item) {
+            if ($item === '.' || $item === '..') {
+                continue;
+            }
+            $path = $dir . DIRECTORY_SEPARATOR . $item;
+            if (is_dir($path)) {
+                iscrizioniPrimeRemoveDirectory($path);
+            } else {
+                @unlink($path);
+            }
+        }
+    }
+    @rmdir($dir);
+}
+
+function iscrizioniPrimeExtractGradeFromText(string $text, string $subject): ?float
+{
+    $subjectPattern = preg_quote($subject, '/');
+    $wordPattern = 'gravemente\s+insufficiente|non\s+sufficiente|insufficiente|sufficiente|ottimo|distinto|buono|discreto|dieci|nove|otto|sette|sei|cinque|quattro';
+    $patterns = [
+        '/\b' . $subjectPattern . '\b[^\r\n0-9]{0,40}([0-9]{1,2}(?:[,.][0-9]{1,2})?)(?:\s*\/\s*10)?/iu',
+        '/\b' . $subjectPattern . '\b[\s\S]{0,120}?([0-9]{1,2}(?:[,.][0-9]{1,2})?)(?:\s*\/\s*10)?/iu',
+        '/\b' . $subjectPattern . '\b[^\r\n]{0,80}\b(' . $wordPattern . ')\b/iu',
+        '/\b' . $subjectPattern . '\b[\s\S]{0,160}?\b(' . $wordPattern . ')\b/iu',
+    ];
+    foreach ($patterns as $pattern) {
+        if (preg_match($pattern, $text, $match)) {
+            try {
+                $grade = iscrizioniPrimeNormalizeGradeValue(iscrizioniPrimeGradeWordToNumber($match[1]) ?? $match[1]);
+                if ($grade !== null) {
+                    return $grade;
+                }
+            } catch (InvalidArgumentException $e) {
+            }
+        }
+    }
+
+    return null;
+}
+
+function iscrizioniPrimeGradeWordToNumber(string $value): ?float
+{
+    $normalized = strtolower(trim($value));
+    $normalized = preg_replace('/\s+/', ' ', $normalized);
+    $normalized = strtr($normalized, [
+        'à' => 'a',
+        'è' => 'e',
+        'é' => 'e',
+        'ì' => 'i',
+        'ò' => 'o',
+        'ù' => 'u',
+    ]);
+
+    $map = [
+        'ottimo' => 10.0,
+        'distinto' => 9.0,
+        'buono' => 8.0,
+        'discreto' => 7.0,
+        'sufficiente' => 6.0,
+        'non sufficiente' => 5.0,
+        'insufficiente' => 5.0,
+        'gravemente insufficiente' => 4.0,
+        'dieci' => 10.0,
+        'nove' => 9.0,
+        'otto' => 8.0,
+        'sette' => 7.0,
+        'sei' => 6.0,
+        'cinque' => 5.0,
+        'quattro' => 4.0,
+    ];
+
+    return $map[$normalized] ?? null;
+}
+
+function iscrizioniPrimeExtractConsiglioFromText(string $text): string
+{
+    $normalized = trim(preg_replace("/[ \t]+/", ' ', str_replace("\r", "\n", $text)));
+    $globalSections = [];
+    if (preg_match_all('/GIUDIZIO\s+GLOBALE[^\n]*\n([\s\S]*?)(?=\n\s*(?:GIUDIZIO\s+GLOBALE|Gradi\s+della\s+valutazione|VALIDAZIONE\s+DELL[’\'`]\s*ANNO\s+SCOLASTICO|DISCIPLINE\b|TRENTO\b|ATTESTATO\b|Anno\s+scolastico\b|finale\s+\d+\b|Vista\s+la\s+valutazione|PROF\.|Questa\s+nota)|$)/iu', $normalized, $matches)) {
+        foreach ($matches[1] as $sectionText) {
+            $sectionText = iscrizioniPrimeCleanExtractedParagraph($sectionText);
+            if ($sectionText !== '') {
+                $globalSections[] = $sectionText;
+            }
+        }
+    }
+    foreach ($globalSections as $sectionText) {
+        if (preg_match('/consiglio\s+orientativo|orientamento/iu', $sectionText)) {
+            return $sectionText;
+        }
+    }
+    if (!empty($globalSections)) {
+        return $globalSections[0];
+    }
+
+    $section = $normalized;
+    $patterns = [
+        '/consiglio\s+orientativo\s*[:\-]?\s*([^\n]{6,900})/iu',
+        '/orientamento\s*[:\-]?\s*([^\n]{6,900})/iu',
+    ];
+    foreach ($patterns as $pattern) {
+        if (preg_match($pattern, $section, $match)) {
+            return trim($match[1]);
+        }
+    }
+    foreach ($patterns as $pattern) {
+        if (preg_match($pattern, $normalized, $match)) {
+            return trim($match[1]);
+        }
+    }
+
+    return '';
+}
+
+function iscrizioniPrimeCleanExtractedParagraph(string $text): string
+{
+    $text = trim(preg_replace("/[ \t]*\n[ \t]*/", "\n", $text));
+    $text = preg_replace("/\n{3,}/", "\n\n", $text);
+    return trim($text);
+}
+
+function iscrizioniPrimeRecognizePagellaValues(int $praticaId): array
+{
+    $document = iscrizioniPrimePagellaDocumentForPratica($praticaId);
+    if (!$document) {
+        return ['ok' => false, 'message' => 'Nessuna pagella PDF caricata nella pratica.'];
+    }
+
+    $temporaryFiles = [];
+    try {
+        $path = iscrizioniPrimeDocumentPathForAppend($document, $temporaryFiles);
+        if (!$path || !is_file($path)) {
+            return ['ok' => false, 'message' => 'PDF della pagella non recuperabile.'];
+        }
+        $extractMethod = '';
+        $extractDetail = '';
+        $text = iscrizioniPrimeExtractTextFromPdfPath($path, $extractMethod, $extractDetail);
+    } finally {
+        foreach ($temporaryFiles as $temporaryFile) {
+            @unlink($temporaryFile);
+        }
+    }
+
+    if ($text === '') {
+        $message = 'Il PDF sembra una pagella scansionata/immagine e non contiene testo estraibile.';
+        if (!empty($extractDetail)) {
+            $message .= ' ' . $extractDetail;
+        }
+        $message .= ' Inserire i valori manualmente oppure abilitare OCR sul server.';
+        return [
+            'ok' => false,
+            'message' => $message,
+            'metodo_estrazione' => $extractMethod,
+            'ocr_status' => iscrizioniPrimeOcrStatus(),
+        ];
+    }
+
+    return [
+        'ok' => true,
+        'documento_id' => intval($document['id'] ?? 0),
+        'documento_nome' => (string)($document['original_name'] ?? ''),
+        'metodo_estrazione' => $extractMethod,
+        'ocr_status' => $extractMethod === 'ocr' ? iscrizioniPrimeOcrStatus() : null,
+        'italiano' => iscrizioniPrimeExtractGradeFromText($text, 'Italiano'),
+        'matematica' => iscrizioniPrimeExtractGradeFromText($text, 'Matematica'),
+        'consiglio_orientativo' => iscrizioniPrimeExtractConsiglioFromText($text),
+    ];
 }
 
 function iscrizioniPrimeUploadDocumentByToken(string $token, string $tipo, array $file, string $uploadMode = 'replace'): array

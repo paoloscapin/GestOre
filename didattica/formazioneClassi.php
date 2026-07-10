@@ -118,7 +118,7 @@ function fc_unassigned_groups(array $students, int $targetClassYear): array
     foreach ($students as $student) {
         $origin = (string)($student['gruppo_origine'] ?? '');
         if ($origin === 'bocciato') {
-            if (!empty($student['in_uscita'])) {
+            if (!empty($student['uscita_bloccante'])) {
                 $student['non_trascinabile'] = 1;
                 $student['bocciato_perso'] = 1;
                 $groups['bocciati_persi'][] = $student;
@@ -440,6 +440,58 @@ function fc_unassigned_groups(array $students, int $targetClassYear): array
             font-family: "Glyphicons Halflings";
             font-size: 10px;
         }
+        .fc-orientation-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: #fef9c3;
+            border: 1px solid #ca8a04;
+            border-radius: 999px;
+            color: #713f12;
+            cursor: help;
+            font-size: 11px;
+            font-weight: 800;
+            line-height: 1;
+            padding: 4px 8px;
+            white-space: nowrap;
+        }
+        .fc-orientation-badge::before {
+            content: "\e086";
+            font-family: "Glyphicons Halflings";
+            font-size: 10px;
+        }
+        .fc-doc-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 5px;
+        }
+        .fc-doc-btn {
+            align-items: center;
+            background: #ffffff;
+            border: 1px solid #94a3b8;
+            border-radius: 3px;
+            color: #334155;
+            display: inline-flex;
+            font-size: 10px;
+            font-weight: 800;
+            gap: 3px;
+            line-height: 1;
+            padding: 3px 5px;
+            text-decoration: none;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+        .fc-doc-btn:hover,
+        .fc-doc-btn:focus {
+            background: #eff6ff;
+            border-color: #2563eb;
+            color: #1d4ed8;
+            text-decoration: none;
+        }
+        .fc-doc-btn .glyphicon {
+            font-size: 9px;
+        }
         .fc-student.fc-student-uscita {
             border-left-color: #94a3b8;
             background: #f1f5f9;
@@ -514,6 +566,33 @@ function fc_unassigned_groups(array $students, int $targetClassYear): array
             gap: 3px;
             min-width: 0;
         }
+        .fc-gender-badge {
+            align-items: center;
+            border: 1px solid #94a3b8;
+            border-radius: 50%;
+            color: #fff;
+            display: inline-flex;
+            flex: 0 0 20px;
+            font-size: 12px;
+            font-weight: 900;
+            height: 20px;
+            justify-content: center;
+            line-height: 1;
+            margin-right: 3px;
+            width: 20px;
+        }
+        .fc-gender-badge.fc-gender-m {
+            background: #2563eb;
+            border-color: #1d4ed8;
+        }
+        .fc-gender-badge.fc-gender-f {
+            background: #db2777;
+            border-color: #be185d;
+        }
+        .fc-gender-badge.fc-gender-unknown {
+            background: #64748b;
+            border-color: #475569;
+        }
         .fc-student-head {
             display: flex;
             align-items: flex-start;
@@ -551,6 +630,38 @@ function fc_unassigned_groups(array $students, int $targetClassYear): array
         }
         .fc-student-lock {
             flex: 0 0 auto;
+        }
+        .fc-attr-edit {
+            flex: 0 0 auto;
+            font-weight: 800;
+        }
+        .fc-parent-note-edit {
+            flex: 0 0 auto;
+            font-weight: 800;
+        }
+        .fc-undo-list {
+            display: grid;
+            gap: 8px;
+            max-height: 58vh;
+            overflow-y: auto;
+        }
+        .fc-undo-item {
+            align-items: center;
+            border: 1px solid #d8dee8;
+            border-radius: 4px;
+            display: grid;
+            gap: 8px;
+            grid-template-columns: minmax(0, 1fr) auto;
+            padding: 9px 10px;
+        }
+        .fc-undo-item-title {
+            color: #17202f;
+            font-weight: 800;
+        }
+        .fc-undo-item-meta {
+            color: #64748b;
+            font-size: 12px;
+            margin-top: 2px;
         }
         .fc-student-meta {
             color: #64748b;
@@ -1105,7 +1216,7 @@ function fc_unassigned_groups(array $students, int $targetClassYear): array
         <div class="panel-body">
             <form method="get" class="fc-toolbar" id="fc_filter_form">
                 <div class="fc-toolbar-row">
-                    <div class="form-group">
+                    <div class="form-group" id="fc_tablet_filter_group">
                         <label>Classi da formare</label>
                         <select name="tipo_formazione" class="form-control input-sm" id="fc_tipo_select">
                             <?php foreach ($tipiFormazione as $tipoKey => $tipoData): ?>
@@ -1187,12 +1298,88 @@ function fc_unassigned_groups(array $students, int $targetClassYear): array
     </div>
 </div>
 <div id="fc_context_menu" class="fc-context-menu" role="menu" aria-hidden="true">
+    <button type="button" id="fc_context_attrs" role="menuitem">Modifica attributi DSA/104/Fascia C</button>
     <button type="button" id="fc_context_movimenti" role="menuitem">Apri pratica in movimenti studenti</button>
+</div>
+<div class="modal fade" id="fc_parent_note_modal" tabindex="-1" role="dialog" aria-labelledby="fc_parent_note_title">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <form id="fc_parent_note_form">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Chiudi"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title" id="fc_parent_note_title">Nota genitori</h4>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="fc_parent_note_row_id" value="">
+                    <div class="text-muted" id="fc_parent_note_student_name" style="margin-bottom:10px;"></div>
+                    <textarea class="form-control" id="fc_parent_note_text" rows="7"></textarea>
+                    <div class="text-danger" id="fc_parent_note_error" style="min-height:18px;margin-top:6px;"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default btn-sm" data-dismiss="modal">Annulla</button>
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <span class="glyphicon glyphicon-floppy-disk"></span> Salva
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="fc_attrs_modal" tabindex="-1" role="dialog" aria-labelledby="fc_attrs_title">
+    <div class="modal-dialog modal-sm" role="document">
+        <div class="modal-content">
+            <form id="fc_attrs_form">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Chiudi"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title" id="fc_attrs_title">Attributi studente</h4>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="fc_attrs_row_id" value="">
+                    <div class="text-muted" id="fc_attrs_student_name" style="margin-bottom:10px;"></div>
+                    <div class="checkbox">
+                        <label><input type="checkbox" id="fc_attr_dsa"> DSA</label>
+                    </div>
+                    <div class="checkbox">
+                        <label><input type="checkbox" id="fc_attr_104"> 104</label>
+                    </div>
+                    <div class="checkbox">
+                        <label><input type="checkbox" id="fc_attr_fascia_c"> Fascia C</label>
+                    </div>
+                    <div class="text-danger" id="fc_attrs_error" style="min-height:18px;"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default btn-sm" data-dismiss="modal">Annulla</button>
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <span class="glyphicon glyphicon-floppy-disk"></span> Salva
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="fc_undo_modal" tabindex="-1" role="dialog" aria-labelledby="fc_undo_title">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Chiudi"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="fc_undo_title">Annulla operazioni</h4>
+            </div>
+            <div class="modal-body">
+                <div class="text-muted" style="margin-bottom:10px;">Scegli un punto dello storico: verranno annullate quella operazione e tutte quelle successive.</div>
+                <div id="fc_undo_status" class="text-muted" style="min-height:18px;margin-bottom:8px;"></div>
+                <div id="fc_undo_list" class="fc-undo-list"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default btn-sm" data-dismiss="modal">Chiudi</button>
+            </div>
+        </div>
+    </div>
 </div>
 <script>
 let fcDraggedId = 0;
 let fcDraggedSourceZone = null;
 let fcContextStudent = null;
+let fcUndoContext = null;
 let fcFormationMeta = <?php echo json_encode($formationMeta, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?> || {};
 const fcInitialTipo = <?php echo json_encode($tipoFormazione, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
 const fcInitialTabletFilter = <?php echo json_encode($tabletFilter, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
@@ -1278,6 +1465,7 @@ async function fcHandleAddressChange(address) {
         fcShowLoadingOverlay('Caricamento indirizzo selezionato...');
     }
     fcShowAddress(address || '');
+    fcUpdateTabletFilterState(tipo);
     if (!tipo || !address) {
         fcHideLoadingOverlay();
         return;
@@ -1305,6 +1493,7 @@ async function fcHandleTabletFilterChange() {
     const tipo = fcActiveFormationType();
     const address = document.getElementById('fc_indirizzo_select')?.value || '';
     if (!tipo || !address) return;
+    fcUpdateTabletFilterState(tipo);
     if (!fcIsSectionReady(tipo, address)) {
         fcShowLoadingOverlay('Caricamento filtro tablet...');
     }
@@ -1446,7 +1635,7 @@ function fcInsertFormationSection(tipo, address, html, replaceExisting) {
 }
 
 function fcSectionKey(tipo, address, tabletFilter) {
-    return tipo + '|' + address + '|' + (tabletFilter || fcActiveTabletFilter());
+    return tipo + '|' + address + '|' + (tabletFilter || fcEffectiveTabletFilter(tipo, address));
 }
 
 function fcIsSectionReady(tipo, address) {
@@ -1510,7 +1699,7 @@ function fcFetchFormationSection(tipo, address) {
     url.searchParams.set('ajax', 'section');
     url.searchParams.set('tipo_formazione', tipo);
     url.searchParams.set('indirizzo', address);
-    url.searchParams.set('tablet_filter', fcActiveTabletFilter());
+    url.searchParams.set('tablet_filter', fcEffectiveTabletFilter(tipo, address));
     return fetch(url.toString(), {credentials: 'same-origin'})
         .then(function (response) {
             if (!response.ok) {
@@ -1552,6 +1741,18 @@ function fcShowLoadingOverlay(text) {
     overlay.classList.add('open');
 }
 
+function fcUpdateLoadingOverlay(text, percentValue, detailText) {
+    const label = document.getElementById('fc_loading_text');
+    const percent = document.getElementById('fc_loading_percent');
+    const bar = document.getElementById('fc_loading_bar');
+    const detail = document.getElementById('fc_loading_detail');
+    const pct = Math.max(0, Math.min(100, Number(percentValue || 0)));
+    if (label) label.textContent = text || 'Aggiornamento in corso...';
+    if (percent) percent.textContent = pct ? (pct + '%') : '';
+    if (bar) bar.style.width = pct ? (pct + '%') : '100%';
+    if (detail) detail.textContent = detailText || 'Attendere qualche secondo';
+}
+
 function fcHideLoadingOverlay() {
     const overlay = document.getElementById('fc_loading_overlay');
     if (overlay) overlay.classList.remove('open');
@@ -1576,7 +1777,7 @@ function fcSaveCurrentSelection() {
     try {
         const tipo = fcActiveFormationType();
         const address = document.getElementById('fc_indirizzo_select')?.value || '';
-        const tablet = fcActiveTabletFilter();
+        const tablet = fcEffectiveTabletFilter(tipo, address);
         if (!tipo) {
             return;
         }
@@ -1617,7 +1818,7 @@ function fcUpdateExportLink() {
         currentUrl.searchParams.set('scope', 'current');
         currentUrl.searchParams.set('tipo_formazione', fcActiveFormationType());
         currentUrl.searchParams.set('indirizzo', document.getElementById('fc_indirizzo_select')?.value || '');
-        currentUrl.searchParams.set('tablet_filter', fcActiveTabletFilter());
+        currentUrl.searchParams.set('tablet_filter', fcEffectiveTabletFilter(fcActiveFormationType(), document.getElementById('fc_indirizzo_select')?.value || ''));
         addYears(currentUrl);
         currentLink.href = currentUrl.toString();
     }
@@ -1721,6 +1922,21 @@ function fcActiveTabletFilter() {
     return document.getElementById('fc_tablet_filter')?.value || fcInitialTabletFilter || 'all';
 }
 
+function fcAddressIsDigitalScience(address) {
+    const value = String(address || '').toUpperCase().replace(/_/g, ' ');
+    return value.indexOf('DIGITAL') !== -1 && value.indexOf('SCIENCE') !== -1;
+}
+
+function fcEffectiveTabletFilter(tipo, address) {
+    const currentTipo = tipo || fcActiveFormationType();
+    const currentAddress = address !== undefined ? address : (document.getElementById('fc_indirizzo_select')?.value || '');
+    const targetYear = Number(fcFormationMeta[currentTipo]?.targetYear || 0);
+    if (targetYear === 1 && fcAddressIsDigitalScience(currentAddress)) {
+        return 'all';
+    }
+    return fcActiveTabletFilter();
+}
+
 function fcActiveFormationView() {
     return document.querySelector('.fc-formation-view:not([hidden])');
 }
@@ -1760,7 +1976,7 @@ function fcShowAddress(address) {
             url.searchParams.set('tipo_formazione', tipo);
         }
         url.searchParams.set('indirizzo', address);
-        url.searchParams.set('tablet_filter', fcActiveTabletFilter());
+        url.searchParams.set('tablet_filter', fcEffectiveTabletFilter(tipo, address));
         window.history.replaceState({}, '', url.toString());
     }
     fcUpdateExportLink();
@@ -1792,11 +2008,17 @@ function fcShowFormationType(tipo) {
 
 function fcUpdateTabletFilterState(tipo) {
     const select = document.getElementById('fc_tablet_filter');
+    const group = document.getElementById('fc_tablet_filter_group');
     if (!select) return;
     const targetYear = Number(fcFormationMeta[tipo]?.targetYear || 0);
-    const enabled = targetYear === 1 || targetYear === 2;
+    const address = document.getElementById('fc_indirizzo_select')?.value || fcFormationMeta[tipo]?.activeAddress || '';
+    const hiddenForDigitalScience = targetYear === 1 && fcAddressIsDigitalScience(address);
+    const enabled = (targetYear === 1 || targetYear === 2) && !hiddenForDigitalScience;
+    if (group) {
+        group.hidden = hiddenForDigitalScience;
+    }
     select.disabled = !enabled;
-    if (!enabled && select.value !== 'all') {
+    if ((!enabled || hiddenForDigitalScience) && select.value !== 'all') {
         select.value = 'all';
     }
 }
@@ -1819,6 +2041,7 @@ function fcReplaceAddressOptions(addresses, activeAddress) {
         option.textContent = 'Nessun indirizzo disponibile';
         select.appendChild(option);
     }
+    fcUpdateTabletFilterState(fcActiveFormationType());
 }
 
 function fcInitFormationInteractions(scope) {
@@ -1871,13 +2094,12 @@ function fcInitFormationInteractions(scope) {
         });
     });
 
-    scope.querySelectorAll('.fc-student[data-id-movimento]').forEach(function (card) {
+    scope.querySelectorAll('.fc-student').forEach(function (card) {
         if (card.dataset.fcContextBound === '1') {
             return;
         }
         card.dataset.fcContextBound = '1';
         card.addEventListener('contextmenu', function (event) {
-            if (Number(card.dataset.idMovimento || 0) <= 0) return;
             event.preventDefault();
             fcContextStudent = card;
             fcShowContextMenu(event.clientX, event.clientY);
@@ -1894,6 +2116,16 @@ function fcInitFormationInteractions(scope) {
         });
     });
 
+    scope.querySelectorAll('.fc-undo-action').forEach(function (button) {
+        if (button.dataset.fcUndoBound === '1') {
+            return;
+        }
+        button.dataset.fcUndoBound = '1';
+        button.addEventListener('click', function () {
+            fcOpenUndoModal(button);
+        });
+    });
+
     scope.querySelectorAll('.fc-student-lock').forEach(function (button) {
         if (button.dataset.fcLockBound === '1') {
             return;
@@ -1903,6 +2135,30 @@ function fcInitFormationInteractions(scope) {
             event.preventDefault();
             event.stopPropagation();
             fcToggleStudentLock(button);
+        });
+    });
+
+    scope.querySelectorAll('.fc-attr-edit').forEach(function (button) {
+        if (button.dataset.fcAttrBound === '1') {
+            return;
+        }
+        button.dataset.fcAttrBound = '1';
+        button.addEventListener('click', function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+            fcOpenAttrsModal(button.closest('.fc-student'));
+        });
+    });
+
+    scope.querySelectorAll('.fc-parent-note-edit').forEach(function (button) {
+        if (button.dataset.fcParentNoteBound === '1') {
+            return;
+        }
+        button.dataset.fcParentNoteBound = '1';
+        button.addEventListener('click', function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+            fcOpenParentNoteModal(button.closest('.fc-student'));
         });
     });
 
@@ -2135,7 +2391,8 @@ function fcPostLock(payload, button) {
 
 function fcApplyStudentLock(card, individualLocked, classLocked) {
     if (!card) return;
-    const effectiveLocked = individualLocked || classLocked;
+    const outgoingBlocked = card.dataset.uscitaBloccante === '1';
+    const effectiveLocked = individualLocked || classLocked || outgoingBlocked;
     card.classList.toggle('fc-student-locked', effectiveLocked);
     card.draggable = !effectiveLocked && !card.classList.contains('fc-student-uscita');
     card.dataset.classLocked = classLocked ? '1' : '0';
@@ -2198,7 +2455,7 @@ function fcAutoAssign(button) {
 
     const data = new FormData();
     data.append('session_id', String(sessionId));
-    data.append('tablet_filter', fcActiveTabletFilter());
+    data.append('tablet_filter', fcEffectiveTabletFilter(activeTipo, section.dataset.address || ''));
     rowIds.forEach(id => data.append('row_ids[]', String(id)));
     targetLabels.forEach(label => data.append('target_labels[]', label));
     layout.querySelectorAll('.fc-target-count').forEach(function (input) {
@@ -2235,13 +2492,149 @@ function fcAutoAssign(button) {
         });
 }
 
+function fcOpenUndoModal(button) {
+    const section = button.closest('.fc-address-section');
+    const layout = section ? section.querySelector('.fc-layout') : null;
+    const status = document.getElementById('fc_status');
+    const sessionId = Number(layout?.dataset.sessionId || 0);
+    if (!section || !layout || !sessionId) {
+        if (status) status.textContent = 'Sezione formazione non trovata.';
+        return;
+    }
+    fcUndoContext = {
+        sessionId: sessionId,
+        tipo: fcActiveFormationType(),
+        address: section.dataset.address || document.getElementById('fc_indirizzo_select')?.value || '',
+    };
+    $('#fc_undo_modal').modal('show');
+    fcLoadUndoList();
+}
+
+function fcLoadUndoList() {
+    const list = document.getElementById('fc_undo_list');
+    const status = document.getElementById('fc_undo_status');
+    if (!fcUndoContext || !fcUndoContext.sessionId) {
+        if (status) status.textContent = 'Sezione formazione non trovata.';
+        if (list) list.innerHTML = '';
+        return;
+    }
+    const data = new FormData();
+    data.append('session_id', String(fcUndoContext.sessionId));
+    data.append('action', 'list');
+    if (status) status.textContent = 'Caricamento storico...';
+    if (list) list.innerHTML = '';
+    fetch('formazioneClassiUndo.php', {
+        method: 'POST',
+        body: data,
+        credentials: 'same-origin'
+    })
+        .then(response => response.json())
+        .then(json => {
+            if (!json || !json.ok) {
+                if (status) status.textContent = json && json.message ? json.message : 'Storico undo non disponibile.';
+                return;
+            }
+            const items = Array.isArray(json.items) ? json.items : [];
+            fcRenderUndoList(items);
+        })
+        .catch(() => {
+            if (status) status.textContent = 'Errore di rete durante il caricamento dello storico.';
+        });
+}
+
+function fcRenderUndoList(items) {
+    const list = document.getElementById('fc_undo_list');
+    const status = document.getElementById('fc_undo_status');
+    if (!list) return;
+    list.innerHTML = '';
+    if (!items.length) {
+        if (status) status.textContent = 'Nessuna operazione da annullare.';
+        return;
+    }
+    if (status) status.textContent = 'Ultime ' + items.length + ' operazioni disponibili.';
+    items.forEach(function (item, index) {
+        const row = document.createElement('div');
+        row.className = 'fc-undo-item';
+
+        const info = document.createElement('div');
+        const title = document.createElement('div');
+        title.className = 'fc-undo-item-title';
+        title.textContent = item.descrizione || item.azione || 'Operazione';
+        const meta = document.createElement('div');
+        meta.className = 'fc-undo-item-meta';
+        const position = index === 0 ? 'ultima operazione' : (index + 1) + ' operazioni fa';
+        const count = Number(item.studenti || 0);
+        meta.textContent = position + ' - ' + (item.created_at || '') + ' - ' + count + ' studenti';
+        info.appendChild(title);
+        if (item.dettaglio) {
+            const detail = document.createElement('div');
+            detail.className = 'fc-undo-item-meta';
+            detail.textContent = item.dettaglio;
+            info.appendChild(detail);
+        }
+        info.appendChild(meta);
+
+        const action = document.createElement('button');
+        action.type = 'button';
+        action.className = 'btn btn-warning btn-sm';
+        action.textContent = index === 0 ? 'Annulla questa' : 'Torna qui';
+        action.title = index === 0 ? 'Annulla solo questa operazione' : 'Annulla questa operazione e tutte quelle successive';
+        action.addEventListener('click', function () {
+            fcUndoTo(Number(item.id || 0), action);
+        });
+
+        row.appendChild(info);
+        row.appendChild(action);
+        list.appendChild(row);
+    });
+}
+
+function fcUndoTo(undoId, button) {
+    const status = document.getElementById('fc_undo_status');
+    if (!fcUndoContext || !fcUndoContext.sessionId || !undoId) {
+        if (status) status.textContent = 'Operazione undo non valida.';
+        return;
+    }
+    const data = new FormData();
+    data.append('session_id', String(fcUndoContext.sessionId));
+    data.append('action', 'undo_to');
+    data.append('undo_id', String(undoId));
+    if (button) button.disabled = true;
+    if (status) status.textContent = 'Annullamento operazioni...';
+    fcShowLoadingOverlay('Annullamento operazioni...');
+    fetch('formazioneClassiUndo.php', {
+        method: 'POST',
+        body: data,
+        credentials: 'same-origin'
+    })
+        .then(response => response.json())
+        .then(json => {
+            if (!json || !json.ok) {
+                if (status) status.textContent = json && json.message ? json.message : 'Undo non disponibile.';
+                return;
+            }
+            if (status) status.textContent = json.message || 'Operazioni annullate.';
+            $('#fc_undo_modal').modal('hide');
+            return fcEnsureSectionLoaded(fcUndoContext.tipo, fcUndoContext.address, 'Ricaricamento formazione', undefined, true);
+        })
+        .catch(() => {
+            if (status) status.textContent = 'Errore di rete durante l\'undo.';
+        })
+        .finally(() => {
+            if (button) button.disabled = false;
+            fcHideLoadingOverlay();
+        });
+}
+
 function fcShowContextMenu(x, y) {
     const menu = document.getElementById('fc_context_menu');
     const button = document.getElementById('fc_context_movimenti');
-    if (!menu || !button) return;
+    const attrsButton = document.getElementById('fc_context_attrs');
+    if (!menu || !button || !attrsButton) return;
     const movementId = Number(fcContextStudent?.dataset.idMovimento || 0);
     button.disabled = movementId <= 0;
     button.textContent = movementId > 0 ? 'Apri pratica in movimenti studenti' : 'Nessuna pratica movimento collegata';
+    attrsButton.disabled = Number(fcContextStudent?.dataset.rowId || 0) <= 0;
     menu.style.left = x + 'px';
     menu.style.top = y + 'px';
     menu.classList.add('open');
@@ -2274,6 +2667,121 @@ document.getElementById('fc_context_movimenti')?.addEventListener('click', funct
         window.open('movimentiStudenti.php?open_movimento_id=' + encodeURIComponent(String(movementId)), '_blank', 'noopener');
     }
     fcHideContextMenu();
+});
+
+document.getElementById('fc_context_attrs')?.addEventListener('click', function () {
+    fcOpenAttrsModal(fcContextStudent);
+    fcHideContextMenu();
+});
+
+function fcOpenParentNoteModal(card) {
+    if (!card) return;
+    const rowId = Number(card.dataset.rowId || 0);
+    if (!rowId) return;
+    document.getElementById('fc_parent_note_row_id').value = String(rowId);
+    document.getElementById('fc_parent_note_student_name').textContent = card.dataset.name || '';
+    document.getElementById('fc_parent_note_text').value = card.dataset.parentNote || '';
+    document.getElementById('fc_parent_note_error').textContent = '';
+    $('#fc_parent_note_modal').modal('show');
+}
+
+document.getElementById('fc_parent_note_form')?.addEventListener('submit', function (event) {
+    event.preventDefault();
+    const rowId = Number(document.getElementById('fc_parent_note_row_id')?.value || 0);
+    const error = document.getElementById('fc_parent_note_error');
+    const submit = event.target.querySelector('button[type="submit"]');
+    if (!rowId) {
+        if (error) error.textContent = 'Studente non valido.';
+        return;
+    }
+    const data = new FormData();
+    data.append('row_id', String(rowId));
+    data.append('note', document.getElementById('fc_parent_note_text')?.value || '');
+    if (submit) submit.disabled = true;
+    if (error) error.textContent = '';
+    fetch('formazioneClassiNotaGenitori.php', {
+        method: 'POST',
+        body: data,
+        credentials: 'same-origin'
+    })
+        .then(response => response.json())
+        .then(json => {
+            if (!json || !json.ok) {
+                if (error) error.textContent = json && json.message ? json.message : 'Nota non salvata.';
+                return;
+            }
+            $('#fc_parent_note_modal').modal('hide');
+            fcShowLoadingOverlay('Aggiornamento nota...');
+            fcUpdateLoadingOverlay('Nota salvata, aggiorno la formazione classi...', 65, 'Ricaricamento sezione');
+            const section = document.querySelector('.fc-student[data-row-id="' + rowId + '"]')?.closest('.fc-address-section');
+            const tipo = fcActiveFormationType();
+            const address = section?.dataset.address || document.getElementById('fc_indirizzo_select')?.value || '';
+            return fcEnsureSectionLoaded(tipo, address, 'Aggiornamento nota', undefined, true);
+        })
+        .catch(() => {
+            if (error) error.textContent = 'Errore di rete durante il salvataggio.';
+        })
+        .finally(() => {
+            if (submit) submit.disabled = false;
+            fcHideLoadingOverlay();
+        });
+});
+
+function fcOpenAttrsModal(card) {
+    if (!card) return;
+    const rowId = Number(card.dataset.rowId || 0);
+    if (!rowId) return;
+    document.getElementById('fc_attrs_row_id').value = String(rowId);
+    document.getElementById('fc_attrs_student_name').textContent = card.dataset.name || '';
+    document.getElementById('fc_attr_dsa').checked = card.dataset.dsa === '1';
+    document.getElementById('fc_attr_104').checked = card.dataset.legge_104 === '1';
+    document.getElementById('fc_attr_fascia_c').checked = card.dataset.fascia_c === '1';
+    document.getElementById('fc_attrs_error').textContent = '';
+    $('#fc_attrs_modal').modal('show');
+}
+
+document.getElementById('fc_attrs_form')?.addEventListener('submit', function (event) {
+    event.preventDefault();
+    const rowId = Number(document.getElementById('fc_attrs_row_id')?.value || 0);
+    const error = document.getElementById('fc_attrs_error');
+    const submit = event.target.querySelector('button[type="submit"]');
+    if (!rowId) {
+        if (error) error.textContent = 'Studente non valido.';
+        return;
+    }
+    const data = new FormData();
+    data.append('row_id', String(rowId));
+    data.append('dsa', document.getElementById('fc_attr_dsa')?.checked ? '1' : '0');
+    data.append('legge_104', document.getElementById('fc_attr_104')?.checked ? '1' : '0');
+    data.append('fascia_c', document.getElementById('fc_attr_fascia_c')?.checked ? '1' : '0');
+    if (submit) submit.disabled = true;
+    if (error) error.textContent = '';
+    fetch('formazioneClassiAttributi.php', {
+        method: 'POST',
+        body: data,
+        credentials: 'same-origin'
+    })
+        .then(response => response.json())
+        .then(json => {
+            if (!json || !json.ok) {
+                if (error) error.textContent = json && json.message ? json.message : 'Attributi non salvati.';
+                return;
+            }
+            $('#fc_attrs_modal').modal('hide');
+            fcShowLoadingOverlay('Aggiornamento attributi...');
+            fcUpdateLoadingOverlay('Salvataggio completato, ricalcolo schede e statistiche...', 65, 'Aggiornamento formazione classi');
+            const section = fcContextStudent?.closest('.fc-address-section');
+            const tipo = fcActiveFormationType();
+            const address = section?.dataset.address || document.getElementById('fc_indirizzo_select')?.value || '';
+            return fcEnsureSectionLoaded(tipo, address, 'Aggiornamento attributi', undefined, true);
+        })
+        .catch(() => {
+            if (error) error.textContent = 'Errore di rete durante il salvataggio.';
+        })
+        .finally(() => {
+            if (submit) submit.disabled = false;
+            fcHideLoadingOverlay();
+        });
 });
 
 function fcMoveStudent(rowId, targetLabel, layout, sessionId, droppedZone) {
@@ -2586,6 +3094,9 @@ function fc_render_address_section(string $addressKey, array $state, array $clas
             <button type="button" class="btn btn-primary btn-sm fc-auto-assign">
                 <span class="glyphicon glyphicon-flash"></span> Distribuisci da piazzare
             </button>
+            <button type="button" class="btn btn-default btn-sm fc-undo-action" title="Annulla l'ultima operazione su questa formazione">
+                <span class="glyphicon glyphicon-share-alt"></span> Annulla
+            </button>
             <button type="button" class="btn btn-default btn-sm" data-toggle="modal" data-target="#fc_snapshot_modal_<?php echo intval($sessionId); ?>">
                 <span class="glyphicon glyphicon-camera"></span> Fotografie
             </button>
@@ -2598,6 +3109,9 @@ function fc_render_address_section(string $addressKey, array $state, array $clas
             </div>
             <button type="button" class="btn btn-default btn-sm" data-toggle="modal" data-target="#fc_snapshot_modal_<?php echo intval($sessionId); ?>">
                 Apri fotografie
+            </button>
+            <button type="button" class="btn btn-default btn-sm fc-undo-action" title="Annulla l'ultima operazione su questa formazione">
+                <span class="glyphicon glyphicon-share-alt"></span> Annulla
             </button>
         </div>
         <?php endif; ?>
@@ -2848,7 +3362,7 @@ function fc_render_student(array $student, int $targetClassYear = 0): string
     if (!empty($student['in_uscita'])) {
         $classes[] = 'fc-student-uscita';
     }
-    if (!empty($student['non_trascinabile']) || !empty($student['bloccato'])) {
+    if (!empty($student['non_trascinabile']) || !empty($student['bloccato']) || !empty($student['uscita_bloccante'])) {
         $classes[] = 'fc-student-locked';
     }
     if (!empty($student['bocciato_perso'])) {
@@ -2864,14 +3378,31 @@ function fc_render_student(array $student, int $targetClassYear = 0): string
     }
     $tabletInfo = formazioneClassiStudentTabletInfo($student);
     $isTabletStudent = !empty($tabletInfo['is_tablet']);
+    if ($targetClassYear === 1) {
+        $isTabletStudent = formazioneClassiPrimeStudentIsTabletForFilter($student);
+        if (!$isTabletStudent) {
+            $tabletInfo = [
+                'is_tablet' => false,
+                'source' => 'nessuna scelta/classe tablet',
+            ];
+        }
+    }
     if ($isTabletStudent) {
         $classes[] = 'fc-student-tablet';
     }
     $movementId = intval(($student['id_movimento_uscita'] ?? 0) ?: ($student['id_movimento'] ?? 0));
-    $draggable = (empty($student['in_uscita']) && empty($student['non_trascinabile']) && empty($student['bloccato'])) ? 'true' : 'false';
+    $draggable = (empty($student['in_uscita']) && empty($student['non_trascinabile']) && empty($student['bloccato']) && empty($student['uscita_bloccante'])) ? 'true' : 'false';
     $hasDsa = formazioneClassiStudentHasAttr($student, STUD_ATTR_R7A2) ? 1 : 0;
     $hasFasciaC = formazioneClassiStudentHasAttr($student, STUD_ATTR_Z8C3) ? 1 : 0;
     $has104 = formazioneClassiStudentHasAttr($student, STUD_ATTR_Q4M9) ? 1 : 0;
+    $gender = strtoupper(trim((string)($student['sesso'] ?? '')));
+    $genderLabel = $gender === 'M' ? 'M' : ($gender === 'F' ? 'F' : '?');
+    $genderTitle = $gender === 'M' ? 'Maschio' : ($gender === 'F' ? 'Femmina' : 'Sesso non indicato');
+    $genderClass = $gender === 'M' ? 'fc-gender-m' : ($gender === 'F' ? 'fc-gender-f' : 'fc-gender-unknown');
+    $parentNote = trim((string)($student['note_genitori_iscrizione'] ?? ''));
+    if ($parentNote === '' && (string)($student['note_formazione_origine'] ?? '') === 'iscrizione') {
+        $parentNote = trim((string)($student['note_formazione'] ?? ''));
+    }
     $html = '<div class="' . implode(' ', $classes) . '" draggable="' . $draggable . '"'
         . ' data-row-id="' . intval($student['id']) . '"'
         . ' data-id-movimento="' . $movementId . '"'
@@ -2882,6 +3413,8 @@ function fc_render_student(array $student, int $targetClassYear = 0): string
         . ' data-dsa="' . $hasDsa . '"'
         . ' data-fascia_c="' . $hasFasciaC . '"'
         . ' data-legge_104="' . $has104 . '"'
+        . ' data-parent-note="' . formazioneClassiH($parentNote) . '"'
+        . ' data-uscita-bloccante="' . (!empty($student['uscita_bloccante']) ? '1' : '0') . '"'
         . ' data-bocciato="' . (((string)($student['gruppo_origine'] ?? '') === 'bocciato' || !empty($student['bocciato_altra_scuola']) || !empty($student['doppio_bocciato_non_consecutivo'])) ? '1' : '0') . '"'
         . ' data-media_generale="' . formazioneClassiH(fc_float_attr($student['media_generale'] ?? null)) . '"'
         . ' data-voto_matematica="' . formazioneClassiH(fc_float_attr($student['voto_matematica'] ?? null)) . '"'
@@ -2889,7 +3422,11 @@ function fc_render_student(array $student, int $targetClassYear = 0): string
         . ' data-voto_capacita_relazionale="' . formazioneClassiH(fc_float_attr($student['voto_capacita_relazionale'] ?? null)) . '"'
         . '>';
     $html .= '<div class="fc-student-head">';
-    $html .= '<div class="fc-student-name"><span>' . formazioneClassiH($student['nome']) . '</span></div>';
+    $html .= '<div class="fc-student-name"><span class="fc-gender-badge ' . $genderClass . '" title="' . formazioneClassiH($genderTitle) . '">' . formazioneClassiH($genderLabel) . '</span><span>' . formazioneClassiH($student['nome']) . '</span></div>';
+    $html .= '<button type="button" class="fc-lock-btn fc-attr-edit" title="Modifica DSA, 104, Fascia C">Attr</button>';
+    if (in_array($targetClassYear, [1, 3], true) && (string)($student['fonte_valori'] ?? '') === 'iscrizioni') {
+        $html .= '<button type="button" class="fc-lock-btn fc-parent-note-edit" title="Inserisci o modifica la nota genitori">Nota</button>';
+    }
     $locked = !empty($student['blocco_individuale']);
     $lockIcon = $locked ? '<span class="glyphicon glyphicon-lock"></span>' : '<span class="fc-lock-symbol" aria-hidden="true">&#128275;</span>';
     $html .= '<button type="button" class="fc-lock-btn fc-student-lock ' . ($locked ? 'locked' : '') . '" data-locked="' . ($locked ? '1' : '0') . '" title="Blocca o sblocca questo studente">' . $lockIcon . ' ' . ($locked ? 'Sblocca' : 'Blocca') . '</button>';
@@ -2901,8 +3438,32 @@ function fc_render_student(array $student, int $targetClassYear = 0): string
     if ($isTabletStudent) {
         $badges[] = '<span class="fc-tablet-badge" title="' . formazioneClassiH($tabletInfo['source'] ?? 'tablet') . '">Tablet</span>';
     }
+    $orientationAdvice = trim((string)($student['consiglio_orientativo'] ?? ''));
+    if ($targetClassYear === 1 && $orientationAdvice !== '') {
+        $badges[] = '<span class="fc-orientation-badge" title="' . formazioneClassiH("Consiglio orientativo:\n" . $orientationAdvice) . '">Orientamento</span>';
+    }
     if ($badges) {
         $html .= '<div class="fc-student-badges">' . implode('', $badges) . '</div>';
+    }
+    $docButtons = [];
+    $practiceId = intval($student['iscrizioni_pratica_id'] ?? 0);
+    $primeDocs = (array)($student['documenti_prime'] ?? []);
+    if ($targetClassYear === 1 && $practiceId > 0) {
+        $docTypes = [
+            'pagella' => ['label' => 'Pag', 'title' => 'Apri pagella PDF'],
+            'certificazione_competenze' => ['label' => 'Comp', 'title' => 'Apri certificazione competenze'],
+            'invalsi' => ['label' => 'Inv', 'title' => 'Apri INVALSI'],
+        ];
+        foreach ($docTypes as $docType => $docMeta) {
+            if (empty($primeDocs[$docType])) {
+                continue;
+            }
+            $docUrl = 'iscrizioniPrimeDocumento.php?pratica_id=' . $practiceId . '&tipo=' . rawurlencode($docType);
+            $docButtons[] = '<a class="fc-doc-btn" target="_blank" rel="noopener" href="' . formazioneClassiH($docUrl) . '" title="' . formazioneClassiH($docMeta['title']) . '"><span class="glyphicon glyphicon-file"></span>' . formazioneClassiH($docMeta['label']) . '</a>';
+        }
+    }
+    if ($docButtons) {
+        $html .= '<div class="fc-doc-actions">' . implode('', $docButtons) . '</div>';
     }
     $meta = [];
     $studentGroup = (string)($student['gruppo_origine'] ?? '');
@@ -2916,8 +3477,14 @@ function fc_render_student(array $student, int $targetClassYear = 0): string
     if (!empty($student['in_uscita'])) {
         $meta[] = !empty($student['uscita_confermata']) ? 'uscita confermata' : 'uscita/ritiro segnalato';
     }
+    if (empty($student['in_uscita']) && !empty($student['uscita_non_confermata'])) {
+        $meta[] = 'uscita da verificare';
+    }
     if (!empty($student['non_trascinabile']) && empty($student['bocciato_perso'])) {
-        $meta[] = 'non assegnabile a una terza';
+        $meta[] = $targetClassYear === 3 ? 'non assegnabile a una terza' : 'non assegnabile a una classe';
+    }
+    if (!empty($student['uscita_bloccante']) && empty($student['in_uscita']) && empty($student['bocciato_perso'])) {
+        $meta[] = 'uscita bloccante';
     }
     if (!empty($student['blocco_classe'])) {
         $meta[] = 'classe bloccata';
@@ -2987,6 +3554,9 @@ function fc_render_student(array $student, int $targetClassYear = 0): string
         $title = !empty($student['uscita_confermata']) ? 'Uscita confermata' : 'Uscita/ritiro segnalato';
         $fallback = !empty($student['uscita_confermata']) ? 'pratica in uscita confermata' : 'pratica di uscita o ritiro avviata';
         $html .= '<div class="fc-student-note"><strong>' . formazioneClassiH($title) . '</strong>' . formazioneClassiH($state !== '' ? $state : $fallback) . '</div>';
+    } elseif (!empty($student['uscita_non_confermata'])) {
+        $state = str_replace('_', ' ', (string)($student['uscita_stato_pratica'] ?? ''));
+        $html .= '<div class="fc-student-note"><strong>Uscita da verificare</strong>' . formazioneClassiH($state !== '' ? $state : 'pratica non ancora confermata') . '</div>';
     }
     $html .= '</div>';
     return $html;

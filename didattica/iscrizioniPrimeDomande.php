@@ -411,6 +411,9 @@ function ipd_filter_url(string $tipoIscrizione, string $stato, bool $mostraCompl
         .ipd-field { border-bottom: 1px solid #edf1f6; padding-bottom: 6px; }
         .ipd-label { color: #64748b; font-size: 12px; }
         .ipd-value { font-weight: 650; overflow-wrap: anywhere; }
+        .ipd-attrs-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 4px; }
+        .ipd-attrs-form label { margin: 0; font-weight: 700; color: #334155; }
+        .ipd-attrs-status { font-weight: 700; color: #475569; }
         .ipd-doc-status { font-weight: 700; }
         .ipd-doc-status.ok { color: #166534; }
         .ipd-doc-status.paper { color: #92400e; }
@@ -474,12 +477,14 @@ function ipd_filter_url(string $tipoIscrizione, string $stato, bool $mostraCompl
         .ipd-movement-box { border: 1px solid #bbf7d0; border-left: 5px solid #16a34a; background: #f0fdf4; border-radius: 6px; padding: 10px 12px; margin-bottom: 12px; color: #14532d; }
         .ipd-movement-box.pending { border-color: #fde68a; border-left-color: #f59e0b; background: #fffbeb; color: #78350f; }
         .ipd-movement-box a { font-weight: 700; }
-        .ipd-terze-values { border: 1px solid #c7d2fe; border-left: 5px solid #4f46e5; background: #eef2ff; border-radius: 8px; padding: 12px; margin: 14px 0 18px; }
-        .ipd-terze-values h4 { margin: 0 0 8px; color: #312e81; }
-        .ipd-terze-values-grid { display: grid; grid-template-columns: repeat(4, minmax(110px, 1fr)); gap: 10px; align-items: end; }
-        .ipd-terze-values label { display: block; color: #475569; font-size: 12px; margin-bottom: 4px; }
-        .ipd-terze-values input { width: 100%; border: 1px solid #b7c4e8; border-radius: 6px; padding: 8px 9px; background: #fff; }
-        .ipd-terze-values-status { margin-top: 8px; color: #475569; font-weight: 650; }
+        .ipd-terze-values, .ipd-prime-values { border: 1px solid #c7d2fe; border-left: 5px solid #4f46e5; background: #eef2ff; border-radius: 8px; padding: 12px; margin: 14px 0 18px; }
+        .ipd-terze-values h4, .ipd-prime-values h4 { margin: 0 0 8px; color: #312e81; }
+        .ipd-terze-values-grid, .ipd-prime-values-grid { display: grid; grid-template-columns: repeat(4, minmax(110px, 1fr)); gap: 10px; align-items: end; }
+        .ipd-prime-values-grid { grid-template-columns: repeat(2, minmax(130px, 180px)) minmax(260px, 1fr); align-items: start; }
+        .ipd-terze-values label, .ipd-prime-values label { display: block; color: #475569; font-size: 12px; margin-bottom: 4px; }
+        .ipd-terze-values input, .ipd-prime-values input, .ipd-prime-values textarea { width: 100%; border: 1px solid #b7c4e8; border-radius: 6px; padding: 8px 9px; background: #fff; }
+        .ipd-prime-values textarea { min-height: 96px; resize: vertical; }
+        .ipd-terze-values-status, .ipd-prime-values-status { margin-top: 8px; color: #475569; font-weight: 650; }
         .ipd-toggle { min-width: 92px; }
         .ipd-secretary-docs { margin-top: 18px; padding: 12px; border: 1px solid #bfdbfe; border-radius: 6px; background: #eff6ff; }
         .ipd-secretary-docs h4 { margin-top: 0; }
@@ -519,7 +524,7 @@ function ipd_filter_url(string $tipoIscrizione, string $stato, bool $mostraCompl
             .ipd-toolbar { grid-template-columns: 1fr; }
             .ipd-bulk-actions { justify-content: flex-start; }
             .ipd-grid { grid-template-columns: 1fr; }
-            .ipd-terze-values-grid { grid-template-columns: 1fr 1fr; }
+            .ipd-terze-values-grid, .ipd-prime-values-grid { grid-template-columns: 1fr 1fr; }
             .ipd-status-actions { justify-content: flex-start; }
             .ipd-cambio-layout { grid-template-columns: 1fr; }
             .ipd-cambio-history { max-height: none; }
@@ -615,6 +620,9 @@ function ipd_filter_url(string $tipoIscrizione, string $stato, bool $mostraCompl
         $confirmed = ipd_confirmed($pratica);
         $documents = iscrizioniPrimeDocumentsForPratica((int)$pratica['id']);
         $secretaryDocuments = $tipoIscrizione === 'terze' ? iscrizioniPrimeSecretaryDocumentsForPratica((int)$pratica['id']) : [];
+        $pagellaValues = $tipoIscrizione === 'prime' ? iscrizioniPrimePagellaValuesForPratica((int)$pratica['id']) : [];
+        $attrStudent = studentiAttrFindStudentByFiscalCode((string)($pratica['codice_fiscale'] ?? ''));
+        $activeAttrCodes = array_fill_keys(studentiAttrActiveForStudent((int)($attrStudent['id'] ?? 0)), true);
         $nome = trim((string)(($pratica['cognome'] ?? '') . ' ' . ($pratica['nome'] ?? '')));
         $extraInfo = ipd_extra_info($pratica);
         $docCounts = ['ok' => 0, 'paper' => 0, 'missing' => 0];
@@ -760,6 +768,18 @@ function ipd_filter_url(string $tipoIscrizione, string $stato, bool $mostraCompl
                     <?php if ($tipoIscrizione === 'terze' && trim((string)($pratica['curvatura_design'] ?? '')) !== '') : ?>
                         <div class="ipd-field"><div class="ipd-label">Curvatura CAT</div><div class="ipd-value"><?php echo ipd_h($pratica['curvatura_design'] === 'design' ? 'Design e riqualificazione ambientale' : 'Normale'); ?></div></div>
                     <?php endif; ?>
+                    <div class="ipd-field">
+                        <div class="ipd-label">Attributi studente</div>
+                        <form class="ipd-attrs-form" onsubmit="return ipdSaveStudentAttrs(event, <?php echo intval($pratica['id']); ?>);">
+                            <label><input type="checkbox" name="dsa" value="1" <?php echo isset($activeAttrCodes[STUD_ATTR_R7A2]) ? 'checked' : ''; ?>> DSA</label>
+                            <label><input type="checkbox" name="legge_104" value="1" <?php echo isset($activeAttrCodes[STUD_ATTR_Q4M9]) ? 'checked' : ''; ?>> 104</label>
+                            <label><input type="checkbox" name="fascia_c" value="1" <?php echo isset($activeAttrCodes[STUD_ATTR_Z8C3]) ? 'checked' : ''; ?>> Fascia C</label>
+                            <button type="submit" class="btn btn-xs btn-primary">
+                                <span class="glyphicon glyphicon-floppy-disk"></span> Salva attributi
+                            </button>
+                            <span class="ipd-attrs-status" id="ipdAttrsStatus-<?php echo intval($pratica['id']); ?>"></span>
+                        </form>
+                    </div>
                 </div>
 
                 <?php
@@ -780,6 +800,38 @@ function ipd_filter_url(string $tipoIscrizione, string $stato, bool $mostraCompl
                     <div class="ipd-field"><div class="ipd-label">Carenze dichiarate dal genitore</div><div class="ipd-value"><?php echo ipd_h($carenzeLabel); ?></div></div>
                     <div class="ipd-field"><div class="ipd-label">Materie indicate</div><div class="ipd-value"><?php echo ipd_h($carenzeDichiarate === 'si' ? (implode(', ', array_values(array_filter($carenzeMaterie, 'strlen'))) ?: 'Non specificate') : '-'); ?></div></div>
                 </div>
+
+                <?php if ($tipoIscrizione === 'prime') : ?>
+                    <form class="ipd-prime-values" id="ipdPrimeValuesForm-<?php echo intval($pratica['id']); ?>" onsubmit="return ipdSavePrimePagellaValues(event, <?php echo intval($pratica['id']); ?>);">
+                        <h4>Valori pagella e consiglio orientativo</h4>
+                        <div class="text-muted" style="margin-bottom:10px;">Puoi inserirli manualmente oppure provare a leggerli dalla pagella PDF caricata nella pratica.</div>
+                        <input type="hidden" name="fonte" id="ipdPrimeFonte-<?php echo intval($pratica['id']); ?>" value="manuale">
+                        <input type="hidden" name="documento_id" id="ipdPrimeDocumentoId-<?php echo intval($pratica['id']); ?>" value="">
+                        <div class="ipd-prime-values-grid">
+                            <div>
+                                <label>Italiano</label>
+                                <input type="text" name="voto_italiano" inputmode="decimal" placeholder="es. 8" value="<?php echo ipd_h(iscrizioniPrimeGradeText($pagellaValues['italiano'] ?? null)); ?>">
+                            </div>
+                            <div>
+                                <label>Matematica</label>
+                                <input type="text" name="voto_matematica" inputmode="decimal" placeholder="es. 7,50" value="<?php echo ipd_h(iscrizioniPrimeGradeText($pagellaValues['matematica'] ?? null)); ?>">
+                            </div>
+                            <div>
+                                <label>Consiglio orientativo</label>
+                                <textarea name="consiglio_orientativo" placeholder="Inserisci il consiglio orientativo riportato dalla scuola media."><?php echo ipd_h($pagellaValues['consiglio_orientativo'] ?? ''); ?></textarea>
+                            </div>
+                        </div>
+                        <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                            <button type="button" class="btn btn-info btn-sm" onclick="return ipdRecognizePrimePagellaValues(<?php echo intval($pratica['id']); ?>);">
+                                <span class="glyphicon glyphicon-search"></span> Riconosci da pagella
+                            </button>
+                            <button type="submit" class="btn btn-primary btn-sm">
+                                <span class="glyphicon glyphicon-floppy-disk"></span> Salva valori
+                            </button>
+                            <span class="ipd-prime-values-status" id="ipdPrimeValuesStatus-<?php echo intval($pratica['id']); ?>"></span>
+                        </div>
+                    </form>
+                <?php endif; ?>
 
                 <?php if ($tipoIscrizione === 'terze') : ?>
                     <form class="ipd-terze-values" onsubmit="return ipdSaveTerzeValues(event, <?php echo intval($pratica['id']); ?>);">
@@ -2413,6 +2465,175 @@ function ipdSendStato(id, stato, note) {
         ipdHideBusy();
         alert(error.message);
     });
+}
+
+function ipdPrimeFormatGrade(value) {
+    if (value === null || value === undefined || value === '') {
+        return '';
+    }
+    const number = Number(value);
+    if (!Number.isFinite(number)) {
+        return String(value);
+    }
+    return String(number.toFixed(2)).replace('.', ',').replace(/,00$/, '');
+}
+
+function ipdPrimeValuesStatus(id, text, ok) {
+    const status = document.getElementById('ipdPrimeValuesStatus-' + id);
+    if (!status) {
+        return;
+    }
+    status.textContent = text || '';
+    status.style.color = ok === false ? '#b91c1c' : (ok === true ? '#166534' : '#475569');
+}
+
+function ipdPrimeValuesForm(id) {
+    return document.getElementById('ipdPrimeValuesForm-' + id);
+}
+
+function ipdSavePrimePagellaValues(event, id) {
+    event.preventDefault();
+    const form = event.target;
+    const button = form.querySelector('button[type="submit"]');
+    const data = new FormData(form);
+    data.append('id', id);
+    data.append('action', 'save');
+
+    if (button) {
+        button.disabled = true;
+    }
+    ipdPrimeValuesStatus(id, 'Salvataggio...', null);
+
+    fetch('iscrizioniPrimeValoriPagellaSave.php', {
+        method: 'POST',
+        body: data,
+        credentials: 'same-origin'
+    })
+    .then(response => response.json().then(payload => ({ok: response.ok, payload})))
+    .then(result => {
+        if (!result.ok || !result.payload.ok) {
+            throw new Error(result.payload.message || 'Errore salvataggio valori.');
+        }
+        document.getElementById('ipdPrimeFonte-' + id).value = 'manuale';
+        document.getElementById('ipdPrimeDocumentoId-' + id).value = '';
+        ipdPrimeValuesStatus(id, result.payload.message || 'Valori salvati.', true);
+    })
+    .catch(error => {
+        ipdPrimeValuesStatus(id, error.message, false);
+    })
+    .finally(() => {
+        if (button) {
+            button.disabled = false;
+        }
+    });
+
+    return false;
+}
+
+function ipdRecognizePrimePagellaValues(id) {
+    const form = ipdPrimeValuesForm(id);
+    if (!form) {
+        return false;
+    }
+    const button = form.querySelector('button[onclick*="ipdRecognizePrimePagellaValues"]');
+    const data = new FormData();
+    data.append('id', id);
+    data.append('action', 'recognize');
+    if (button) {
+        button.disabled = true;
+    }
+    ipdPrimeValuesStatus(id, 'Lettura della pagella PDF...', null);
+
+    fetch('iscrizioniPrimeValoriPagellaSave.php', {
+        method: 'POST',
+        body: data,
+        credentials: 'same-origin'
+    })
+    .then(response => response.json().then(payload => ({ok: response.ok, payload})))
+    .then(result => {
+        if (!result.ok || !result.payload.ok) {
+            throw new Error(result.payload.message || 'Riconoscimento non riuscito.');
+        }
+        const payload = result.payload;
+        const italiano = form.querySelector('input[name="voto_italiano"]');
+        const matematica = form.querySelector('input[name="voto_matematica"]');
+        const consiglio = form.querySelector('textarea[name="consiglio_orientativo"]');
+        if (italiano && payload.italiano !== null && payload.italiano !== undefined) {
+            italiano.value = ipdPrimeFormatGrade(payload.italiano);
+        }
+        if (matematica && payload.matematica !== null && payload.matematica !== undefined) {
+            matematica.value = ipdPrimeFormatGrade(payload.matematica);
+        }
+        if (consiglio && String(payload.consiglio_orientativo || '').trim() !== '') {
+            consiglio.value = payload.consiglio_orientativo;
+        }
+        document.getElementById('ipdPrimeFonte-' + id).value = 'pagella';
+        document.getElementById('ipdPrimeDocumentoId-' + id).value = payload.documento_id || '';
+        const missing = [];
+        if (payload.italiano === null || payload.italiano === undefined) missing.push('italiano');
+        if (payload.matematica === null || payload.matematica === undefined) missing.push('matematica');
+        if (String(payload.consiglio_orientativo || '').trim() === '') missing.push('consiglio orientativo');
+        const suffix = missing.length ? ' Non riconosciuto: ' + missing.join(', ') + '.' : ' Controlla e salva.';
+        ipdPrimeValuesStatus(id, 'Valori letti dalla pagella.' + suffix, missing.length ? null : true);
+    })
+    .catch(error => {
+        ipdPrimeValuesStatus(id, error.message, false);
+    })
+    .finally(() => {
+        if (button) {
+            button.disabled = false;
+        }
+    });
+
+    return false;
+}
+
+function ipdSaveStudentAttrs(event, praticaId) {
+    event.preventDefault();
+    const form = event.target;
+    const button = form.querySelector('button[type="submit"]');
+    const status = document.getElementById('ipdAttrsStatus-' + praticaId);
+    const data = new FormData(form);
+    data.append('pratica_id', String(praticaId));
+
+    if (button) {
+        button.disabled = true;
+    }
+    if (status) {
+        status.textContent = 'Salvataggio...';
+        status.style.color = '#475569';
+    }
+
+    fetch('iscrizioniPrimeAttributiSave.php', {
+        method: 'POST',
+        body: data,
+        credentials: 'same-origin'
+    })
+    .then(response => response.json().then(payload => ({ok: response.ok, payload})))
+    .then(result => {
+        if (!result.ok || !result.payload.ok) {
+            throw new Error(result.payload.message || 'Errore salvataggio attributi.');
+        }
+        if (status) {
+            status.textContent = result.payload.message || 'Attributi aggiornati.';
+            status.style.color = '#166534';
+        }
+    })
+    .catch(error => {
+        if (status) {
+            status.textContent = error.message;
+            status.style.color = '#b91c1c';
+        } else {
+            alert(error.message);
+        }
+    })
+    .finally(() => {
+        if (button) {
+            button.disabled = false;
+        }
+    });
+
+    return false;
 }
 
 function ipdSaveTerzeValues(event, id) {
