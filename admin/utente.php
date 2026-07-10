@@ -85,7 +85,17 @@ ruoloRichiesto('dirigente');
 
                 <div class="form-group">
                     <label for="ruolo">Ruolo</label>
-                    <input type="text" id="ruolo" placeholder="ruolo" class="form-control"/>
+                    <input type="text" id="ruolo" placeholder="ruolo" class="form-control" list="ruoli_gestore"/>
+                    <datalist id="ruoli_gestore">
+                        <option value="admin">
+                        <option value="dirigente">
+                        <option value="segreteria-didattica">
+                        <option value="formazione-classi">
+                        <option value="docente">
+                        <option value="personale-ata">
+                        <option value="esterno">
+                        <option value="portineria">
+                    </datalist>
                 </div>
 
                 <div class="form-group">

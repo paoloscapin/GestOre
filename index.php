@@ -31,6 +31,8 @@ if ($impersonaRuolo === 'docente') {
     redirect('/segreteria/index.php');
 } else if (haRuolo('segreteria-didattica')) {
     redirect('/didattica/index.php');
+} else if (haRuolo('formazione-classi')) {
+    redirect('/didattica/formazioneClassi.php');
 } else if (haRuolo('segreteria-ata')) {
     redirect('/segrata/index.php');
 } else if (haRuolo('genitore')) {

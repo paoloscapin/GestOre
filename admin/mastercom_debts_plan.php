@@ -3,7 +3,7 @@
 require_once '../common/checkSession.php';
 require_once '../common/mastercom/debts_plan_lib.php';
 
-ruoloRichiesto('admin', 'segreteria-didattica');
+ruoloRichiesto('admin', 'segreteria-didattica', 'formazione-classi');
 
 function mcdp_h($value): string
 {

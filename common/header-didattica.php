@@ -10,12 +10,37 @@
 ?>
 <link rel="stylesheet" href="../css/header-style.css">
 
+<?php $isFormazioneClassiRole = (string)($__utente_ruolo ?? '') === 'formazione-classi'; ?>
+
 <nav class="navbar navbar-default navbar-fixed-top top-navbar top-navbar-default">
 	<div class="container-fluid">
 		<?php require_once '../common/header-_logo.php'; ?>
 
 		<ul class="nav navbar-nav top-navbar-nav admin-navbar-nav">
-			<li><a href="../orario/orario.php" class="btn btn-default nav-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-time"></span>&ensp;Orario </a></li>
+			<?php if (!$isFormazioneClassiRole) : ?>
+				<li><a href="../orario/orario.php" class="btn btn-default nav-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-time"></span>&ensp;Orario </a></li>
+			<?php endif; ?>
+
+			<?php if ($isFormazioneClassiRole) : ?>
+				<li class="dropdown">
+					<a href="#" class="btn btn-default btn-lima4 nav-btn dropdown-toggle" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+						<span class="glyphicon glyphicon-briefcase"></span>&ensp;Segreteria <span class="caret"></span>
+					</a>
+					<ul class="dropdown-menu">
+						<li><a href="../didattica/formazioneClassi.php"><span class="glyphicon glyphicon-th-large"></span>&ensp;Formazione classi</a></li>
+					</ul>
+				</li>
+
+				<li class="dropdown">
+					<a href="#" class="btn btn-default btn-lightblue4 nav-btn dropdown-toggle" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+						<span class="glyphicon glyphicon-transfer"></span>&ensp;MasterCom <span class="caret"></span>
+					</a>
+					<ul class="dropdown-menu mastercom-dropdown-menu">
+						<li><a href="../admin/mastercom_tabelloni.php"><span class="glyphicon glyphicon-th"></span>&ensp;Tabelloni scrutini</a></li>
+						<li><a href="../admin/mastercom_debts.php"><span class="glyphicon glyphicon-alert"></span>&ensp;Carenze</a></li>
+					</ul>
+				</li>
+			<?php endif; ?>
 
 			<?php if (haRuolo('segreteria-didattica') || haRuolo('personale-ata') || haRuolo('admin')) : ?>
 				<li class="dropdown">
@@ -88,7 +113,7 @@
 				getSettingsValue('config', 'programmiIniziali', false) ||
 				getSettingsValue('config', 'programmiSvolti', false);
 			?>
-			<?php if ($showProgrammiMenu) : ?>
+			<?php if (!$isFormazioneClassiRole && $showProgrammiMenu) : ?>
 				<li class="dropdown">
 					<a href="#" class="btn btn-default btn-lightblue4 nav-btn dropdown-toggle" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
 						<span class="glyphicon glyphicon-folder-open"></span>&ensp;Programmi <span class="caret"></span>

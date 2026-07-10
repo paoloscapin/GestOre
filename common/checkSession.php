@@ -990,7 +990,12 @@ $__utente_id = $session->get('utente_id');
 $__username = $session->get('username');
 $__utente_nome = $session->get('utente_nome');
 $__utente_cognome = $session->get('utente_cognome');
-$__utente_ruolo = $session->get('utente_ruolo');
+$__utente_ruolo_raw = $session->get('utente_ruolo');
+$__utente_ruolo = strtolower(trim((string)$__utente_ruolo_raw));
+$__utente_ruolo = preg_replace('/[\s_]+/', '-', $__utente_ruolo);
+if ($__utente_ruolo !== (string)$__utente_ruolo_raw) {
+    $session->set('utente_ruolo', $__utente_ruolo);
+}
 
 if ($__utente_ruolo === "esterno") {
     $session->set('esterno_id', $__utente_id);
@@ -1029,6 +1034,7 @@ if (!empty($__useremail)) {
         'portineria',
         'segreteria-docenti',
         'segreteria-ata',
+        'formazione-classi',
         'dirigente',
         'admin'
     ];

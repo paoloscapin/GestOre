@@ -42,8 +42,11 @@ function utenteGetDetails(id) {
 			$("#email").val(record.email);
 		});
     } else {
+        $("#username").val("");
+        $("#cognome").val("");
         $("#nome").val("");
-        $("#codice").val("");
+        $("#ruolo").val("");
+        $("#email").val("");
     }
 	$("#update_modal").modal("show");
 }

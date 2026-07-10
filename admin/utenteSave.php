@@ -17,6 +17,8 @@ if(isset($_POST)) {
     $cognome = escapePost('cognome');
     $nome = escapePost('nome');
     $ruolo = escapePost('ruolo');
+    $ruolo = strtolower(trim((string)$ruolo));
+    $ruolo = preg_replace('/[\s_]+/', '-', $ruolo);
 	$email = escapePost('email');
 
     if ($id > 0) {

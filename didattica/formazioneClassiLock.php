@@ -3,7 +3,7 @@
 require_once '../common/checkSession.php';
 require_once '../common/formazioneClassiLib.php';
 
-ruoloRichiesto('admin', 'segreteria-didattica');
+ruoloRichiesto('admin', 'segreteria-didattica', 'formazione-classi');
 
 header('Content-Type: application/json; charset=UTF-8');
 

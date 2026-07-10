@@ -2,7 +2,7 @@
 
 require_once '../common/checkSession.php';
 require_once '../common/iscrizioniPrimeLib.php';
-ruoloRichiesto('admin', 'segreteria-didattica', 'dirigente');
+ruoloRichiesto('admin', 'segreteria-didattica', 'dirigente', 'formazione-classi');
 
 $praticaId = intval($_GET['pratica_id'] ?? 0);
 $tipo = trim((string)($_GET['tipo'] ?? ''));

@@ -11,7 +11,7 @@ use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
-ruoloRichiesto('admin', 'segreteria-didattica');
+ruoloRichiesto('admin', 'segreteria-didattica', 'formazione-classi');
 
 formazioneClassiEnsureTables();
 

@@ -3,7 +3,7 @@
 require_once '../common/checkSession.php';
 require_once '../common/mastercom/tabelloni_lib.php';
 
-ruoloRichiesto('admin', 'segreteria-didattica');
+ruoloRichiesto('admin', 'segreteria-didattica', 'formazione-classi');
 
 function mct_h($value): string
 {

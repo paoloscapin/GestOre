@@ -17,7 +17,7 @@ require_once '../common/checkSession.php';
 <?php
 require_once '../common/header-common.php';
 require_once '../common/style.php';
-ruoloRichiesto('segreteria-didattica');
+ruoloRichiesto('segreteria-didattica', 'formazione-classi');
 ?>
 </head>
 
