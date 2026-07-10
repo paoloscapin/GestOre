@@ -52,12 +52,20 @@ function logDriveArchiveActiveLogNames(): array
         'logGoogleCalendarMBAppFile',
         'logGmailFile',
         'logProfiliFile',
+        'logIscrizioniClassiFile',
+        'logFormazioneClassiFile',
     ];
 
     foreach ($keys as $key) {
         $value = trim((string)($__settings->log->{$key} ?? ''));
         if ($value !== '') {
             $names[] = basename($value);
+        }
+    }
+
+    foreach (['iscrizioni_classi.log', 'formazione_classi.log'] as $defaultName) {
+        if (!in_array($defaultName, $names, true)) {
+            $names[] = $defaultName;
         }
     }
 

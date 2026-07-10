@@ -42,7 +42,9 @@
         "logGoogleCalendarFile": "google_calendar.log",
         "logGoogleCalendarMBAppFile": "google_calendar_mbapp.log",
         "logGmailFile": "gmail.log",
-        "logProfiliFile": "profili.log"
+        "logProfiliFile": "profili.log",
+        "logIscrizioniClassiFile": "iscrizioni_classi.log",
+        "logFormazioneClassiFile": "formazione_classi.log"
     },
     "config": {
         "gestioneClil": false,
