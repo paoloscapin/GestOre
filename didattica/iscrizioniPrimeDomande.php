@@ -901,6 +901,9 @@ function ipd_filter_url(string $tipoIscrizione, string $stato, bool $mostraCompl
                                                 <a class="btn btn-xs btn-primary" target="_blank" rel="noopener" href="iscrizioniPrimeDocumento.php?pratica_id=<?php echo intval($pratica['id']); ?>&tipo=<?php echo rawurlencode($tipo); ?>">
                                                     <span class="glyphicon glyphicon-file"></span> Apri PDF
                                                 </a>
+                                                <a class="btn btn-xs btn-warning" href="iscrizioniPrimeDocumentoRitaglia.php?pratica_id=<?php echo intval($pratica['id']); ?>&tipo=<?php echo rawurlencode($tipo); ?>">
+                                                    <span class="glyphicon glyphicon-resize-small"></span> Ritaglia
+                                                </a>
                                                 <span class="ipd-file-name" title="<?php echo ipd_h($document['original_name'] ?? ''); ?>"><?php echo ipd_h($document['original_name'] ?? ''); ?></span>
                                                 <button type="button" class="btn btn-xs btn-danger" onclick="return ipdDeleteSegreteriaDocumento(<?php echo intval($pratica['id']); ?>, '<?php echo ipd_h($tipo); ?>');">
                                                     <span class="glyphicon glyphicon-trash"></span> Cancella allegato
@@ -1042,6 +1045,9 @@ function ipd_filter_url(string $tipoIscrizione, string $stato, bool $mostraCompl
                                                     <div class="ipd-file-line">
                                                         <a class="btn btn-xs btn-primary" target="_blank" rel="noopener" href="iscrizioniPrimeDocumento.php?pratica_id=<?php echo intval($pratica['id']); ?>&tipo=<?php echo rawurlencode($tipo); ?>">
                                                             <span class="glyphicon glyphicon-file"></span> Apri PDF
+                                                        </a>
+                                                        <a class="btn btn-xs btn-warning" href="iscrizioniPrimeDocumentoRitaglia.php?pratica_id=<?php echo intval($pratica['id']); ?>&tipo=<?php echo rawurlencode($tipo); ?>">
+                                                            <span class="glyphicon glyphicon-resize-small"></span> Ritaglia
                                                         </a>
                                                         <span class="ipd-file-name" title="<?php echo ipd_h($document['original_name'] ?? ''); ?>"><?php echo ipd_h($document['original_name'] ?? ''); ?></span>
                                                         <button type="button" class="btn btn-xs btn-danger" onclick="return ipdDeleteSegreteriaDocumento(<?php echo intval($pratica['id']); ?>, '<?php echo ipd_h($tipo); ?>');">

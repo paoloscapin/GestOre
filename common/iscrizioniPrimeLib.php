@@ -5735,6 +5735,273 @@ function iscrizioniPrimeDocumentPathForAppend(array $document, array &$temporary
     return $temporaryPath;
 }
 
+function iscrizioniPrimeDocumentForSecretaryEdit(int $praticaId, string $tipo): array
+{
+    $pratica = dbGetFirst("SELECT * FROM iscrizioni_prime_pratiche WHERE id = " . dbI($praticaId) . " LIMIT 1");
+    if (!$pratica) {
+        throw new RuntimeException('Pratica non trovata.');
+    }
+
+    $types = iscrizioniPrimeSecretaryAllowedDocumentTypes($pratica);
+    if (!isset($types[$tipo])) {
+        throw new RuntimeException('Tipo documento non valido.');
+    }
+
+    $document = dbGetFirst("
+        SELECT *
+        FROM iscrizioni_prime_documenti
+        WHERE pratica_id = " . dbI($praticaId) . "
+          AND tipo_documento = " . dbQ($tipo) . "
+          AND stato <> 'mancante'
+          AND (file_path IS NOT NULL OR drive_file_id IS NOT NULL)
+        LIMIT 1
+    ");
+    if (!$document) {
+        throw new RuntimeException('Documento non disponibile.');
+    }
+
+    return [
+        'pratica' => $pratica,
+        'document' => $document,
+        'label' => (string)($types[$tipo] ?? $tipo),
+    ];
+}
+
+function iscrizioniPrimePdfPageCount(string $path): int
+{
+    if (!iscrizioniPrimeEnsureFpdi()) {
+        throw new RuntimeException('Libreria FPDI non disponibile.');
+    }
+
+    $pdf = new \setasign\Fpdi\Tcpdf\Fpdi();
+    return max(1, intval($pdf->setSourceFile($path)));
+}
+
+function iscrizioniPrimeRenderPdfPageToPng(string $path, int $page, int $dpi = 300): string
+{
+    $ocrStatus = iscrizioniPrimeOcrStatus();
+    if (empty($ocrStatus['proc_open']) || empty($ocrStatus['pdftoppm'])) {
+        throw new RuntimeException('Poppler/pdftoppm non disponibile: impossibile generare anteprima di ritaglio.');
+    }
+
+    $page = max(1, $page);
+    $dpi = min(450, max(180, $dpi));
+    $workDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'iscrizioni_crop_' . bin2hex(random_bytes(6));
+    if (!mkdir($workDir, 0700, true) && !is_dir($workDir)) {
+        throw new RuntimeException('Impossibile creare la cartella temporanea per il ritaglio.');
+    }
+
+    $prefix = $workDir . DIRECTORY_SEPARATOR . 'pagina';
+    $command = escapeshellarg((string)$ocrStatus['commands']['pdftoppm'])
+        . ' -png -singlefile -r ' . intval($dpi)
+        . ' -f ' . intval($page)
+        . ' -l ' . intval($page) . ' '
+        . escapeshellarg($path) . ' '
+        . escapeshellarg($prefix);
+    $result = iscrizioniPrimeRunCommand($command, 90);
+    if (($result['code'] ?? 1) !== 0) {
+        iscrizioniPrimeRemoveDirectory($workDir);
+        throw new RuntimeException('Conversione pagina PDF non riuscita: ' . trim((string)($result['stderr'] ?? '')));
+    }
+
+    $image = $prefix . '.png';
+    if (!is_file($image) || filesize($image) <= 0) {
+        iscrizioniPrimeRemoveDirectory($workDir);
+        throw new RuntimeException('Anteprima PDF non generata.');
+    }
+
+    return $image;
+}
+
+function iscrizioniPrimeImageCropToPng(string $sourcePath, array $crop, string $targetPath): array
+{
+    if (!function_exists('imagecreatefrompng') || !function_exists('imagecrop')) {
+        throw new RuntimeException('Estensione GD non disponibile: impossibile ritagliare immagine.');
+    }
+
+    $source = @imagecreatefrompng($sourcePath);
+    if (!$source) {
+        throw new RuntimeException('Impossibile leggere immagine pagina PDF.');
+    }
+
+    $sourceWidth = imagesx($source);
+    $sourceHeight = imagesy($source);
+    $x = max(0, min($sourceWidth - 1, intval(round((float)($crop['x'] ?? 0)))));
+    $y = max(0, min($sourceHeight - 1, intval(round((float)($crop['y'] ?? 0)))));
+    $width = max(1, intval(round((float)($crop['width'] ?? 0))));
+    $height = max(1, intval(round((float)($crop['height'] ?? 0))));
+    $width = min($width, $sourceWidth - $x);
+    $height = min($height, $sourceHeight - $y);
+    if ($width < 80 || $height < 80) {
+        imagedestroy($source);
+        throw new RuntimeException('Ritaglio troppo piccolo.');
+    }
+
+    $cropped = imagecrop($source, ['x' => $x, 'y' => $y, 'width' => $width, 'height' => $height]);
+    imagedestroy($source);
+    if (!$cropped) {
+        throw new RuntimeException('Ritaglio immagine non riuscito.');
+    }
+
+    imagealphablending($cropped, false);
+    imagesavealpha($cropped, true);
+    if (!imagepng($cropped, $targetPath, 0)) {
+        imagedestroy($cropped);
+        throw new RuntimeException('Impossibile salvare immagine ritagliata.');
+    }
+    imagedestroy($cropped);
+
+    return ['width' => $width, 'height' => $height, 'x' => $x, 'y' => $y];
+}
+
+function iscrizioniPrimeCroppedImageToPdf(string $imagePath, string $targetPdf, int $dpi = 300): void
+{
+    if (!iscrizioniPrimeEnsureTcpdf()) {
+        throw new RuntimeException('Libreria TCPDF non disponibile.');
+    }
+
+    $size = @getimagesize($imagePath);
+    if (!$size) {
+        throw new RuntimeException('Immagine ritagliata non valida.');
+    }
+
+    [$imageWidth, $imageHeight] = $size;
+    $dpi = min(450, max(180, $dpi));
+    $pageWidthMm = max(20, $imageWidth / $dpi * 25.4);
+    $pageHeightMm = max(20, $imageHeight / $dpi * 25.4);
+    $orientation = $pageWidthMm > $pageHeightMm ? 'L' : 'P';
+
+    $pdf = new TCPDF($orientation, 'mm', [$pageWidthMm, $pageHeightMm], true, 'UTF-8', false);
+    $pdf->setPrintHeader(false);
+    $pdf->setPrintFooter(false);
+    $pdf->SetMargins(0, 0, 0);
+    $pdf->SetAutoPageBreak(false, 0);
+    $pdf->AddPage($orientation, [$pageWidthMm, $pageHeightMm]);
+    $pdf->Image($imagePath, 0, 0, $pageWidthMm, $pageHeightMm, 'PNG', '', '', true, $dpi);
+    $pdf->Output($targetPdf, 'F');
+    if (!is_file($targetPdf) || filesize($targetPdf) <= 0) {
+        throw new RuntimeException('PDF ritagliato non generato.');
+    }
+}
+
+function iscrizioniPrimeSaveSecretaryCroppedDocument(int $praticaId, string $tipo, int $page, array $crop, int $dpi = 300): array
+{
+    $data = iscrizioniPrimeDocumentForSecretaryEdit($praticaId, $tipo);
+    $pratica = $data['pratica'];
+    $document = $data['document'];
+    $label = $data['label'];
+    $temporaryFiles = [];
+
+    try {
+        $sourcePdf = iscrizioniPrimeDocumentPathForAppend($document, $temporaryFiles);
+        if (!$sourcePdf) {
+            throw new RuntimeException('PDF originale non recuperabile.');
+        }
+        $pageCount = iscrizioniPrimePdfPageCount($sourcePdf);
+        if ($page < 1 || $page > $pageCount) {
+            throw new RuntimeException('Pagina PDF non valida.');
+        }
+
+        $rendered = iscrizioniPrimeRenderPdfPageToPng($sourcePdf, $page, $dpi);
+        $temporaryFiles[] = $rendered;
+        $renderDir = dirname($rendered);
+        $croppedImage = $renderDir . DIRECTORY_SEPARATOR . 'ritaglio.png';
+        $cropInfo = iscrizioniPrimeImageCropToPng($rendered, $crop, $croppedImage);
+        $temporaryFiles[] = $croppedImage;
+
+        $dir = iscrizioniPrimeUploadDir((int)$pratica['id']);
+        if (!is_dir($dir) && !mkdir($dir, 0775, true)) {
+            throw new RuntimeException('Impossibile creare la cartella di destinazione.');
+        }
+        $denyFile = dirname($dir) . '/.htaccess';
+        if (!file_exists($denyFile)) {
+            @file_put_contents($denyFile, "Require all denied\n");
+        }
+
+        $baseName = iscrizioniPrimeGeneratedPdfBaseName($pratica, $label . ' RITAGLIATO');
+        $fileName = iscrizioniPrimeUniquePdfFileName($dir, $baseName);
+        $target = $dir . '/' . $fileName;
+        iscrizioniPrimeCroppedImageToPdf($croppedImage, $target, $dpi);
+
+        $relativePath = 'data/iscrizioni_prime_uploads/' . intval($pratica['id']) . '/' . $fileName;
+        $storageType = 'LOCAL';
+        $driveFileId = null;
+        $driveWebViewLink = null;
+        $driveFolderId = null;
+        if (iscrizioniPrimeDriveEnabled()) {
+            require_once __DIR__ . '/../api/googleDriveLib.php';
+            $driveFolderId = iscrizioniPrimeDriveFolderId($pratica);
+            $upload = googleDriveUploadFile($target, iscrizioniPrimeDriveFileName($pratica, $tipo, $label . ' RITAGLIATO'), $driveFolderId, 'application/pdf');
+            $driveFileId = trim((string)($upload['id'] ?? ''));
+            if ($driveFileId === '') {
+                @unlink($target);
+                throw new RuntimeException('Upload Drive completato senza ID file.');
+            }
+            $driveWebViewLink = (string)($upload['webViewLink'] ?? '');
+            $storageType = 'DRIVE';
+        }
+
+        dbExec("
+            UPDATE iscrizioni_prime_documenti SET
+                stato = 'caricato',
+                file_path = " . dbQ($relativePath) . ",
+                original_name = " . dbQ($fileName) . ",
+                mime_type = 'application/pdf',
+                file_size = " . intval(filesize($target) ?: 0) . ",
+                storage_type = " . dbQ($storageType) . ",
+                drive_file_id = " . dbQ($driveFileId) . ",
+                drive_web_view_link = " . dbQ($driveWebViewLink) . ",
+                drive_folder_id = " . dbQ($driveFolderId) . ",
+                uploaded_at = NOW(),
+                note = 'PDF ritagliato dalla segreteria didattica'
+            WHERE pratica_id = " . dbI($praticaId) . "
+              AND tipo_documento = " . dbQ($tipo) . "
+            LIMIT 1
+        ");
+
+        iscrizioniPrimeRecordEvent($praticaId, 'allegati_modificati', 'Documento ritagliato dalla segreteria', [
+            'oggetto' => $label,
+            'messaggio' => 'Creato PDF ritagliato dalla pagina ' . intval($page) . '. Il PDF originale e stato conservato.',
+            'allegato_path' => $document['file_path'] ?? null,
+            'allegato_original_name' => $document['original_name'] ?? 'PDF originale',
+            'allegato_size' => $document['file_size'] ?? null,
+            'allegato_storage_type' => $document['storage_type'] ?? 'LOCAL',
+            'allegato_drive_file_id' => $document['drive_file_id'] ?? null,
+            'allegato_drive_web_view_link' => $document['drive_web_view_link'] ?? null,
+            'allegato_drive_folder_id' => $document['drive_folder_id'] ?? null,
+            'dettagli' => [
+                'tipo_documento' => $tipo,
+                'pagina' => $page,
+                'dpi' => $dpi,
+                'ritaglio_px' => $cropInfo,
+                'originale_nome' => (string)($document['original_name'] ?? ''),
+                'originale_file_path' => (string)($document['file_path'] ?? ''),
+                'originale_drive_file_id' => (string)($document['drive_file_id'] ?? ''),
+                'nuovo_file_path' => $relativePath,
+                'nuovo_drive_file_id' => (string)$driveFileId,
+            ],
+        ]);
+
+        return [
+            'ok' => true,
+            'message' => $label . ' ritagliato e salvato. Originale conservato nello storico.',
+            'file_name' => $fileName,
+        ];
+    } finally {
+        foreach ($temporaryFiles as $temporaryFile) {
+            if (is_file($temporaryFile)) {
+                @unlink($temporaryFile);
+            }
+        }
+        foreach ($temporaryFiles as $temporaryFile) {
+            $dir = dirname($temporaryFile);
+            if (is_dir($dir) && strpos(basename($dir), 'iscrizioni_crop_') === 0) {
+                iscrizioniPrimeRemoveDirectory($dir);
+            }
+        }
+    }
+}
+
 function iscrizioniPrimeNormalizeGradeValue($value): ?float
 {
     $raw = trim((string)$value);
