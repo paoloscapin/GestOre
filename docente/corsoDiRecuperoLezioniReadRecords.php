@@ -20,7 +20,7 @@ $data = '<div class="table-wrapper"><table class="table table-bordered table-str
 					<tr>
 						<th class="col-md-1 text-left">data</th>
 						<th class="col-md-1 text-left">orario</th>
-						<th class="col-md-1 text-left"></th>
+						<th class="col-md-1 text-center">firmato</th>
 						<th class="col-md-8 text-left">argomento</th>
 						<th class="col-md-2 text-left"></th>
 					</tr>';
@@ -32,7 +32,7 @@ foreach(dbGetAll($query) as $row) {
 	$data .= '<tr>
 		<td>'.$row['data'].'</td>
 		<td>'.$row['orario'].'</td>
-		<td>'.$firmato.'</td>
+		<td class="col-md-1 text-center">'.$firmato.'</td>
 		<td>'.$row['argomento'].'</td>
 		';
 	$data .='

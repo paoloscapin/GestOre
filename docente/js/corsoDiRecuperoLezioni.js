@@ -63,7 +63,7 @@ function corsoDiRecuperoLezioniDelete(id, data) {
     if (conf == true) {
         $.post("corsoDiRecuperoLezioniDelete.php", {
 				id: id,
-				data: $(pickrId).val(),
+				data: data,
             },
             function (data, status) {
 		        corsoDiRecuperoLezioniReadRecords();

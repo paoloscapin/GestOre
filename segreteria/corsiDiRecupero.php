@@ -43,11 +43,14 @@ ruoloRichiesto('dirigente','segreteria-docenti');
 <div class="panel panel-lightblue4">
 <div class="panel-heading container-fluid">
 	<div class="row">
-		<div class="col-md-3">
+		<div class="col-md-2">
 			<span class="glyphicon glyphicon-education"></span>&emsp;Corsi di Recupero
 		</div>
-		<div class="col-md-3 text-center">
+		<div class="col-md-2 text-center">
             <label id="import_btn" class="btn btn-xs btn-lightblue4 btn-file"><span class="glyphicon glyphicon-upload"></span>&emsp;Importa<input type="file" id="file_select_id" style="display: none;"></label>
+		</div>
+		<div class="col-md-2 text-center">
+            <label id="import_check_btn" class="btn btn-xs btn-lightblue4 btn-file"><span class="glyphicon glyphicon-upload"></span>&emsp;Controlla<input type="file" id="file_select_check_id" style="display: none;"></label>
 		</div>
         <div class="col-md-3">
             <div class="text-center">

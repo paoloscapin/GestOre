@@ -77,7 +77,11 @@ function viaggioGetDetails(viaggio_id) {
 		$("#update_destinazione").val('');
 		$("#update_ora_partenza").val('12');
 		$("#update_ora_rientro").val('12');
-        $('#update_stato').val("assegnato");
+		if ($("#hidden_viaggio_protocollo").val() == 0) {
+	        $('#update_stato').val("assegnato");
+		} else {
+	        $('#update_stato').val("creato");
+		}
 		$('#update_stato').selectpicker('refresh');
 	}
 	$("#viaggio_modal").modal("show");
@@ -116,14 +120,32 @@ function viaggioNominaEmail(viaggio_id) {
 	window.open(url, "_blank");
 }
 
+function viaggioNumeroProtocollo(viaggio_id) {
+	bootbox.prompt('Inserisci il numero di protocollo', function(result){ 
+            // console.log('result='+result);
+            // se null cancel
+            if (!result) {
+                // console.log('result is null: ritorno');
+                return;
+            }
+
+			// result
+            $.post("../common/recordUpdate.php", {
+                table: 'viaggio',
+                id: viaggio_id,
+                nome: 'protocollo',
+				valore: result
+            },
+            function (data, status) {
+                viaggioReadRecords();
+            });
+	});
+}
+
+
 function viaggioProtocolla(viaggio_id) {
-	$.post("viaggioProtocolla.php", {
-		viaggio_id: viaggio_id
-		},
-		function (data, status) {
-			alert(data);
-		}
-    );
+	var url = 'viaggioProtocolla.php?viaggio_id=' + viaggio_id;
+	window.open(url, "_blank");
 }
 
 function viaggioCalcola() {

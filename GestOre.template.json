@@ -111,6 +111,7 @@
     },
     "corsiDiRecupero": {
         "importCognomiNomiSeparati": false,
+        "importEmailStudente": false,
         "corsiDiRecuperoEmailRisulato": false,
         "corsiDiRecuperoRichiestaConferma": true,
         "corsiDiRecuperoLinkRichiestaNovembre": "",

@@ -208,12 +208,13 @@ if(mysqli_num_rows($result) > 0) {
                     <label class="col-sm-2 control-label" for="update_stato">Stato</label></br>
 					<div class="col-sm-8"><select id="update_stato" name="update_stato" class="update_stato selectpicker" data-live-search="true"
 					data-noneSelectedText="seleziona..." data-width="50%" >
+                    <?php if(getSettingsValue('viaggi','protocollo', false)) : ?>
+						<option data-content="<span class='label label-default'>creato</span>">creato</option>
+						<option data-content="<span class='label label-primary'>protocollato</span>">protocollato</option>
+                    <?php endif; ?>
 						<option data-content="<span class='label label-info'>assegnato</span>">assegnato</option>
 						<option data-content="<span class='label label-success'>accettato</span>">accettato</option>
 						<option data-content="<span class='label label-warning'>effettuato</span>">effettuato</option>
-                    <?php if(getSettingsValue('viaggi','protocollo', false)) : ?>
-						<option data-content="<span class='label label-primary'>protocollato</span>">protocollato</option>
-                    <?php endif; ?>
 						<option data-content="<span class='label label-danger'>chiuso</span>">chiuso</option>
 						<option data-content="<span class='label label-danger'>annullato</span>">annullato</option>
 					</select></div>
@@ -224,6 +225,7 @@ if(mysqli_num_rows($result) > 0) {
 				<button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
 				<button type="button" class="btn btn-primary" onclick="viaggioSave()" >Salva</button>
 				<input type="hidden" id="hidden_viaggio_id">
+				<input type="hidden" id="hidden_viaggio_protocollo" value="<?php echo getSettingsValue("viaggi", "protocollo", false) ? 1 : 0; ?>">
 			</div>
 			</div>
 			</div>

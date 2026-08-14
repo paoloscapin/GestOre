@@ -167,7 +167,24 @@ function importFile(file) {
     reader.addEventListener('load', (event) => {
         contenuto = event.target.result;
         $.post("corsiDiRecuperoImport.php", {
-            contenuto: contenuto
+            contenuto: contenuto,
+            checkMode: 0
+        },
+        function (data, status) {
+            $('#result_text').html(data);
+        });
+    });
+    reader.readAsText(file);
+}
+
+function importFileCheck(file) {
+    var contenuto = "";
+    const reader = new FileReader();
+    reader.addEventListener('load', (event) => {
+        contenuto = event.target.result;
+        $.post("corsiDiRecuperoImport.php", {
+            contenuto: contenuto,
+            checkMode: 1
         },
         function (data, status) {
             $('#result_text').html(data);
@@ -181,5 +198,9 @@ $(document).ready(function () {
 
     $('#file_select_id').change(function (e) {
         importFile(e. target. files[0]);
+    });
+
+    $('#file_select_check_id').change(function (e) {
+        importFileCheck(e. target. files[0]);
     });
 });

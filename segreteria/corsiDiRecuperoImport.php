@@ -39,7 +39,7 @@ function nextWords() {
     }
     $line = trim($lines[$linePos]);
     $linePos++;
-// debug('linea letta=' . $line);
+// debug('linePos=' . $linePos . ' linea letta=' . $line);
 
     // salta commenti e linee vuote
     if (startswith( $line, "#") || empty($line)) {
@@ -64,16 +64,34 @@ function checkWord($keyword) {
    return true;
 }
 
+$errorMsg = '';
+$warningMsg = '';
+$codiceCorsoList = array();
+
 function erroreDiImport($messaggio) {
     global $data;
+    global $errorMsg;
     global $linePos;
     global $sql;
 
     warning("Errore di import linea $linePos: " . $messaggio);
-    $data = $data . "<strong>Errore di import linea $linePos:</strong> " . $messaggio;
+//    $data = $data . "<strong>Errore di import linea $linePos:</strong> " . $messaggio . '</br>';
+
+    $errorMsg = $errorMsg . "<strong>Errore di import linea $linePos:</strong> " . $messaggio . '</br>';
 
     // azzera le istruzioni sql
     $sql = '';
+}
+
+function warningDiImport($messaggio) {
+    global $data;
+    global $linePos;
+    global $warningMsg;
+
+    warning("Linea $linePos: " . $messaggio);
+//    $data = $data . "<strong>Warning linea $linePos:</strong> " . $messaggio . '</br>';
+
+    $warningMsg = $warningMsg . "<strong>Warning di import linea $linePos:</strong> " . $messaggio . '</br>';
 }
 
 // setup del src e del risultato (data)
@@ -82,6 +100,8 @@ $data = '';
 $src = '';
 if(isset($_POST)) {
 	$src = trim($_POST['contenuto']);
+    $checkMode = (bool)$_POST['checkMode'];
+    debug('checkMode='.$checkMode);
 }
 $lines_array = explode("\n", $src);
 $lines = array_filter($lines_array, 'trim');
@@ -150,6 +170,14 @@ while ($words[0] == 'CODICE') {
         $corso_codice = '_PNRR ' . $pnrr_num . ' ' . $corso_materia;
     }
 
+    // ora controlla che il codice non sia gia' stato usato
+    if (array_search($corso_codice,$codiceCorsoList) !== FALSE) {
+            erroreDiImport("il corso $corso_codice è già stato inserito");
+            break;
+    } else {
+        $codiceCorsoList[] = $corso_codice;
+    }
+
     // segue Aula se non in studio individuale
     if (! $studio_individuale) {
         nextWords();
@@ -175,9 +203,7 @@ while ($words[0] == 'CODICE') {
         if (empty($corso_docente_cognome)) {
             $corso_docente_id = $didattica_id;
     
-            $messaggio = "docente non assegnato per il corso $corso_codice: utilizzato docente 'didattica'";
-            warning("Linea $linePos: " . $messaggio);
-            $data = $data . "<strong>Warning linea $linePos:</strong> " . $messaggio;
+            warningDiImport("docente non assegnato per il corso $corso_codice: utilizzato docente 'didattica'");
         } else {
             $query = "SELECT docente.id FROM docente WHERE docente.cognome LIKE '$corso_docente_cognome' COLLATE utf8_general_ci ";
             if (!empty($corso_docente_nome)) {
@@ -192,9 +218,7 @@ while ($words[0] == 'CODICE') {
             }
             // controlla che non ce ne siano piu' di uno
             if (count($corso_docente_id_list) > 1) {
-                $messaggio = "piu' docenti corrispondono alla ricerca cognome=$corso_docente_cognome nome=$corso_docente_nome: utilizzato il primo";
-                warning("Errore di import linea $linePos: " . $messaggio);
-                $data = $data . "<strong>Errore di import linea $linePos:</strong> " . $messaggio;
+                warningDiImport("piu' docenti corrispondono alla ricerca cognome=$corso_docente_cognome nome=$corso_docente_nome: utilizzato il primo");
             }
             // se tutto va bene c'e' un solo valore
             $corso_docente_id = $corso_docente_id_list[0]['id'];
@@ -207,8 +231,7 @@ while ($words[0] == 'CODICE') {
     }
 
     $sql .= "INSERT INTO corso_di_recupero (codice, aula, in_itinere, docente_id, anno_scolastico_id, materia_id) VALUES ('$corso_codice', '$corso_aula', '$in_itinere_value', '$corso_docente_id', '$__anno_scolastico_corrente_id', '$corso_materia_id');
-        SET @last_id_corso_di_recupero = LAST_INSERT_ID();
-        ";
+        SET @last_id_corso_di_recupero = LAST_INSERT_ID();";
 
     // numero ore totali
     $numero_ore_recupero = 0;
@@ -255,8 +278,7 @@ while ($words[0] == 'CODICE') {
                 // orario in formato stringa
                 $orario = date("H:i", $timeStart) . " - " . date("H:i", $timeEnd);
         
-                $sql .= "INSERT INTO lezione_corso_di_recupero (data, inizia_alle, numero_ore, orario, corso_di_recupero_id) VALUES ('$dataLezioneSql', '$inizia_alle', $numero_ore, '$orario', @last_id_corso_di_recupero);
-                ";
+                $sql .= "INSERT INTO lezione_corso_di_recupero (data, inizia_alle, numero_ore, orario, corso_di_recupero_id) VALUES ('$dataLezioneSql', '$inizia_alle', $numero_ore, '$orario', @last_id_corso_di_recupero);";
                 nextWords();
             }
         } else {
@@ -264,8 +286,7 @@ while ($words[0] == 'CODICE') {
         }
 
         // aggiorna le ore totali
-        $sql .= "UPDATE corso_di_recupero SET numero_ore=$numero_ore_recupero WHERE corso_di_recupero.id=@last_id_corso_di_recupero;
-        ";
+        $sql .= "UPDATE corso_di_recupero SET numero_ore=$numero_ore_recupero WHERE corso_di_recupero.id=@last_id_corso_di_recupero;";
     } else {
         nextWords();
     }
@@ -281,6 +302,7 @@ while ($words[0] == 'CODICE') {
         $classe = escapeString($words[1]);
 
         $commento = '';
+        $email = '';
         if (getSettingsValue('corsiDiRecupero','importCognomiNomiSeparati', false)) {
             $cognome = escapeString(titlecase($words[2]));
             $nome = escapeString(titlecase($words[3]));
@@ -292,12 +314,28 @@ while ($words[0] == 'CODICE') {
             $nome = escapeString(implode(' ', array_slice($arr, 1)));
             $commentoPos = 3;
         }
+        // controlla se richiesta la email in quel caso sposta il commento nella posizione successiva
+        if (getSettingsValue('corsiDiRecupero','importEmailStudente', false)) {
+            $email = escapeString(titlecase($commentoPos));
+            $commentoPos += 1;
+        }
+
         // il quarto campo e' un commento (oppure il quinto se presente)
         if (count($words) > $commentoPos) {
             $commento = escapeString($words[$commentoPos]);
             // se e' vuoto il commento potrebbe essere nel quinto
             if (empty(trim($commento)) && count($words) > ($commentoPos + 1)) {
                 $commento = escapeString($words[$commentoPos + 1]);
+            }
+        }
+
+        // se serve la email e non era gia' inserita, cerca lo studente in locale
+        if (getSettingsValue('corsiDiRecupero','importEmailStudente', false) && $email != '') {
+            $studente = dbGetFirst("SELECT * from studente WHERE cognome='".escapeString($cognome) . "' AND nome='".escapeString($nome) . "' AND classe<>''; ");
+            if ($studente == null) {
+                warningDiImport("Studente non trovato per il corso $corso_codice: cognome=$cognome AND nome=$nome classe=$classe : la email viene lasciata vuota e deve essere inserita a mano");
+            } else {
+                $email = $studente['email'];
             }
         }
 
@@ -312,7 +350,7 @@ while ($words[0] == 'CODICE') {
             $serve_voto = 0;
         }
         // inserisce lo studente se non esiste
-		$sql .= "INSERT INTO studente_per_corso_di_recupero (cognome, nome, commento, classe, serve_voto, corso_di_recupero_id) VALUES ('$cognome', '$nome', '$commento', '$classe', $serve_voto, @last_id_corso_di_recupero);";
+		$sql .= "INSERT INTO studente_per_corso_di_recupero (cognome, nome, email, commento, classe, serve_voto, corso_di_recupero_id) VALUES ('$cognome', '$nome', '$email', '$commento', '$classe', $serve_voto, @last_id_corso_di_recupero);";
 
         // se aveva raggiunto la fine delle linee, interrompi
         if (nextWords() == null) {
@@ -324,8 +362,7 @@ while ($words[0] == 'CODICE') {
     if (! $studio_individuale && ! $pnrr) {
         $sql .= "INSERT INTO studente_partecipa_lezione_corso_di_recupero (lezione_corso_di_recupero_id, studente_per_corso_di_recupero_id)
                 SELECT lezione_corso_di_recupero.id, studente_per_corso_di_recupero.id FROM lezione_corso_di_recupero, studente_per_corso_di_recupero
-                WHERE lezione_corso_di_recupero.corso_di_recupero_id = @last_id_corso_di_recupero AND studente_per_corso_di_recupero.corso_di_recupero_id = @last_id_corso_di_recupero;
-                ";
+                WHERE lezione_corso_di_recupero.corso_di_recupero_id = @last_id_corso_di_recupero AND studente_per_corso_di_recupero.corso_di_recupero_id = @last_id_corso_di_recupero;";
     }
 
     $data = $data . 'codice=' . $corso_codice . ' materia=' . $corso_materia . ' aula=' . $corso_aula . ' docente=' . $corso_docente_cognome . " " . $corso_docente_nome . ' numero ore=' . $numero_ore_recupero . ' numero studenti=' . $numero_studenti;
@@ -334,11 +371,24 @@ while ($words[0] == 'CODICE') {
 }
 
 // esegue la query se non vuota
-if (!empty($sql)) {
-    dbExecMulti($sql);
-    // debug($sql);
-    info('Import corsi di recupero effettuato');
+if ($checkMode == TRUE) {
+    info('Import corsi di recupero CHECK effettuato');
+} else {
+    if (!empty($sql)) {
+        // dbExecMulti($sql);
+        debug($sql);
+        info('Import corsi di recupero effettuato');
+    }
 }
 
-echo $data;
+// se c'e' un messaggio di errore scrive solo quello
+if ($errorMsg != "") {
+    echo ('<p style="text-align:left">'.$errorMsg.'</p>');
+} else {
+    if ($warningMsg != "") {
+        echo ('<p style="text-align:left">'.$warningMsg.'</p>');
+    }
+
+    echo ('<p style="text-align:left">'.$data.'</p>');
+}
 ?>

@@ -30,10 +30,10 @@ if(isset($_POST)) {
 		dbExec($query);
 		info("aggiornato viaggio id=$viaggio_id protocollo=$protocollo tipo_viaggio=$tipo_viaggio data_nomina=$data_nomina data_partenza=$data_partenza data_rientro=$data_rientro docente_id=$docente_incaricato_id classe=$classe note=$note destinazione=$destinazione ora_partenza=$ora_partenza ora_rientro=$ora_rientro stato=$stato");
 	} else {
-		$query = "INSERT INTO viaggio(protocollo, tipo_viaggio, data_nomina, data_partenza, data_rientro, docente_id, destinazione, classe, note, ora_partenza, ora_rientro, anno_scolastico_id) VALUES('$protocollo', '$tipo_viaggio', '$data_nomina', '$data_partenza', '$data_rientro', '$docente_incaricato_id', '$destinazione', '$classe', '$note', '$ora_partenza', '$ora_rientro', '$__anno_scolastico_corrente_id')";
+		$query = "INSERT INTO viaggio(protocollo, tipo_viaggio, data_nomina, data_partenza, data_rientro, docente_id, destinazione, classe, note, ora_partenza, ora_rientro, stato, anno_scolastico_id) VALUES('$protocollo', '$tipo_viaggio', '$data_nomina', '$data_partenza', '$data_rientro', '$docente_incaricato_id', '$destinazione', '$classe', '$note', '$ora_partenza', '$ora_rientro', '$stato', '$__anno_scolastico_corrente_id')";
 		dbExec($query);
 		$last_id = dblastId();
-		info("aggiunto viaggio id=$last_id docente_id=$docente_id dataSostituzione=$dataSostituzione destinazione=$destinazione data_partenza=$data_partenza");
+		info("aggiunto viaggio id=$last_id docente_id=$docente_id dataSostituzione=$dataSostituzione destinazione=$destinazione data_partenza=$data_partenza stato=$stato");
 	}
 }
 ?>

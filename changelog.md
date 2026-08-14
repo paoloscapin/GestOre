@@ -1,3 +1,12 @@
+## Version 1.3.22 - 14 ago 2026
+##### ##### Improvements
+- opzione importEmailStudente in json corsiDiRecupero
+- import corso di recupero con nomi separati e email
+- import corso di recupero check del file
+- aggiornato template per import corso di recupero (versione 2.0)
+- gestione dello stato creato e protocollato per il viaggio
+- upload del viaggio protocollo
+
 ## Version 1.3.21 - 8 giu 2026
 ##### ##### Improvements
 - carenza parte dall'anno in corso

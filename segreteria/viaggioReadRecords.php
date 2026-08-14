@@ -35,27 +35,32 @@ $data = '<div class="table-wrapper"><table class="table table-bordered table-str
 					</tr>
 					</thead><tbody>';
 
-$query = "SELECT viaggio.id AS viaggio_id, viaggio.*, docente.cognome, docente.nome FROM viaggio INNER JOIN docente ON viaggio.docente_id = docente.id WHERE viaggio.anno_scolastico_id = $__anno_scolastico_corrente_id ORDER BY data_partenza DESC, cognome ASC, nome ASC; ";
+$query = "SELECT viaggio.id AS viaggio_id, viaggio.*, docente.cognome, docente.nome, COALESCE(viaggio_ore_recuperate.ore, 0) AS ore, COALESCE(fuis_viaggio_diaria.importo, 0) AS diaria FROM viaggio
+		INNER JOIN docente ON viaggio.docente_id = docente.id
+		LEFT JOIN viaggio_ore_recuperate ON viaggio_ore_recuperate.viaggio_id = viaggio.id
+		LEFT JOIN fuis_viaggio_diaria ON fuis_viaggio_diaria.viaggio_id = viaggio.id
+		WHERE viaggio.anno_scolastico_id = $__anno_scolastico_corrente_id ORDER BY data_partenza DESC, cognome ASC, nome ASC; ";
 
 foreach(dbGetAll($query) as $viaggio) {
 	$viaggioId = $viaggio['viaggio_id'];
 	$stato = $viaggio['stato'];
+	$protocollo = $viaggio['protocollo'];
 	$statoMarker = '';
 	switch ($stato) {
 		case "assegnato":
 			$statoMarker = '<span class="label label-info">assegnato</span>';
 			break;
+		case "creato":
+			$statoMarker = '<span class="label label-default">creato</span>';
+			break;
 		case "protocollato":
-			$statoMarker = '<span class="label label-info">protocollato</span>';
+			$statoMarker = '<span class="label label-primary">protocollato</span>';
 			break;
 		case "accettato":
 			$statoMarker = '<span class="label label-success">accettato</span>';
 			break;
 		case "effettuato":
 			$statoMarker = '<span class="label label-warning">effettuato</span>';
-			break;
-		case "protocollato":
-			$statoMarker = '<span class="label label-primary">protocollato</span>';
 			break;
 		case "chiuso":
 			$statoMarker = '<span class="label label-danger">chiuso</span>';
@@ -77,7 +82,11 @@ foreach(dbGetAll($query) as $viaggio) {
 	$data .='<td class="text-center">
 		<button onclick="viaggioNominaStampa('.$viaggioId.')" class="btn btn-orange4 btn-xs" style="display: inline-flex;align-items: center;"><i class="icon-pdf"></i>&nbsp;Pdf</button>';
 		if (getSettingsValue('viaggi','protocollo', false)) {
-			$data .='<button onclick="viaggioProtocolla('.$viaggioId.')" class="btn btn-orange4 btn-xs style="display: inline-flex;align-items: center;"><i class="icon-protocollo" style="vertical-align: middle;"></i>&nbsp;PITre</button>';
+			if ($protocollo != '') {
+				$data .='<button onclick="viaggioProtocolla('.$viaggioId.')" class="btn btn-orange4 btn-xs style="display: inline-flex;align-items: center;"><i class="icon-protocollo" style="vertical-align: middle;"></i>&nbsp;PITre</button>';
+			} else {
+				$data .='<button onclick="viaggioNumeroProtocollo('.$viaggioId.')" class="btn btn-orange4 btn-xs style="display: inline-flex;align-items: center;"><i class="icon-protocollo" style="vertical-align: middle;"></i>&nbsp;numero</button>';
+			}
 		}
 		$data .='<button onclick="viaggioNominaEmail('.$viaggioId.')" class="btn btn-lightblue4 btn-xs style="display: inline-flex;align-items: center;"><i class="icon-email" style="vertical-align: middle;"></i>&nbsp;email</button></td>';
 		$data .='<td class="text-center">
@@ -94,9 +103,9 @@ foreach(dbGetAll($query) as $viaggio) {
 	}
 
 	// adesso ricaviamo le ore e l'importo di una eventuale diaria
-	$ore = dbGetValue("SELECT COALESCE( (SELECT ore FROM viaggio_ore_recuperate WHERE viaggio_id = $viaggioId), 0);");
-	$diaria = dbGetValue("SELECT COALESCE( (SELECT importo FROM fuis_viaggio_diaria WHERE viaggio_id = $viaggioId), 0);");
+	$ore = $viaggio['ore'];
 	$oreString = formatNoZeroOreViaggio($ore);
+	$diaria = $viaggio['diaria'];
 	$diariaString =  formatNoZeroDiariaViaggio($diaria);
 	$diariaIcon = '';
 	if ($diaria != 0) {

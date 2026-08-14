@@ -40,10 +40,16 @@ $data = '<div class="table-wrapper"><table class="table table-bordered table-str
 // data destinazione, classe, stato, azioni
 foreach(dbGetAll("SELECT * from viaggio WHERE anno_scolastico_id = $__anno_scolastico_corrente_id AND docente_id = $__docente_id ORDER BY data_partenza DESC;") as $viaggio) {
 	$viaggioId = $viaggio['id'];
+	$stato = $viaggio['stato'];
+
+	// controlla lo stato: creato e protocollato non sono visibili (fino a che non viene assegnato)
+	if ($stato == 'creato' || $stato == 'protocollato') {
+		continue;
+	}
+
 	$tipoViaggio = $viaggio['tipo_viaggio'];
 	$destinazione = $viaggio['destinazione'];
 	$classe = $viaggio['classe'];
-	$stato = $viaggio['stato'];
 	$oldLocale = setlocale(LC_TIME, 'ita', 'it_IT');
 	$dataPartenza = utf8_encode( strftime("%d %B %Y", strtotime($viaggio['data_partenza'])));
 	setlocale(LC_TIME, $oldLocale);
@@ -53,17 +59,17 @@ foreach(dbGetAll("SELECT * from viaggio WHERE anno_scolastico_id = $__anno_scola
 		case "assegnato":
 			$statoMarker = '<span class="label label-info">assegnato</span>';
 			break;
+		case "creato":
+			$statoMarker = '<span class="label label-default">creato</span>';
+			break;
 		case "protocollato":
-			$statoMarker = '<span class="label label-info">protocollato</span>';
+			$statoMarker = '<span class="label label-primary">protocollato</span>';
 			break;
 		case "accettato":
 			$statoMarker = '<span class="label label-success">accettato</span>';
 			break;
 		case "effettuato":
 			$statoMarker = '<span class="label label-warning">effettuato</span>';
-			break;
-		case "protocollato":
-			$statoMarker = '<span class="label label-primary">protocollato</span>';
 			break;
 		case "chiuso":
 			$statoMarker = '<span class="label label-danger">chiuso</span>';
