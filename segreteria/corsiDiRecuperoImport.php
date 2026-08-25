@@ -23,6 +23,10 @@ function endsWith($haystack, $needle) {
     return $length === 0 ||  (substr($haystack, -$length) === $needle);
 }
 
+function lowercase($str) {
+    return strtolower($str);
+}
+
 function titlecase($str) {
     return ucwords(strtolower($str));
 }
@@ -316,7 +320,7 @@ while ($words[0] == 'CODICE') {
         }
         // controlla se richiesta la email in quel caso sposta il commento nella posizione successiva
         if (getSettingsValue('corsiDiRecupero','importEmailStudente', false)) {
-            $email = escapeString(titlecase($commentoPos));
+            $email = escapeString(lowercase($words[$commentoPos]));
             $commentoPos += 1;
         }
 
@@ -330,8 +334,8 @@ while ($words[0] == 'CODICE') {
         }
 
         // se serve la email e non era gia' inserita, cerca lo studente in locale
-        if (getSettingsValue('corsiDiRecupero','importEmailStudente', false) && $email != '') {
-            $studente = dbGetFirst("SELECT * from studente WHERE cognome='".escapeString($cognome) . "' AND nome='".escapeString($nome) . "' AND classe<>''; ");
+        if (getSettingsValue('corsiDiRecupero','importEmailStudente', false) && $email == '') {
+            $studente = dbGetFirst("SELECT * from studente WHERE cognome='".$cognome . "' AND nome='".$nome . "' AND classe<>''; ");
             if ($studente == null) {
                 warningDiImport("Studente non trovato per il corso $corso_codice: cognome=$cognome AND nome=$nome classe=$classe : la email viene lasciata vuota e deve essere inserita a mano");
             } else {
@@ -375,8 +379,7 @@ if ($checkMode == TRUE) {
     info('Import corsi di recupero CHECK effettuato');
 } else {
     if (!empty($sql)) {
-        // dbExecMulti($sql);
-        debug($sql);
+        dbExecMulti($sql);
         info('Import corsi di recupero effettuato');
     }
 }

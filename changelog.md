@@ -1,3 +1,7 @@
+## Version 1.4.01 - 25 ago 2026
+##### Bug Fixes
+- fix sulla ricerca di email in corso di recupero import
+
 ## Version 1.3.22 - 14 ago 2026
 ##### ##### Improvements
 - opzione importEmailStudente in json corsiDiRecupero
