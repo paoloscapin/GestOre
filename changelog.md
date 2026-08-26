@@ -1,3 +1,7 @@
+## Version 1.4.02 - 26 ago 2026
+##### Bug Fixes
+- fix per storico fuis che si bloccava
+
 ## Version 1.4.01 - 25 ago 2026
 ##### Bug Fixes
 - fix sulla ricerca di email in corso di recupero import
