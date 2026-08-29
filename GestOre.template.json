@@ -32,6 +32,7 @@
         "pianiDiLavoro": false,
         "carenze": true,
         "modulisticaDocenti": false,
+        "richiesteStudenti": false,
         "uploadLocation": "GestOre.upload"
     },
     "interfaccia": {

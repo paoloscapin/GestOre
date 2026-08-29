@@ -23,6 +23,9 @@
 			<a href="<?php echo $__application_base_path; ?>/studente/pianoDiLavoro.php" class="btn btn-default navbar-btn btn-lima4" role="button"><span class="glyphicon glyphicon-th-large"></span>&ensp;Piani di Lavoro </a>
 			</div>
 		<?php endif; ?>
+		<?php if(getSettingsValue('config','richiesteStudenti', false)) : ?>
+			<a href="<?php echo $__application_base_path; ?>/studente/richiestaList.php" class="btn btn-default navbar-btn btn-yellow4" role="button"><span class="glyphicon glyphicon-blackboard"></span>&ensp;Richieste </a>
+		<?php endif; ?>
 		</ul>
 
 		<ul class="nav navbar-nav navbar-right top-navbar-nav">
