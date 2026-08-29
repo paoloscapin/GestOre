@@ -32,21 +32,21 @@ $query = "	SELECT
                 docente.cognome AS docente_cognome,
 				docente.nome AS docente_nome
 			FROM corso_di_recupero
-			INNER JOIN materia materia
-			ON corso_di_recupero.materia_id = materia.id
-			INNER JOIN docente docente
-			ON corso_di_recupero.docente_id = docente.id
+			INNER JOIN materia materia ON corso_di_recupero.materia_id = materia.id
+			INNER JOIN docente docente ON corso_di_recupero.docente_id = docente.id
             WHERE corso_di_recupero.anno_scolastico_id = $__anno_scolastico_corrente_id AND corso_di_recupero.in_itinere = $inItinere
 			ORDER BY corso_di_recupero.codice ASC
 			";
 
 foreach(dbGetAll($query) as $row) {
+	$corsoDiRecuperoId = $row['corso_di_recupero_id'];
+	$oreTotali = dbGetValue("SELECT COALESCE(SUM(lezione_corso_di_recupero.numero_ore),0) FROM lezione_corso_di_recupero WHERE lezione_corso_di_recupero.corso_di_recupero_id = $corsoDiRecuperoId");
 	$data .= '<tr>
 		<td>'.$row['corso_di_recupero_codice'].'</td>
 		<td>'.$row['materia_nome'].'</td>
 		<td>'.$row['corso_di_recupero_aula'].'</td>
 		<td>'.$row['docente_cognome'].' '.$row['docente_nome'].'</td>
-        <td>'.$row['corso_di_recupero_numero_ore'].'</td>       
+        <td>'.$oreTotali.'</td>       
 		';
 	$data .='
 		<td class="text-center">

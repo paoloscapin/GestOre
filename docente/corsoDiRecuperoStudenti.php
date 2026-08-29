@@ -115,6 +115,12 @@ echo '<title>' . $codice . ' - '. $nomeCognomeDocente . '</title>';
                     <div class="col-sm-8"><input type="text" id="email" placeholder="email" class="form-control"/></div>
                 </div>
             </div>
+			<div class="panel-body">
+                <div class="form-group">
+                    <label class="col-sm-2 control-label" for="commento">Commento</label>
+                    <div class="col-sm-8"><input type="text" id="commento" placeholder="commento" class="form-control"/></div>
+                </div>
+            </div>
 			<div class="panel-footer text-center">
 				<button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
 				<button type="button" class="btn btn-primary" onclick="corsoDiRecuperoStudentiSave()" >Salva</button>
