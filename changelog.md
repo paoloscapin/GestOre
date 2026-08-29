@@ -1,3 +1,7 @@
+## Version 1.4.03 - 29 ago 2026
+##### Bug Fixes
+- sistemata interfaccia per studenti corso di recupero
+
 ## Version 1.4.02 - 26 ago 2026
 ##### Bug Fixes
 - fix per storico fuis che si bloccava

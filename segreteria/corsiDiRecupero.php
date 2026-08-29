@@ -144,19 +144,6 @@ foreach($resultArray as $row) {
                     <?php echo $materiaOptionList ?>
 					</select></div>
                 </div>
-
-                <hr>
-
-                <div class="form-group">
-                    <label for="lezioni" class="col-sm-2 control-label">Lezioni</label>
-                    <div class="col-sm-10"><textarea rows="8" id="lezioni" placeholder="lezioni" class="form-control" ></textarea></div>
-                </div>
-
-                <div class="form-group">
-                    <label for="studenti" class="col-sm-2 control-label">Studenti</label>
-                    <div class="col-sm-10"><textarea rows="12" id="studenti" placeholder="studenti" class="form-control" ></textarea></div>
-                </div>
-
             </form>
 
             </div>

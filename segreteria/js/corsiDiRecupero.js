@@ -9,10 +9,7 @@ var originalCodice = '';
 var originalAula = '';
 var originalDocente_id = 0;
 var originalMateria_id = 0;
-var originalTestoLezioni = '';
-var originalTestoStudenti = '';
 var modificabile = true;
-
 var inItinere = 0;
 
 $('#inItinereCheckBox').change(function() {
@@ -49,41 +46,17 @@ function corsiDiRecuperoGetDetails(id) {
             $('#docente').selectpicker('val', record.docente_id);
             $('#materia').selectpicker('val', record.materia_id);
 
-            var testoLezioni = '';
-            record.lezioni.forEach(function(lezione) {
-                testoLezioni = testoLezioni + lezione.data + ' - ' + lezione.inizia_alle + ' - ' + lezione.numero_ore + ' - ' + lezione.orario + '\n';
-                console.log(lezione);
-                if (lezione.firmato == 1) {
-                    modificabile = false;
-                }
-            });
-            $("#lezioni").val(testoLezioni);
-
-            var testoStudenti = '';
-            record.studenti.forEach(function(studente) {
-                testoStudenti = testoStudenti + studente.classe + ' - ' + studente.cognome + ' - ' + studente.nome + ' - ';
-                if (studente.serve_voto == 0) {
-                    testoStudenti += 'uditore - ';
-                }
-                testoStudenti += '\n';
-            });
-            $("#studenti").val(testoStudenti);
-
             // memorizza i valori per vedere poi se sono cambiati
             originalCodice = record.corso_di_recupero_codice;
             originalAula = record.corso_di_recupero_aula;
             originalDocente_id = record.docente_id;
             originalMateria_id = record.materia_id;
-            originalTestoLezioni = testoLezioni;
-            originalTestoStudenti = testoStudenti;
 		});
     } else {
         $("#codice").val("");
         $("#aula").val("");
         $('#docente').selectpicker('val', 0);
         $('#materia').selectpicker('val', 0);
-        originalTestoLezioni = '';
-        originalTestoStudenti = '';
         originalCodice = '';
         originalAula = '';
         originalDocente_id = 0;
@@ -94,11 +67,9 @@ function corsiDiRecuperoGetDetails(id) {
 
 function corsiDiRecuperoSave() {
     var datiModificati = (originalCodice != $("#codice").val() || originalAula != $("#aula").val() || originalDocente_id != $("#docente").val() || originalMateria_id != $("#materia").val());
-    var testoLezioniModificato = $("#lezioni").val() != originalTestoLezioni;
-    var testoStudentiModificato = $("#studenti").val() != originalTestoStudenti;
 
     // controlla se sono cambiati i campi
-    if (datiModificati || testoLezioniModificato || testoStudentiModificato) {
+    if (datiModificati) {
     // se non e' modificabile, chiede una conferma che sia davvero voluto
         if (!modificabile) {
             var conf = confirm("Attenzione !!!\r\n\r\nIl corso di recupero " + originalCodice + " contiene delle lezioni firmate.\r\nModificando i dati del corso potrebbe portare a delle inconsistenze.\r\n\r\nSei sicuro di volere modificare i dati?");
@@ -113,12 +84,7 @@ function corsiDiRecuperoSave() {
                     codice: $("#codice").val(),
                     aula: $("#aula").val(),
                     docente_id: $("#docente").val(),
-                    materia_id: $("#materia").val(),
-                    datiModificati: datiModificati ? 1 : 0,
-                    testoLezioni: $("#lezioni").val(),
-                    testoLezioniModificato: testoLezioniModificato ? 1 : 0,
-                    testoStudenti: $("#studenti").val(),
-                    testoStudentiModificato: testoStudentiModificato ? 1 : 0
+                    materia_id: $("#materia").val()
                 },
                 function (data, status) {
                     corsiDiRecuperoReadRecords();

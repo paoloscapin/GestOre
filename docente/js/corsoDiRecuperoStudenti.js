@@ -26,12 +26,14 @@ function corsoDiRecuperoStudentiGetDetails(id) {
 			$("#nome").val(studente.nome);
 			$("#email").val(studente.email);
 			$("#classe").val(studente.classe);
+			$("#commento").val(studente.commento);
 		});
     } else {
 		$("#cognome").val("");
 		$("#nome").val("");
 		$("#email").val("");
 		$("#classe").val("");
+		$("#commento").val("");
 	}
 	$("#corso_di_recupero_studenti_modal").modal("show");
 }
@@ -43,6 +45,7 @@ function corsoDiRecuperoStudentiSave() {
         cognome: $("#cognome").val(),
         nome: $("#nome").val(),
         email: $("#email").val(),
+        commento: $("#commento").val(),
         classe: $("#classe").val()
     }, function (data, status) {
         $("#corso_di_recupero_studenti_modal").modal("hide");

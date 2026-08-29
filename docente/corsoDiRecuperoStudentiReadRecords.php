@@ -18,10 +18,11 @@ if(! isset($_GET)) {
 // Design initial table header
 $data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
 					<tr>
-						<th class="col-md-3 text-left">cognome</th>
-						<th class="col-md-3 text-left">nome</th>
+						<th class="col-md-2 text-left">cognome</th>
+						<th class="col-md-2 text-left">nome</th>
 						<th class="col-md-1 text-left">classe</th>
-						<th class="col-md-4 text-left">email</th>
+						<th class="col-md-3 text-left">email</th>
+						<th class="col-md-3 text-left">commento</th>
 						<th class="col-md-1 text-left"></th>
 					</tr>';
 
@@ -33,6 +34,7 @@ foreach(dbGetAll($query) as $row) {
 		<td>'.$row['nome'].'</td>
 		<td>'.$row['classe'].'</td>
 		<td>'.$row['email'].'</td>
+		<td>'.$row['commento'].'</td>
 		';
 	$data .='
 		<td class="text-center">

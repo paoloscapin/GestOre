@@ -8,7 +8,7 @@
  */
 
 require_once '../common/checkSession.php';
-ruoloRichiesto('docente','segreteria-didattica','dirigente');
+ruoloRichiesto('docente','segreteria-didattica','segreteria-docenti','dirigente');
 
 if(isset($_POST)) {
 	$id = $_POST['id'];
@@ -17,13 +17,21 @@ if(isset($_POST)) {
     $nome = escapePost('nome');
     $classe = escapePost('classe');
     $email = escapePost('email');
+    $commento = escapePost('commento');
+
+    // controlla se e' un uditore e quindi non deve fare la prova finale: deve esserci scritto uditore nel commento
+    $serve_voto = 1;
+    // controlla se il commento contiene "uditore"
+    if (strpos(strtolower($commento), 'uditore') !== false) {
+        $serve_voto = 0;
+    }
 
     if ($id > 0) {
-        $query = "UPDATE studente_per_corso_di_recupero SET cognome = '$cognome', nome = '$nome', classe = '$classe', email = '$email' WHERE id = '$id'";
+        $query = "UPDATE studente_per_corso_di_recupero SET cognome = '$cognome', nome = '$nome', classe = '$classe', email = '$email', commento = '$commento', serve_voto = '$serve_voto' WHERE id = '$id'";
         dbExec($query);
-        info("aggiornato studente_per_corso_di_recupero id=$id cognome=$cognome, nome = $nome,  classe = $classe, email = $email");
+        info("aggiornato studente_per_corso_di_recupero id=$id cognome=$cognome, nome = $nome,  classe = $classe, email = $email, commento = '$commento', serve_voto = '$serve_voto'");
     } else {
-        $query = "INSERT INTO studente_per_corso_di_recupero (cognome, nome, classe, email, corso_di_recupero_id) VALUES ('$cognome', '$nome', '$classe', '$email', $corso_di_recupero_id); ";
+        $query = "INSERT INTO studente_per_corso_di_recupero (cognome, nome, classe, email, commento, serve_voto, corso_di_recupero_id) VALUES ('$cognome', '$nome', '$classe', '$email', '$commento', '$serve_voto', $corso_di_recupero_id); ";
         dbExec($query);
         $id = dblastId();
 

@@ -30,38 +30,6 @@ if(isset($_POST['id']) && isset($_POST['id']) != "") {
             WHERE corso_di_recupero.id = $id
             ";
     $corsoDiRecupero = dbGetFirst($query);
-    
-    // legge le lezioni di questo corso
-    $lezioni_list = array();
-	$query = "SELECT * FROM lezione_corso_di_recupero WHERE corso_di_recupero_id = $id";
-	foreach(dbGetAll($query) as $row) {
-		$lezione = array();
-		$lezione['id'] = $row['id'];
-		$lezione['data'] = $row['data'];
-		$lezione['inizia_alle'] = $row['inizia_alle'];
-		$lezione['numero_ore'] = $row['numero_ore'];
-		$lezione['orario'] = $row['orario'];
-		$lezione['firmato'] = $row['firmato'];
-        $lezioni_list[] = $lezione;
-	}
-
-    // legge gli studenti di questo corso
-    $studenti_list = array();
-	$query = "SELECT * FROM studente_per_corso_di_recupero WHERE corso_di_recupero_id = $id";
-	foreach(dbGetAll($query) as $row) {
-		$studente = array();
-		$studente['id'] = $row['id'];
-		$studente['cognome'] = $row['cognome'];
-		$studente['nome'] = $row['nome'];
-		$studente['classe'] = $row['classe'];
-		$studente['serve_voto'] = $row['serve_voto'];
-        $studenti_list[] = $studente;
-	}
-
-    // aggiunge al risultato i valori letti
-    $corsoDiRecupero['lezioni'] = $lezioni_list;
-    $corsoDiRecupero['studenti'] = $studenti_list;
-
 	echo json_encode($corsoDiRecupero);
 }
 ?>
