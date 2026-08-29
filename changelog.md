@@ -1,3 +1,7 @@
+## Version 1.4.04 - 29 ago 2026
+##### Bug Fixes
+- ore totali corso di recupero in segreteria contate invece che da db
+
 ## Version 1.4.03 - 29 ago 2026
 ##### Bug Fixes
 - sistemata interfaccia per studenti corso di recupero
