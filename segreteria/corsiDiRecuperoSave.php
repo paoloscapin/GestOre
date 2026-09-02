@@ -22,7 +22,7 @@ if(isset($_POST)) {
         dbExec($query);
         info("aggiornato corso_di_recupero id=$id codice=$codice");
     } else {
-        $query = "INSERT INTO corso_di_recupero (codice,aula,docente_id,materia_id,anno_scolastico_id) VALUES('$codice', '$aula', $docente_id, $materia_id, $__anno_scolastico_corrente_id));";
+        $query = "INSERT INTO corso_di_recupero (codice,aula,docente_id,materia_id,anno_scolastico_id) VALUES('$codice', '$aula', $docente_id, $materia_id, $__anno_scolastico_corrente_id);";
         dbExec($query);
         $id = dblastId();
         info("aggiunto corso_di_recupero id=$id codice=$codice");

@@ -1,3 +1,7 @@
+## Version 1.4.05 - 2 set 2026
+##### Bug Fixes
+- fix corsiDiRecuperoSave e Import
+
 ## Version 1.4.04 - 29 ago 2026
 ##### Bug Fixes
 - ore totali corso di recupero in segreteria contate invece che da db
