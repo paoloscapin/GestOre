@@ -1,3 +1,10 @@
+## Version 1.4.05 - 4 set 2026
+##### Buoni Pasto
+- Inserito pulsante "Buoni Pasto" per segreteria-docenti da cui è possibile visualizzare le ore
+  fatte da un singolo docente per controllo incrociato con i buoni pasto
+- Sebastiano Santini
+
+
 ## Version 1.4.04 - 29 ago 2026
 ##### Bug Fixes
 - ore totali corso di recupero in segreteria contate invece che da db
