@@ -1,9 +1,10 @@
-## Version 1.4.05 - 4 set 2026
-##### Buoni Pasto
-- Inserito pulsante "Buoni Pasto" per segreteria-docenti da cui è possibile visualizzare le ore
-  fatte da un singolo docente per controllo incrociato con i buoni pasto
-- Sebastiano Santini
+## Version 1.4.06 - 5 set 2026
+##### Bug Fixes
+- fix corsiDiRecuperoSave e Import
 
+## Version 1.4.05 - 4 set 2026
+##### Improvements
+- Sebastiano Santini - Buoni Pasto: Inserito pulsante "Buoni Pasto" per segreteria-docenti da cui è possibile visualizzare le ore fatte da un singolo docente per controllo incrociato con i buoni pasto
 
 ## Version 1.4.04 - 29 ago 2026
 ##### Bug Fixes
@@ -22,7 +23,7 @@
 - fix sulla ricerca di email in corso di recupero import
 
 ## Version 1.3.22 - 14 ago 2026
-##### ##### Improvements
+##### Improvements
 - opzione importEmailStudente in json corsiDiRecupero
 - import corso di recupero con nomi separati e email
 - import corso di recupero check del file
@@ -31,15 +32,15 @@
 - upload del viaggio protocollo
 
 ## Version 1.3.21 - 8 giu 2026
-##### ##### Improvements
+##### Improvements
 - carenza parte dall'anno in corso
 
 ## Version 1.3.20 - 28 mag 2026
-##### ##### Improvements
+##### Improvements
 - gli studenti possono scaricare il piano di lavoro della loro classe
 
 ## Version 1.3.19 - 27 mag 2026
-##### ##### Improvements
+##### Improvements
 - corso di recupero gestione Lezioni
 - corso di recupero gestione Studenti
 ##### Bug Fixes
@@ -47,14 +48,14 @@
 - container di troppo per piano di lavoro documento
 
 ## Version 1.3.18 - 1 mar 2026
-##### ##### Improvements
+##### Improvements
 - aggiunta la directory collaboratore
 - aggiunto il ruolo collaboratore in index.php
 - aggiunto common/header-collaboratore.php
 - il ruolo di collaboratore permette di visualizzare la lista degli sportelli (ma non prenotarsi) è utile ai bidelli per vedere quali sportelli si svolgono e dove
 
 ## Version 1.3.17 - 1 mar 2026
-##### ##### Improvements
+##### Improvements
 - rimossa gestione dei rimborsi spese viaggio
 - aggiunto stato protocollato e rimosso stato evaso
 - modificata lista e comportamento viaggio in docente e segreteria
@@ -67,19 +68,19 @@
 - ore fatte sportelli ore = 0 o 1 se nessuno studente
 
 ## Version 1.3.16 - 3 gen 2026
-##### ##### Improvements
+##### Improvements
 - directory di upload configurabile in GestOre.json
 
 ## Version 1.3.15 - 1 gen 2026
-##### ##### Improvements
+##### Improvements
 - pagina gruppi per dirigente
 
 ## Version 1.3.14 - 13 dic 2025
-##### ##### Improvements
+##### Improvements
 - corsi di recupero opzione per trasferito a novembre
 
 ## Version 1.3.13 - 4 dic 2025
-##### ##### Improvements
+##### Improvements
 - generazione storico per ore previste
 - fuis assegnato in attività (visibile solo a dirigente)
 - fuis assegnato letto in ore previste aggiorna (per storico)
@@ -89,7 +90,7 @@
 - index docente messaggio soo se previsteMessaggioDocenteCompensaOre
 
 ## Version 1.3.12 - 30 nov 2025
-##### ##### Improvements
+##### Improvements
 - opzione previsteMessaggioDocenteCompensaOre e fatteMessaggioDocenteCompensaOre
 
 ## Version 1.3.11 - 28 nov 2025
@@ -103,7 +104,7 @@
 - cdr report studenti non visualizza i voti corsi in itinere (sarebbero tutti esenti)
 
 ## Version 1.3.9 - 3 nov 2025
-##### ##### Improvements
+##### Improvements
 - notifica per email carenze novembre
 
 ## Version 1.3.8 - 31 ott 2025

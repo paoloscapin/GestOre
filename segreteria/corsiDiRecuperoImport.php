@@ -319,7 +319,7 @@ while ($words[0] == 'CODICE') {
             $commentoPos = 3;
         }
         // controlla se richiesta la email in quel caso sposta il commento nella posizione successiva
-        if (getSettingsValue('corsiDiRecupero','importEmailStudente', false)) {
+        if (getSettingsValue('corsiDiRecupero','importEmailStudente', false) && count($words) > $commentoPos) {
             $email = escapeString(lowercase($words[$commentoPos]));
             $commentoPos += 1;
         }
