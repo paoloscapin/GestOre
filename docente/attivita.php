@@ -33,11 +33,18 @@ $docente_id = $__docente_id;
 $operatore = 'docente';
 
 if(isset($_GET['docente_id']) && $_GET['docente_id'] != "") {
-	// se specificato il docente id nel get, devi essere dirigente
-	ruoloRichiesto('dirigente');
+	// Consenti l'ingresso anche alla segreteria
+	ruoloRichiesto('dirigente', 'segreteria-docenti');
 
-	// agisci quindi come dirigente
-	$operatore = 'dirigente';
+	// Leggiamo la variabile globale nuda e cruda
+	global $__utente_ruolo;
+	
+	// Se la parola "segreteria" fa parte del suo ruolo, diventa operatore segreteria (sola lettura)
+	if (strpos($__utente_ruolo, 'segreteria') !== false) {
+		$operatore = 'segreteria';
+	} else {
+		$operatore = 'dirigente';
+	}
 
 	// simula l'utente in modo che il menu poi il menu docenti si comporti correttamente
 	$docente_id = $_GET['docente_id'];
@@ -52,6 +59,7 @@ if(isset($_GET['docente_id']) && $_GET['docente_id'] != "") {
 		$__docente_cognome = $result['cognome'];
 	}
 }
+
 $ultimo_controllo = dbGetValue("SELECT ultimo_controllo FROM ore_fatte WHERE docente_id = $docente_id AND anno_scolastico_id = $__anno_scolastico_corrente_id;");
 debug('ultimo_controllo=' . $ultimo_controllo);
 
@@ -59,6 +67,15 @@ require_once '../common/header-docente.php';
 ?>
 
 <div class="container-fluid" style="margin-top:60px">
+
+<!-- PULSANTE "TORNA INDIETRO" PER LA SEGRETERIA -->
+<?php if($operatore == 'segreteria') : ?>
+	<div class="row" style="margin-bottom: 20px;">
+		<div class="col-md-12">
+			<a href="../segreteria/buoniPasto.php" class="btn btn-success"><span class="glyphicon glyphicon-arrow-left"></span> Torna alla ricerca Docenti</a>
+		</div>
+	</div>
+<?php endif; ?>
 
 <!-- pannello fuis per dirigente -->
 <?php if($operatore == 'dirigente') : ?>
@@ -327,7 +344,8 @@ require_once '../common/header-docente.php';
 		</div>
 		<div class="col-md-4 text-right">
             <?php
-            if ($__config->getOre_fatte_aperto() || $operatore == 'dirigente') {
+            // Nasconde il tasto alla segreteria
+            if ($operatore != 'segreteria' && ($__config->getOre_fatte_aperto() || $operatore == 'dirigente')) {
             	echo '
 					<button onclick="oreFatteGetAttivita(0)" class="btn btn-xs btn-teal4"><span class="glyphicon glyphicon-plus"></span></button>
 				';
@@ -423,8 +441,8 @@ require_once '../common/header-docente.php';
 		</div>
 		<div class="col-md-2 text-right">
 		<?php
-			// il dirigente puo' comunque modificare le attribuite
-            if ($operatore == 'dirigente') {
+			// il dirigente puo' comunque modificare le attribuite (ma non la segreteria)
+            if ($operatore == 'dirigente' && $operatore != 'segreteria') {
             	echo '
 					<button onclick="attribuiteGetDetails(-1)" class="btn btn-xs btn-lima4"><span class="glyphicon glyphicon-plus"></span></button>
 				';
@@ -540,8 +558,8 @@ require_once '../common/header-docente.php';
 		</div>
 		<div class="col-md-2 text-right">
             <?php
-			// il dirigente puo' comunque modificare, anche quando e' chiuso
-            if ($__config->getOre_fatte_aperto() || $operatore == 'dirigente') {
+			// il dirigente puo' comunque modificare, anche quando e' chiuso. Segreteria no.
+            if ($operatore != 'segreteria' && ($__config->getOre_fatte_aperto() || $operatore == 'dirigente')) {
             	echo '<button onclick="diariaFattaGetDetails(-1)" class="btn btn-xs btn-deeporange4"><span class="glyphicon glyphicon-plus"></span></button>';
             }
    			?>
