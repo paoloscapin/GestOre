@@ -535,3 +535,7 @@ color: #333;
     color: #215;
   }
 
+.flatpickr-input[readonly] {
+    background-color: #ffffff !important;
+    opacity: 1; /* Evita l'effetto sbiadito di Bootstrap 3 */
+}
