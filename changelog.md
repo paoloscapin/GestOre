@@ -1,3 +1,7 @@
+## Version 1.4.07 - 10 set 2026
+##### Bug Fixes
+- fix Storico Previste
+
 ## Version 1.4.06 - 5 set 2026
 ##### Bug Fixes
 - fix corsiDiRecuperoSave e Import

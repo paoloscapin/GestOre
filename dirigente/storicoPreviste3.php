@@ -79,10 +79,10 @@ foreach(dbGetAll("SELECT docente.id AS docente_id, docente.* FROM docente ORDER 
 		continue;
 	}
 
-	$contatoreLimite = $contatoreLimite + 1;
-	if ($contatoreLimite > 10 && $docente['docente_id'] != 120) {
-		continue;
-	}
+//	$contatoreLimite = $contatoreLimite + 1;
+//	if ($contatoreLimite > 10 && $docente['docente_id'] != 120) {
+//		continue;
+//	}
 	// anche se non lo salto, controllo se effettivamente ci sta qualcosa di significativo
 	$significativo = false;
 	$data = '';
