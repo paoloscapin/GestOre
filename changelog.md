@@ -1,3 +1,11 @@
+## Version 1.4.08 - 27 set 2026
+##### Improvements
+- sospensione servizio per docente o studenti con opzione da GestOre.json
+- viaggi opzioni in GestOre.json per eliminare timbro o firma dalla nomina
+- gruppo inserimento ore separate per ciascun docente
+##### Bug Fixes
+- corsoDiRecuperoStudenteDelete che cancellava erroneamente la lezione invece dello studente
+
 ## Version 1.4.07 - 10 set 2026
 ##### Bug Fixes
 - fix Storico Previste

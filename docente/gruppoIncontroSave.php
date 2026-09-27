@@ -19,9 +19,8 @@ if(isset($_POST)) {
     $verbale = escapePost('verbale');
     $effettuato = $_POST['effettuato'];
     $durata = $_POST['durata'];
-    $partecipantiDaModificareIdArray = json_decode($_POST['partecipantiDaModificareIdList']);
-    $partecipantiDaModificareDocenteIdArray = json_decode($_POST['partecipantiDaModificareDocenteIdList']);
-    
+    $modificatiArray = json_decode($_POST['modificati'],TRUE);
+
     if ($id > 0) {
         $query = "UPDATE gruppo_incontro SET data = '$data', ora = '$ora', ordine_del_giorno = '$ordine_del_giorno', verbale = '$verbale', durata = '$durata', effettuato = $effettuato WHERE id = '$id'";
         dbExec($query);
@@ -35,14 +34,18 @@ if(isset($_POST)) {
 
     if ($id > 0) {
         // aggiorna i partecipanti
-        foreach($partecipantiDaModificareIdArray as $docente_partecipa_gruppo_incontro) {
-            $query = "UPDATE gruppo_incontro_partecipazione SET ha_partecipato = NOT ha_partecipato, ore = $durata WHERE gruppo_incontro_partecipazione.id = $docente_partecipa_gruppo_incontro";
-            dbExec($query);
-            info("aggiornato gruppo_incontro_partecipazione docente_partecipa_gruppo_incontro=$docente_partecipa_gruppo_incontro");
+        foreach($modificatiArray as $modificato) {
+            $id = $modificato['id'];
+            $docente = $modificato['docente'];
+            $ore = $modificato['ore'];
+            $haPartecipato = (int)$modificato['haPartecipato'];
 
+            $query = "UPDATE gruppo_incontro_partecipazione SET ha_partecipato = $haPartecipato, ore = $ore WHERE gruppo_incontro_partecipazione.id = $id";
+            dbExec($query);
+            info("aggiornato gruppo_incontro_partecipazione docente=$docente ore=$ore ha_partecipato=$haPartecipato");
         }
     } else {
-        $query = "INSERT INTO gruppo_incontro_partecipazione(gruppo_incontro_id, docente_id) SELECT $lastId, docente_id FROM `gruppo_partecipante` WHERE gruppo_id = $gruppo_id;";
+        $query = "INSERT INTO gruppo_incontro_partecipazione(gruppo_incontro_id, ore, docente_id) SELECT $lastId, $durata, docente_id FROM `gruppo_partecipante` WHERE gruppo_id = $gruppo_id;";
         dbExec($query);
     }
 }

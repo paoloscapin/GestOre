@@ -61,7 +61,7 @@ function gruppoIncontroGetDetails(id, gruppo_id) {
             $('#effettuato').bootstrapToggle(record.effettuato == 1? 'on' : 'off');
             $('#partecipanti_table tbody').empty();
 			var markup = '';
-			// cicla su tutti gli studenti
+			// cicla su tutti i partecipanti
 			record.partecipanti.forEach(function(partecipanti) {
 				markup = markup + 
 						"<tr>" +
@@ -72,6 +72,7 @@ function gruppoIncontroGetDetails(id, gruppo_id) {
 							"<input type=\"checkbox\" name=\"query_myTextEditBox\"" +
 							((partecipanti.ha_partecipato == 0) ? "" : " checked" ) +
 						"></td>" +
+						"<td><input type='text' name='textOre' placeholder='' value='" + partecipanti.ore + "'  data-valore-precedente='" + partecipanti.ore + "'></td>" +
 				"</tr>";
 			});
 			$('#partecipanti_table > tbody:last-child').append(markup);
@@ -91,8 +92,7 @@ function gruppoIncontroGetDetails(id, gruppo_id) {
 }
 
 function gruppoIncontroSave() {
-    var partecipantiDaModificareIdList = [];
-    var partecipantiDaModificareDocenteIdList = [];
+    var modificati = [];
     if ($("#hidden_record_id").val() > 0) {
         $('#partecipanti_table tbody tr').each(function() {
             var row = $(this);
@@ -100,14 +100,16 @@ function gruppoIncontroSave() {
             var presenteOriginal = presenteCheckbox.prop('defaultChecked');
             var presenteCorrente = presenteCheckbox.prop('checked');
             var id = row.children().eq(0).text();
-            var docente_id = row.children().eq(1).text();
-            if (presenteCorrente != presenteOriginal) {
-                partecipantiDaModificareIdList.push(id);
-                partecipantiDaModificareDocenteIdList.push(docente_id);
+            var docenteNomeCognome = row.children().eq(2).text();
+            var ore = row.children().eq(4).find("input").val();
+            var orePrecedente = row.children().eq(4).find("input").data("valorePrecedente");
+            // se e' cambiato qualcosa allora lo inserisce nei da modificare
+            if (presenteCorrente != presenteOriginal || ore != orePrecedente) {
+                modifica = { id: id, docente: docenteNomeCognome, ore: ore, haPartecipato: presenteCorrente };
+                modificati.push(modifica);
             }
         });
     }
-
     $.post("gruppoIncontroSave.php", {
         id: $("#hidden_record_id").val(),
         gruppo_id: $("#hidden_gruppo_id").val(),
@@ -117,8 +119,7 @@ function gruppoIncontroSave() {
         effettuato: $("#effettuato").is(':checked')? 1: 0,
         ordine_del_giorno: $("#ordine_del_giorno").val(),
         verbale: $("#verbale").val(),
-        partecipantiDaModificareIdList: JSON.stringify(partecipantiDaModificareIdList),
-        partecipantiDaModificareDocenteIdList: JSON.stringify(partecipantiDaModificareDocenteIdList)
+        modificati: JSON.stringify(modificati)
     },
     function (data, status) {
         $("#update_modal").modal("hide");

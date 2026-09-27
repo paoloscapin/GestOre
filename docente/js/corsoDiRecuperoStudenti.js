@@ -57,7 +57,9 @@ function corsoDiRecuperoStudentiDelete(id, cognome, nome) {
     var conf = confirm("Sei sicuro di volere cancellare lo studente " + cognome + " " + nome + " ?");
     if (conf == true) {
         $.post("corsoDiRecuperoStudentiDelete.php", {
-				id: id
+				id: id,
+				cognome: cognome,
+				nome: nome
             },
             function (data, status) {
 		        corsoDiRecuperoStudentiReadRecords();

@@ -216,14 +216,28 @@ $data .= '
 		<tbody>
 			<tr class="c18">
 				<td class="c2" colspan="1" rowspan="1"><p class="c17">
-						<span style="overflow: hidden; display: inline-block; margin: 0.00px 0.00px; border: 0.00px solid #000000; transform: rotate(0.00rad) translateZ(0px); -webkit-transform: rotate(0.00rad) translateZ(0px); width: 100.00px; height: 100.00px;">
-							<img alt="" src="data:image/png;base64,'.base64_encode(dbGetValue("SELECT src FROM immagine WHERE nome = 'timbro.png'")).'" style="width: 100.00px; height: 100.00px; margin-left: 0.00px; margin-top: 0.00px; transform: rotate(0.00rad) translateZ(0px); -webkit-transform: rotate(0.00rad) translateZ(0px);" title="">
-						</span>
+						<span style="overflow: hidden; display: inline-block; margin: 0.00px 0.00px; border: 0.00px solid #000000; transform: rotate(0.00rad) translateZ(0px); -webkit-transform: rotate(0.00rad) translateZ(0px); width: 100.00px; height: 100.00px;">';
+
+	if (getSettingsValue("viaggi", "timbroNomina", true)) {
+		$timbro = dbGetValue("SELECT src FROM immagine WHERE nome = 'timbro.png'");
+		if ($timbro != null) {
+			$data .= '<img alt="" src="data:image/png;base64,'.base64_encode($timbro).'" style="width: 100.00px; height: 100.00px; margin-left: 0.00px; margin-top: 0.00px; transform: rotate(0.00rad) translateZ(0px); -webkit-transform: rotate(0.00rad) translateZ(0px);" title="">';
+		}
+	}
+
+	$data .= '			</span>
 					</p></td>
 				<td class="c2" colspan="1" rowspan="1"><p class="c19">
-						<span style="overflow: hidden; display: inline-block; margin: 0.00px 0.00px; border: 0.00px solid #000000; transform: rotate(0.00rad) translateZ(0px); -webkit-transform: rotate(0.00rad) translateZ(0px); height: 98.00px;">
-							<img alt="" src="data:image/png;base64,'.base64_encode(dbGetValue("SELECT src FROM immagine WHERE nome = 'firma.png'")).'" style="height: 98.00px; margin-left: 0.00px; margin-top: 0.00px; transform: rotate(0.00rad) translateZ(0px); -webkit-transform: rotate(0.00rad) translateZ(0px);" title="">
-						</span>
+						<span style="overflow: hidden; display: inline-block; margin: 0.00px 0.00px; border: 0.00px solid #000000; transform: rotate(0.00rad) translateZ(0px); -webkit-transform: rotate(0.00rad) translateZ(0px); height: 98.00px;">';
+
+	if (getSettingsValue("viaggi", "firmaDirigenteNomina", true)) {
+		$firma = dbGetValue("SELECT src FROM immagine WHERE nome = 'firma.png'");
+		if ($firma != null) {
+			$data .= '<img alt="" src="data:image/png;base64,'.base64_encode($firma).'" style="height: 98.00px; margin-left: 0.00px; margin-top: 0.00px; transform: rotate(0.00rad) translateZ(0px); -webkit-transform: rotate(0.00rad) translateZ(0px);" title="">';
+		}
+	}
+
+	$data .= '			</span>
 					</p></td>
 			</tr>
 		</tbody>

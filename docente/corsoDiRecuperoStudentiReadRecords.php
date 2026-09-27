@@ -39,7 +39,7 @@ foreach(dbGetAll($query) as $row) {
 	$data .='
 		<td class="text-center">
 			<button onclick="corsoDiRecuperoStudentiGetDetails('.$row['local_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
-			<button onclick="corsoDiRecuperoStudentiDelete('.$row['local_id'].', \''.$row['cognome'].', \''.$row['nome'].'\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
+			<button onclick="corsoDiRecuperoStudentiDelete('.$row['local_id'].', \''.$row['cognome'].','.$row['nome'].'\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
 		</td>
 		</tr>';
 }

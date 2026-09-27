@@ -12,14 +12,15 @@
 
  if(isset($_POST['id']) && isset($_POST['id']) != "") {
     $id = $_POST['id'];
-    $data = $_POST['data'];
+    $cognome = escapePost('cognome');
+    $nome = escapePost('nome');
 
-    // cancella prima le partecipazioni di tutti gli studenti
-    dbExec("DELETE FROM studente_partecipa_lezione_corso_di_recupero WHERE lezione_corso_di_recupero_id = '$id'");
+    // cancella prima le partecipazioni dello studente da tutte le lezioni
+    dbExec("DELETE FROM studente_partecipa_lezione_corso_di_recupero WHERE studente_per_corso_di_recupero_id = '$id'");
 
-    // poi cancella la lezione
-    dbExec("DELETE FROM lezione_corso_di_recupero WHERE id = '$id'");
+    // poi cancella lo studente
+    dbExec("DELETE FROM studente_per_corso_di_recupero WHERE id = '$id'");
 
-    info("cancellata lezione_corso_di_recupero id=$id data=$data");
+    info("cancellato studente per corso di recupero id=$id cognome=$cognome nome=$nome");
 }
 ?>

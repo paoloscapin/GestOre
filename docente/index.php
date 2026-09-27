@@ -19,6 +19,12 @@ require_once '../common/style.php';
 require_once '../common/_include_bootstrap-select.php';
 require_once '../common/__Minuti.php';
 ruoloRichiesto('segreteria-docenti','dirigente','docente','segreteria-didattica');
+if(getSettingsValue('config','sospendiServizioDocenti', false)) {
+	if (! haRuolo('admin')) {
+		include '../common/servizioSospeso.html';
+		exit; // Interrompe l'esecuzione del resto del file PHP
+	}
+}
 ?>
 <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-vcolor-index.css">
 	<title>Piano Orario</title>

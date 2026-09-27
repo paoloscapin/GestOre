@@ -18,6 +18,12 @@ require_once '../common/checkSession.php';
 require_once '../common/header-common.php';
 require_once '../common/style.php';
 ruoloRichiesto('studente','segreteria-didattica','dirigente');
+if(getSettingsValue('config','sospendiServizioStudenti', false)) {
+	if (! haRuolo('admin')) {
+		include '../common/servizioSospeso.html';
+		exit; // Interrompe l'esecuzione del resto del file PHP
+	}
+}
 ?>
 </head>
 

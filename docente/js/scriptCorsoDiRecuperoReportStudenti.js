@@ -11,12 +11,12 @@ function letteraCarenze(id) {
 }
 
 function letteraCarenzeSettembre(id) {
-	var url = 'letteraCarenzeSettembre.php?id=' + id;
+	var url = 'letteraCarenzeSettembre2.php?id=' + id;
 	window.open(url, "_blank");
 }
 
 function emailCarenzeSettembre(id) {
-	var url = 'letteraCarenzeSettembre.php?id=' + id + '&email=true';
+	var url = 'letteraCarenzeSettembre2.php?id=' + id + '&email=true';
 	window.open(url, "_blank");
 }
 

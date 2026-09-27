@@ -32,7 +32,11 @@
         "pianiDiLavoro": false,
         "carenze": true,
         "modulisticaDocenti": false,
-        "uploadLocation": "GestOre.upload"
+        "uploadLocation": "GestOre.upload",
+        "richiesteStudenti": false,
+        "sospendiServizioDocenti": false,
+        "sospendiServizioStudenti": false
+
     },
     "interfaccia": {
         "docenteVisualizza80Ore": true,
@@ -72,7 +76,9 @@
         "max_ore": 16,
         "richiesta_diaria": true,
         "accettazione": true,
-        "protocollo": false
+        "protocollo": false,
+        "timbroNomina": true,
+        "firmaDirigenteNomina": true
     },
     "fuis": {
         "rimuovi_sostituzioni_non_fatte": true,

@@ -184,6 +184,7 @@ foreach(dbGetAll($query) as $docenteRow) {
 							<th>docenteId</th>
 							<th>docente</th>
 							<th class="text-center"></th>
+							<th class="text-center"></th>
 						</tr>
 						</thead>
 						<tbody>
