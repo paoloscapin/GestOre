@@ -1,3 +1,10 @@
+## Version 1.4.09 - 5 ott 2026
+##### Improvements
+- sportello max ore anche se inserito da segreteria
+- opzione per solo modulistica "config" "modulisticaDocentiSenzaAltro" default false
+##### Bug Fixes
+- filtro classi per piano di lavoro select errata se db strict
+
 ## Version 1.4.08 - 27 set 2026
 ##### Improvements
 - sospensione servizio per docente o studenti con opzione da GestOre.json

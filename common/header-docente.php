@@ -15,6 +15,7 @@
 	<?php require_once '../common/header-_logo.php'; ?>
 
 		<ul class="nav navbar-nav top-navbar-nav">
+<?php if(! getSettingsValue('config','modulisticaDocentiSenzaAltro', false)) : ?>
 
 			<a href="<?php echo $__application_base_path; ?>/docente/index.php" class="btn btn-default navbar-btn btn-lima4" role="button"><span class="glyphicon glyphicon-time"></span>&ensp;Ore </a>
 
@@ -67,6 +68,7 @@ if ($num > 0) {
 	</ul>
 <?php endif; ?>
 	</div>
+<?php endif; ?>
 <?php endif; ?>
 <?php if(getSettingsValue('config','modulisticaDocenti', false)) : ?>
 	<a href="<?php echo $__application_base_path; ?>/docente/modulisticaList.php" class="btn btn-default navbar-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-tag"></span>&ensp;Modulistica </a>

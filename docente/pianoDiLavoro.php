@@ -88,7 +88,7 @@ foreach(dbGetAll("SELECT * FROM indirizzo ORDER BY indirizzo.nome_breve ASC ; ")
 
 // prepara l'elenco delle classi per il filtro
 $nomeClasseFiltroOptionList = '<option value=""></option>';
-foreach(dbGetAllValues("SELECT DISTINCT nome_classe FROM `piano_di_lavoro` INNER JOIN indirizzo ON piano_di_lavoro.indirizzo_id = indirizzo.id ORDER BY indirizzo.nome_breve, classe, sezione ASC; ")as $nome_classe) {
+foreach(dbGetAllValues("SELECT DISTINCT nome_classe, sezione, nome_breve FROM `piano_di_lavoro` INNER JOIN indirizzo ON piano_di_lavoro.indirizzo_id = indirizzo.id ORDER BY indirizzo.nome_breve, nome_classe, sezione ASC; ")as $nome_classe) {
     $nomeClasseFiltroOptionList .= ' <option value="'.$nome_classe.'" >'.$nome_classe.'</option> ';
 }
 

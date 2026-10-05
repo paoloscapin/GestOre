@@ -15,6 +15,7 @@
 	<?php require_once '../common/header-_logo.php'; ?>
 
 		<ul class="nav navbar-nav top-navbar-nav">
+<?php if(! getSettingsValue('config','modulisticaDocentiSenzaAltro', false)) : ?>
 
 			<a href="<?php echo $__application_base_path; ?>/segreteria/docente.php" class="btn btn-default navbar-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-education"></span>&ensp;Docenti </a>
 			<a href="<?php echo $__application_base_path; ?>/segreteria/oreAssegnate.php" class="btn btn-default navbar-btn btn-lima4" role="button"><span class="glyphicon glyphicon-list-alt"></span>&ensp;Assegnate </a>
@@ -39,6 +40,7 @@
     <li><a href="<?php echo $__application_base_path; ?>/segreteria/sportelloReportEffettuati.php">Report Sportelli Effettuati</a></li>
   </ul>
 </div>
+<?php endif; ?>
 <?php endif; ?>
 <?php if(getSettingsValue('config','modulisticaDocenti', false)) : ?>
 	<a href="<?php echo $__application_base_path; ?>/segreteria/modulisticaRichiestaList.php" class="btn btn-default navbar-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-tag"></span>&ensp;Modulistica </a>

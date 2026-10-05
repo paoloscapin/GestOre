@@ -176,6 +176,11 @@ require_once '../common/header-segreteria.php';
                 </div>
 
                 <div class="form-group">
+                    <label class="col-sm-2 control-label" for="max_iscrizioni">Max Iscrizioni</label>
+                    <div class="col-sm-8"><input type="text" id="max_iscrizioni" placeholder="<?php echo getSettingsValue("sportelli", "numero_max_prenotazioni", 10); ?>" class="form-control"/></div>
+                </div>
+
+                <div class="form-group">
                     <label for="online" class="col-sm-2 control-label">Online</label>
                     <div class="col-sm-1 "><input type="checkbox" id="online" ></div>
                     <label for="clil" class="col-sm-2 control-label">Clil</label>
@@ -198,6 +203,7 @@ require_once '../common/header-segreteria.php';
 				</strong></div>
 
                 <input type="hidden" id="hidden_sportello_id">
+                <input type="hidden" id="hidden_max_iscrizioni_default" value="<?php echo getSettingsValue("sportelli", "numero_max_prenotazioni", 10); ?>">
 			</form>
 
             </div>

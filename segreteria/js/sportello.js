@@ -128,6 +128,7 @@ function sportelloGetDetails(sportello_id) {
         $("#argomento").val("");
         $("#luogo").val("");
         $("#classe").val("");
+        $("#max_iscrizioni").val($("#hidden_max_iscrizioni_default").val());
         $("#cancellato").prop('checked', false);
         $("#firmato").prop('checked', false);
         $("#onine").prop('checked', false);

@@ -25,6 +25,9 @@ if(getSettingsValue('config','sospendiServizioDocenti', false)) {
 		exit; // Interrompe l'esecuzione del resto del file PHP
 	}
 }
+if(getSettingsValue('config','modulisticaDocentiSenzaAltro', false)) {
+    redirect('/docente/modulisticaList.php');
+}
 ?>
 <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-vcolor-index.css">
 	<title>Piano Orario</title>
