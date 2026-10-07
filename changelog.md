@@ -1,3 +1,7 @@
+## Version 1.4.10 - 7 set 2026
+##### Bug Fixes
+- script corso di recupero report studenti che chiamava lettera carenze settembre 2
+
 ## Version 1.4.09 - 5 ott 2026
 ##### Improvements
 - sportello max ore anche se inserito da segreteria
