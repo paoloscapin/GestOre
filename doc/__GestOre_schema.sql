@@ -2116,6 +2116,56 @@ CREATE TABLE IF NOT EXISTS `modulistica_richiesta_campo` (
 ENGINE = InnoDB;
 
 
+-- -----------------------------------------------------
+-- Table `template_documento`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `template_documento` ;
+
+CREATE TABLE IF NOT EXISTS `template_documento` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `codice` VARCHAR(100) NOT NULL,
+  `contenuto` TEXT NULL,
+  PRIMARY KEY (`id`),
+  INDEX `codice_index` (`codice` ASC))
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `extra_comando_categoria`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `extra_comando_categoria` ;
+
+CREATE TABLE IF NOT EXISTS `extra_comando_categoria` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `nome` VARCHAR(200) NULL,
+  `colore` VARCHAR(45) NULL,
+  `posizione` INT NULL,
+  PRIMARY KEY (`id`))
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `extra_comando`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `extra_comando` ;
+
+CREATE TABLE IF NOT EXISTS `extra_comando` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `nome` VARCHAR(200) NULL,
+  `comando` TEXT NULL,
+  `posizione` INT NULL,
+  `valido` TINYINT NULL,
+  `extra_comando_categoria_id` INT NOT NULL,
+  PRIMARY KEY (`id`),
+  INDEX `fk_extra_comando_extra_comando_categoria1_idx` (`extra_comando_categoria_id` ASC),
+  CONSTRAINT `fk_extra_comando_extra_comando_categoria1`
+    FOREIGN KEY (`extra_comando_categoria_id`)
+    REFERENCES `extra_comando_categoria` (`id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB;
+
+
 SET SQL_MODE=@OLD_SQL_MODE;
 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;

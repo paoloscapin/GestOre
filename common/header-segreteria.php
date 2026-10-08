@@ -27,7 +27,9 @@
 			<?php endif; ?>
 			<a href="<?php echo $__application_base_path; ?>/segreteria/viaggio.php" class="btn btn-default navbar-btn btn-deeporange4" role="button"><span class="glyphicon glyphicon-picture"></span>&ensp;Viaggi </a>
 
+<?php if(getSettingsValue('config','buoniPasto', false)) : ?>
 			<a href="<?php echo $__application_base_path; ?>/segreteria/buoniPasto.php" class="btn btn-default navbar-btn btn-success" role="button"><span class="glyphicon glyphicon-cutlery"></span>&ensp;Buoni Pasto </a>
+<?php endif; ?>
 
 <?php if(getSettingsValue('config','sportelli', false)) : ?>
 	<div class="btn-group">

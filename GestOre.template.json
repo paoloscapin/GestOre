@@ -35,6 +35,8 @@
         "modulisticaDocentiSenzaAltro": false,
         "uploadLocation": "GestOre.upload",
         "richiesteStudenti": false,
+        "buoniPasto": false,
+        "extraComandi": false,
         "sospendiServizioDocenti": false,
         "sospendiServizioStudenti": false
 

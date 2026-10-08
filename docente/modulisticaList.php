@@ -67,17 +67,13 @@ foreach(dbGetAll("SELECT * FROM modulistica_categoria ORDER BY posizione;") as $
 
         echo '<tr>';
         echo '<td><a href="../docente/modulisticaCompilaModulo.php?docente_id='.$docente_id.'&template_id='.$template_id.'" target="'.$openTabMode.'">&ensp;'.$templateNome.' '.$marker.' </a></td>';
+        echo '</tr>';
     }
 }
 ?>
         </tbody>
         </table>
         </div>
-
-    
-    
-    
-    
     </div>
     </div>
 </div>

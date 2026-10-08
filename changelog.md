@@ -1,3 +1,9 @@
+## Version 1.4.11 - 8 ott 2026
+##### Improvements
+- extra comandi da database
+- aggiornato sql nuove tabelle template_documento extra_comando_categoria extra_comando
+- buoniPasto flag nella sezione config nel GestOre.json
+
 ## Version 1.4.10 - 7 set 2026
 ##### Bug Fixes
 - script corso di recupero report studenti che chiamava lettera carenze settembre 2
