@@ -93,7 +93,7 @@ if ($__utente_ruolo == 'segreteria-docenti') {
 <div class="panel-heading container-fluid">
 	<div class="row">
 		<div class="col-md-1">
-			<span class="glyphicon glyphicon-folder-close"></span>&emsp;Modlistica Richieste
+			<span class="glyphicon glyphicon-tag"></span>&emsp;Richieste
 		</div>
         <div class="col-md-2">
             <div class="text-center">

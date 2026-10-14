@@ -67,6 +67,19 @@ function haRuolo($ruolo) {
     return false;
 }
 
+function ruoloInStringaRuoli($ruolo, $stringa) {
+    // * va bene per tutti i ruoli
+    if (trim($stringa) === '*') {
+        return true;
+    }
+    // estrai i ruoli ammessi e cerca quello richiesto
+    $array = array_map('trim', explode(',', $stringa));
+    if (in_array($ruolo, $array)) {
+        return true;
+    }
+    return false;
+}
+
 // rimpiazza i caratteri speciali di una stringa in modo da poterla passare come parametro a js
 function str2js($str) {
     return preg_replace("/\r\n|\r|\n/",'<br/>',str_replace("'", "\'", str_replace("\"", "", $str)));

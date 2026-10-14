@@ -19,6 +19,8 @@
 	require_once '../common/header-common.php';
 	require_once '../common/style.php';
 	ruoloRichiesto('dirigente');
+    $session->set ( 'admin_ruolo', 'dirigente' );
+	$__admin_ruolo = $session->get ( 'dirigente' );
 ?>
 </head>
 

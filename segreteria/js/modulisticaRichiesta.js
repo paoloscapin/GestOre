@@ -57,9 +57,10 @@ function modulisticaRichiestaAggiorna(stato) {
 	});
 }
 
-function modulisticaRichiestaGetDetails(modulistica_richiesta_id, modulistica_richiesta_uuid) {
+function modulisticaRichiestaGetDetails(modulistica_richiesta_id, modulistica_richiesta_uuid, modulisticaTemplateNome) {
     $("#hidden_modulistica_richiesta_id").val(modulistica_richiesta_id);
     $("#hidden_modulistica_richiesta_uuid").val(modulistica_richiesta_uuid);
+    $('#myModalLabel').html('Richiesta: <strong>' + modulisticaTemplateNome + '</strong>');
 
     if (modulistica_richiesta_id > 0) {
         $.post("../segreteria/modulisticaRichiestaReadDetails.php", {

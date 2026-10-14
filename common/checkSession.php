@@ -103,6 +103,10 @@ if (! $session->has ( 'utente_id' )) {
             $session->set ( '__username',  $__username);
             info('utente ' . $utente ['username'] . ': logged in');
         }
+        // controlla se e' admin e inserisce il ruolo_admin come admin
+        if ($__utente_ruolo === 'admin') {
+            $session->set ( 'admin_ruolo', 'admin' );
+        }
     } else {
         // lo cerco tra gli studenti:
         $studente = dbGetFirst("SELECT * FROM studente WHERE studente.email = '$__useremail'");
@@ -140,6 +144,7 @@ $__username = $session->get ( 'username' );
 $__utente_nome = $session->get ( 'utente_nome' );
 $__utente_cognome = $session->get ( 'utente_cognome' );
 $__utente_ruolo = $session->get ( 'utente_ruolo' );
+$__admin_ruolo = $session->get ( 'admin_ruolo' );
 
 // controlla se e' un docente deve avere i rispettivi termini
 if (!$session->has ( 'docente_id' ) && $session->has ( 'utente_ruolo' ) && ($session->get ( 'utente_ruolo' ) === "docente" || $session->get ( 'utente_ruolo' ) === "segreteria-didattica")) {

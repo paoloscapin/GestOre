@@ -1,3 +1,10 @@
+## Version 1.4.12 - 14 ott 2026
+##### Improvements
+- migliorato layout richesta segreteria
+- label per extra comandi configurabile
+- header extra comandi da ruolo (header-da-ruolo.php che puo' essere usata altrove)
+- funzione util ruoloInStringaRuoli
+
 ## Version 1.4.11 - 8 ott 2026
 ##### Improvements
 - extra comandi da database

@@ -114,17 +114,18 @@ foreach(dbGetAll($query) as $row) {
 	setlocale(LC_TIME, $oldLocale);
 
 	$docenteCognomeNome = $row['docente_cognome'] . ' ' . $row['docente_nome'];
+	$modulisticaTemplateNome = $row['modulistica_template_nome'];
 
 	$data .= '<tr>
 		<td>'.$row['anno'].'</td>
 		<td>'.$modulistica_richiesta_id.'</td>
 		<td>'.$docenteCognomeNome.'</td>
-		<td>'.$row['modulistica_template_nome'].'</td>
+		<td>'.$modulisticaTemplateNome.'</td>
 		<td>'.$dataInvio.'</td>
         
 		<td class="text-center">'.$statoMarker.'</td>';
     $data .='<td class="text-center">
-		<button onclick="modulisticaRichiestaGetDetails('.$modulistica_richiesta_id.', \''.$modulistica_richiesta_uuid.'\')" class="btn btn-warning btn-xs" '.(true? ' ':'disabled ').' ><span class="glyphicon glyphicon-pencil"></span></button>
+		<button onclick="modulisticaRichiestaGetDetails('.$modulistica_richiesta_id.', \''.$modulistica_richiesta_uuid.'\', \''.$modulisticaTemplateNome.'\')" class="btn btn-warning btn-xs" '.(true? ' ':'disabled ').' ><span class="glyphicon glyphicon-pencil"></span></button>
 		</td>
 		</tr>';
 }

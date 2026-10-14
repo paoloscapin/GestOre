@@ -18,6 +18,8 @@ require_once '../common/checkSession.php';
 require_once '../common/header-common.php';
 require_once '../common/style.php';
 ruoloRichiesto('segreteria-didattica');
+$session->set ( 'admin_ruolo', 'segreteria-didattica' );
+$__admin_ruolo = $session->get ( 'segreteria-didattica' );
 ?>
 </head>
 

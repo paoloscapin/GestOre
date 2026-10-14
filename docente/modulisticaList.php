@@ -36,7 +36,7 @@ require_once '../common/connect.php';
 <div class="panel-heading container-fluid">
 	<div class="row">
 		<div class="col-md-11">
-			<span class="glyphicon glyphicon-folder-close"></span>&emsp;<strong>Modulistica docenti</strong>
+			<span class="glyphicon glyphicon-tag"></span>&emsp;<strong>Modulistica docenti</strong>
 		</div>
 		<div class="col-md-1 text-right" id="page_refresh">
 		</div>

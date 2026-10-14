@@ -12,13 +12,16 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<title>Modulistica Docenti</title>
 <?php
 require_once '../common/checkSession.php';
 require_once '../common/header-common.php';
 require_once '../common/style.php';
-ruoloRichiesto('docente','segreteria-docenti','dirigente');
+ruoloRichiesto('studente','docente','segreteria-docenti','segreteria-didattica','dirigente');
+?>
 
+<title><?php echoLabel('Altro'); ?></title>
+
+<?php
 function startsWith($haystack, $needle) {
     $length = strlen($needle);
     return (substr($haystack, 0, $length) === $needle);
@@ -68,7 +71,7 @@ function isColoreChiaro($hex) {
 
 <body >
 <?php
-require_once '../common/header-docente.php';
+require_once '../common/header-da-ruolo.php';
 require_once '../common/connect.php';
 ?>
 
@@ -77,7 +80,7 @@ require_once '../common/connect.php';
 <div class="panel-heading container-fluid">
 	<div class="row">
 		<div class="col-md-11">
-			<span class="glyphicon glyphicon-option-horizontal"></span>&emsp;<strong>Altri Comandi</strong>
+			<span class="glyphicon glyphicon-option-horizontal"></span>&emsp;<strong><?php echoLabel('Altro'); ?></strong>
 		</div>
 		<div class="col-md-1 text-right" id="page_refresh">
 		</div>

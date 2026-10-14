@@ -19,6 +19,8 @@ require_once '../common/style.php';
 require_once '../common/_include_bootstrap-select.php';
 require_once '../common/__Minuti.php';
 ruoloRichiesto('segreteria-docenti','dirigente','docente','segreteria-didattica');
+$session->set ( 'admin_ruolo', 'docente' );
+$__admin_ruolo = $session->get ( 'docente' );
 if(getSettingsValue('config','sospendiServizioDocenti', false)) {
 	if (! haRuolo('admin')) {
 		include '../common/servizioSospeso.html';

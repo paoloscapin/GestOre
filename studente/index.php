@@ -18,6 +18,8 @@ require_once '../common/checkSession.php';
 require_once '../common/header-common.php';
 require_once '../common/style.php';
 ruoloRichiesto('studente','segreteria-didattica','dirigente');
+$session->set ( 'admin_ruolo', 'studente' );
+$__admin_ruolo = $session->get ( 'studente' );
 if(getSettingsValue('config','sospendiServizioStudenti', false)) {
 	if (! haRuolo('admin')) {
 		include '../common/servizioSospeso.html';
