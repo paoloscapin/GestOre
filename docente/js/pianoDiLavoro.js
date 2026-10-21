@@ -139,7 +139,7 @@ function pianoDiLavoroGetDetails(piano_di_lavoro_id) {
         $('#classe').selectpicker('val', 1);
         $('#indirizzo').selectpicker('val', 1);
         $("#sezione").val("");
-        $('#anno').selectpicker('val', 1);
+        $('#anno').selectpicker('val', $("#hidden_anno_scolastico_id").val());
         $('#stato').selectpicker('val', 'docente');
         $("#clil").prop('checked', false);
         $('#stato').selectpicker('val', 'draft');

@@ -1,3 +1,8 @@
+## Version 1.4.13 - 21 ott 2026
+##### Improvements
+- iniziato documentoDaTemplate
+- piano di lavoro anno corrente in creazione
+
 ## Version 1.4.12 - 14 ott 2026
 ##### Improvements
 - migliorato layout richesta segreteria
