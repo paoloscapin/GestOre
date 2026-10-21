@@ -124,11 +124,14 @@ $tipoOptionList .= '<option value="'.'obiettivi minimi'.'" data-content="<span c
 // elenco degli anni scolastici
 $annoFiltroOptionList = '<option value="0">tutti</option>';
 $annoOptionList = '';
-$query = "	SELECT * FROM anno_scolastico ORDER BY anno_scolastico.id ASC;";
-foreach(dbGetAll($query) as $annoRow) {
-    $annoFiltroOptionList .= '<option value="'.$annoRow['id'].'" >'.$annoRow['anno'].'</option> ';
-	$annoOptionList .= '<option value="'.$annoRow['id'].'">'.$annoRow['anno'].'</option>';
+foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY anno_scolastico.id ASC;") as $annoResult) {
+    $annoId = $annoResult['id'];
+    $annoCodice = $annoResult['anno'];
+
+    $annoFiltroOptionList .= '<option value="'.$annoId.'" >'.$annoCodice.'</option> ';
+	$annoOptionList .= '<option value="'.$annoId. '"'.($__anno_scolastico_corrente_id == $annoId? ' selected ': '') . '>'.$annoCodice.'</option>';
 }
+
 
 // elenco delle metodologie
 $metodologiaOptionList = '';
