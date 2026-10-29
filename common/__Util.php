@@ -116,6 +116,15 @@ function getSettingsValue($section, $name, $default) {
     return $__settings->$section->$name;
 }
 
+// recupera un valore inserito come email generale tipo @dirigente, @didattica etc e definito nel json
+function getRealEmailAddress($address) {
+	if (str_starts_with($address, "@")) {
+        $realAddress = getSettingsValue('email', $address, '');
+        return $realAddress;
+    }
+    return $address;
+}
+
 // ritorna il camelcase di una stringa
 function camelCase($src) {
     return ucwords(strtolower($src));

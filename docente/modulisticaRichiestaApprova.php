@@ -22,8 +22,9 @@ function notifica($to, $toName, $titolo, $stato, $messaggio, $contenutoTabellaCa
 	global $nomeCognomeDocente, $template, $__http_base_link;
 
 	$mail = new PHPMailer(true);
+	$mail->CharSet = 'UTF-8';
 	$mail->setFrom(getSettingsValue('local', 'emailNoReplyFrom', ''), 'no reply');
-	$mail->addAddress($to, $toName);
+	$mail->addAddress(getRealEmailAddress($to), $toName);
 
 	// subject
 	$subject =  $titolo . ' [' . $stato . ']'; // stato tra quadre per poter avere le email innestate nella conversazione

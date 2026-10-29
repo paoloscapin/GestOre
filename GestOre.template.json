@@ -62,6 +62,13 @@
         "emailNoReplyFrom": "--- inserire un indirizzo di email noreply (ad esempio noreply-GestOre@istituto.it) ---",
         "emailCarenze": "--- inserire un indirizzo di email a cui inviare in cc le lettere di carenza generate ---"
     },
+    "email": {
+        "@dirigente": "",
+        "@didattica": "",
+        "@docenti": "",
+        "@viaggi": "",
+        "@carenze repository": ""
+    },
     "importi": {
         "oreConStudenti": 35,
         "oreFunzionali": 17.5

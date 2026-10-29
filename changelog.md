@@ -1,3 +1,13 @@
+## Version 1.4.15 - 29 ott 2026
+##### Improvements
+- studente classe
+- richiesta assemblea
+- getRealEmailAddress in util per email tipo @dirigente
+- modulisticaInviaModulo e Approva con getRealEmailAddress
+- flatpickr readonly bianco
+- generateGuid nuovo migliorato
+- $mail->CharSet = 'UTF-8'
+
 ## Version 1.4.13 - 21 ott 2026
 ##### Improvements
 - iniziato documentoDaTemplate

@@ -125,6 +125,7 @@ if ($produci_pdf) {
 // ora deve inviare la emai potenzialmente a tre diversi destinatari: il docente richiedente, l'ufficio competente, il dirigente se richiede approvazione
 // 1: invio della email al docente richiedente
 $mail = new PHPMailer(true);
+$mail->CharSet = 'UTF-8';
 $mail->setFrom(getSettingsValue('local', 'emailNoReplyFrom', ''), 'no reply');
 $mail->addAddress($docente_email, $nomeCognomeDocente);
 
@@ -164,10 +165,11 @@ if(!$mail->send()){
 // 2: inoltra la richiesta direttamente al destinatario se non richiede l'approvazione oppure se e' richiesto l'avviso
 if ( (! $template['approva']) || $email_di_avviso) {
 	$mail = new PHPMailer(true);
+	$mail->CharSet = 'UTF-8';
 	$mail->setFrom($docente_email, $nomeCognomeDocente);
 	// tutti i destinatari separati da virgole
 	foreach(explode(',',$email_to) as $address) {
-		$mail->addAddress($address, $address);
+		$mail->addAddress(getRealEmailAddress($address), $address);
 	}
 
 	// subject
@@ -216,10 +218,11 @@ if ( (! $template['approva']) || $email_di_avviso) {
 // 3: se richiesta l'approvazione, invio della email a chi la deve approvare (con link di approvazione)
 if ($template['approva']) {
 	$mail = new PHPMailer(true);
+	$mail->CharSet = 'UTF-8';
 	$mail->setFrom($docente_email, $nomeCognomeDocente);
 	// tutti i destinatari che possono approvare separati da virgole
 	foreach(explode(',',$email_approva) as $address) {
-		$mail->addAddress($address, $address);
+		$mail->addAddress(getRealEmailAddress($address), $address);
 	}
 
 	// subject

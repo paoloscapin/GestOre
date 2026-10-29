@@ -2053,6 +2053,7 @@ DROP TABLE IF EXISTS `modulistica_richiesta` ;
 
 CREATE TABLE IF NOT EXISTS `modulistica_richiesta` (
   `id` INT NOT NULL AUTO_INCREMENT,
+  `uuid` VARCHAR(21) NULL,
   `annullata` TINYINT NULL DEFAULT 0,
   `approvata` TINYINT NULL DEFAULT 0,
   `respinta` TINYINT NULL DEFAULT 0,
@@ -2072,6 +2073,7 @@ CREATE TABLE IF NOT EXISTS `modulistica_richiesta` (
   INDEX `aprovata_INDEX` (`approvata` ASC),
   INDEX `annullata_INDEX` (`annullata` ASC),
   INDEX `respinta_INDEX` (`respinta` ASC),
+  INDEX `uuid_index` (`uuid` ASC),
   CONSTRAINT `fk_modulistica_richiesta_modulistica_template1`
     FOREIGN KEY (`modulistica_template_id`)
     REFERENCES `modulistica_template` (`id`)
@@ -2138,6 +2140,7 @@ DROP TABLE IF EXISTS `extra_comando_categoria` ;
 CREATE TABLE IF NOT EXISTS `extra_comando_categoria` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `nome` VARCHAR(200) NULL,
+  `lista_ruoli` VARCHAR(200) NULL,
   `colore` VARCHAR(45) NULL,
   `posizione` INT NULL,
   PRIMARY KEY (`id`))
@@ -2152,6 +2155,8 @@ DROP TABLE IF EXISTS `extra_comando` ;
 CREATE TABLE IF NOT EXISTS `extra_comando` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `nome` VARCHAR(200) NULL,
+  `lista_ruoli` VARCHAR(200) NULL,
+  `colore` VARCHAR(45) NULL,
   `comando` TEXT NULL,
   `posizione` INT NULL,
   `valido` TINYINT NULL,
@@ -2161,6 +2166,60 @@ CREATE TABLE IF NOT EXISTS `extra_comando` (
   CONSTRAINT `fk_extra_comando_extra_comando_categoria1`
     FOREIGN KEY (`extra_comando_categoria_id`)
     REFERENCES `extra_comando_categoria` (`id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `richiesta_assemblea`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `richiesta_assemblea` ;
+
+CREATE TABLE IF NOT EXISTS `richiesta_assemblea` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `uuid` VARCHAR(21) NULL,
+  `data_assemblea` DATE NULL,
+  `ora_assemblea` INT NULL,
+  `classe` VARCHAR(45) NULL,
+  `stato` VARCHAR(32) NULL,
+  `approvata_docente` TINYINT NULL DEFAULT 0,
+  `messaggio_docente` TEXT NULL,
+  `approvata_coordinatore` TINYINT NULL DEFAULT 0,
+  `messaggio_coordinatore` TEXT NULL,
+  `ordine_del_giorno` TEXT NULL,
+  `verbale` TEXT NULL,
+  `inoltro_richiesta` TIMESTAMP NULL,
+  `ultima_modifica_richiesta` TIMESTAMP NULL,
+  `ultima_modifica_verbale` TIMESTAMP NULL,
+  `studente_id` INT NOT NULL,
+  `docente_id` INT NOT NULL,
+  `coordinatore_id` INT NOT NULL,
+  `anno_scolastico_id` INT NOT NULL,
+  PRIMARY KEY (`id`),
+  INDEX `fk_richiesta_assemblea_studente1_idx` (`studente_id` ASC),
+  INDEX `fk_richiesta_assemblea_docente1_idx` (`docente_id` ASC),
+  INDEX `fk_richiesta_assemblea_docente2_idx` (`coordinatore_id` ASC),
+  INDEX `fk_richiesta_assemblea_anno_scolastico1_idx` (`anno_scolastico_id` ASC),
+  INDEX `uuid_index` (`uuid` ASC),
+  CONSTRAINT `fk_richiesta_assemblea_studente1`
+    FOREIGN KEY (`studente_id`)
+    REFERENCES `studente` (`id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_richiesta_assemblea_docente1`
+    FOREIGN KEY (`docente_id`)
+    REFERENCES `docente` (`id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_richiesta_assemblea_docente2`
+    FOREIGN KEY (`coordinatore_id`)
+    REFERENCES `docente` (`id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_richiesta_assemblea_anno_scolastico1`
+    FOREIGN KEY (`anno_scolastico_id`)
+    REFERENCES `anno_scolastico` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;

@@ -126,8 +126,8 @@ function aggiornaContenutoDocumento() {
             fileName = $(fileNameValueId).val();
             filePath = $(filePathValueId).val();
 
-            console.log('fileName='+fileName);
-            console.log('filePath='+filePath);
+            // console.log('fileName='+fileName);
+            // console.log('filePath='+filePath);
 
             risultato = fileName;
             valore = filePath;
@@ -162,8 +162,15 @@ function aggiornaContenutoDocumento() {
 }
 
 // genera un identificatore univoco casuale
-function generateGuid() {
+function generateGuidOld() {
     return Math.random().toString(36).substring(2, 15) +  Math.random().toString(36).substring(2, 15);
+}
+
+function generateGuid() {
+    // 1. Genera lo UUID standard (36 caratteri con i trattini)
+    // 2. Rimuove tutti i trattini (diventano 32 caratteri puramente casuali)
+    // 3. Prende i primi 21 caratteri
+    return crypto.randomUUID().replace(/-/g, '').substring(0, 21);
 }
 
 $(document).ready(function () {
@@ -195,8 +202,8 @@ $(document).ready(function () {
             maxFileSize: 5000000, //5MB in bytes
 
 			start: function(file){
-                console.log('inputName='+inputName);
-                console.log('fileUploadCounter='+fileUploadCounter);
+                // console.log('inputName='+inputName);
+                // console.log('fileUploadCounter='+fileUploadCounter);
 //                console.log(file);
                 fileName = file.name;
 				//upload started
@@ -212,7 +219,7 @@ $(document).ready(function () {
 			},
 
 			success: function(data){
-                console.log("success: data="+data);
+                // console.log("success: data="+data);
                 filePath = data.trim();
                 $(fileNameValueId).val(fileName);
                 $(filePathValueId).val(filePath);
