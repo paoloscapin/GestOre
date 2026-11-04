@@ -1004,7 +1004,7 @@ require_once '../docente/attribuiteModal.php';
 <script type="text/javascript" src="js/scriptAttivita.js?v=<?php echo $__software_version; ?>"></script>
 <script type="text/javascript" src="js/scriptAttribuite.js?v=<?php echo $__software_version; ?>"></script>
 
-<script type="text/javascript" src="../dirigente/js/scriptQuadroOreDovute.js?v=<?php echo $__software_version; ?>"></script>
+<!--<script type="text/javascript" src="../dirigente/js/scriptQuadroOreDovute.js?v=<?php echo $__software_version; ?>"></script> -->
 				
 </body>
 </html>

@@ -54,21 +54,11 @@ foreach(dbGetAll("SELECT richiesta_assemblea.id AS richiesta_id, richiesta_assem
 	$mostraVerbale = False;
 	$attivaVerbale = False;
 
-	// lo stesso giorno si puo' sempre modificare il verbale
-	if (new DateTime('today') == new DateTime($richiesta['data_assemblea'])) {
+	// il verbale si puo' modificare solo prima di inviarlo, poi lo stato va in verbalizzata e non si può piu' cambiare
+	if ($stato == 'verbalizzata') {
+		$mostraVerbale = True;
+	} else if (new DateTime('today') >= new DateTime($richiesta['data_assemblea'])) {
 		$attivaVerbale = True;
-	}
-
-	else if (new DateTime('today') >= new DateTime($richiesta['data_assemblea'])) {
-		// dal giorno dopo si puo' compilare solo se e' ancora vuoto
-		if ($richiesta['verbale'] == '') {
-			if ($studente_id == $richiesta['studente_id']) {
-				$attivaVerbale = True;
-			}
-		} else {
-			// altrimenti in visualizzazione
-			$mostraVerbale = True;
-		}
 	}
 
 	$data .= '<tr>

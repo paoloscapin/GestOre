@@ -39,7 +39,6 @@
         "extraComandi": false,
         "sospendiServizioDocenti": false,
         "sospendiServizioStudenti": false
-
     },
     "interfaccia": {
         "docenteVisualizza80Ore": true,
@@ -59,15 +58,17 @@
         "helpLinkDidattica":  "https://docs.google.com/document/d/17B9ZXTg1WD7IBwZMKuHj47YigVjfPkH3o8gp-fpD9ig/edit?usp=sharing",
         "nomeIstituto": "--- inserire la località per i documenti generati ---",
         "luogoIstituto": "--- inserire la località per i documenti generati ---",
-        "emailNoReplyFrom": "--- inserire un indirizzo di email noreply (ad esempio noreply-GestOre@istituto.it) ---",
-        "emailCarenze": "--- inserire un indirizzo di email a cui inviare in cc le lettere di carenza generate ---"
+        "emailNoReplyFrom": "--- inserire un indirizzo di email noreply (ad esempio noreply-GestOre@istituto.it) ---"
     },
     "email": {
         "@dirigente": "",
-        "@didattica": "",
-        "@docenti": "",
-        "@viaggi": "",
-        "@carenze repository": ""
+        "@segreteria-didattica": "",
+        "@segreteria-docenti": "",
+        "@segreteria-viaggi": "",
+        "@ufficio-informatica": "",
+        "@ufficio-progetti": "",
+        "@carenze repository": "",
+        "@responabili-scambio-orario": ""
     },
     "importi": {
         "oreConStudenti": 35,
@@ -124,6 +125,10 @@
         "note_aggiuntive": true,
         "duplicaTemplateSoloSeFinale": true,
         "stampaEstesa": false
+    },
+    "richiestaAssemblea": {
+        "giorni_prima": 5,
+        "notifica_dirigente": false
     },
     "corsiDiRecupero": {
         "importCognomiNomiSeparati": false,

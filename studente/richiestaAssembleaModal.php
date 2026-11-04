@@ -30,8 +30,11 @@
                 </div>
 
                 <hr>
-				<div id="ordine_del_giorno_odg" class="well" style="background-color: #fff; max-height: 500px; overflow-y: auto; border-color: #ddd;">
+                <div class="form-group ordine_del_giorno_odg">
+                    <label class="" for="ordine_del_giorno_odg">Ordine del giorno</label>
+                    <div id="ordine_del_giorno_odg" class="well" style="background-color: #fff; max-height: 500px; overflow-y: auto; border-color: #ddd;">
 				<!-- Il testo HTML del DB verrà inserito qui -->
+                </div>
 				</div>
 			</form>
             </div>
@@ -65,10 +68,15 @@
 					<div class="col-sm-4"><input type="text" value="21/8/2018" id="data_assembleaverbale" placeholder="data" class="form-control" readonly /></div>
                 </div>
 
-                <hr>
+				<hr>
+                <div class="form-group ordine_del_giorno_verbale2">
+                    <label class="" for="ordine_del_giorno_verbale2">Ordine del giorno</label>
+                    <div id="ordine_del_giorno_verbale2" class="well" style="background-color: #fff; max-height: 500px; overflow-y: auto; border-color: #ddd;"></div>
+                </div>
+<!--                <hr>
 				<div id="ordine_del_giorno_verbale2" class="well" style="background-color: #fff; max-height: 500px; overflow-y: auto; border-color: #ddd;">
-				<!-- Il testo HTML del DB verrà inserito qui -->
 				</div>
+-->
 
                 <hr>
                 <div class="form-group verbale">
@@ -81,6 +89,7 @@
 			<div class="panel-footer text-center">
 				<button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
 				<button type="button" id="salvaVerbaleBtnId" class="btn btn-primary" onclick="richiestaAssembleaSalvaVerbale()" >Salva</button>
+				<button type="button" id="inviaVerbaleBtnId" class="btn btn-success" onclick="richiestaAssembleaInviaVerbale()" >Invia</button>
 			</div>
 			</div>
 			</div>

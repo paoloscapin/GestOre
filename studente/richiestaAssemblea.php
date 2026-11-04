@@ -94,7 +94,12 @@ require_once '../studente/richiestaAssembleaModal.php';
 			<div class="panel-body">
 			<form class="form-horizontal">
 
-                <div class="form-group">
+				<div id="messaggio" class="well" style="background-color: #fffbeb; color: #b45309; padding: 12px 15px; border: 1px solid #fef3c7; border-left: 4px solid #f59e0b; max-height: 500px; overflow-y: auto; font-size: 0.95em; margin-bottom: 20px; text-align: left;">
+					<strong>Attenzione:</strong> si ricorda che la richiesta deve essere effettuata da un rappresentante di classe.
+				</div>
+                <hr>
+
+				<div class="form-group">
                     <label class="col-sm-2 control-label" for="richiedente">Richiedente</label>
                     <div class="col-sm-5"><input type="text" id="richiedente" placeholder="richiedente" class="form-control" readonly /></div>
                 </div>
@@ -158,6 +163,7 @@ require_once '../studente/richiestaAssembleaModal.php';
 				<button type="button" class="btn btn-primary" onclick="richiestaAssembleaInoltra()" >Inoltra</button>
 				<input type="hidden" id="hidden_richiedente" value="<?php echo $studente_nome_cognome; ?>">
 				<input type="hidden" id="hidden_classe" value="<?php echo $studente_classe; ?>">
+				<input type="hidden" id="hidden_giorni_prima" value="<?php echo getSettingsValue("richiestaAssemblea", "giorni_prima", 5); ?>">
 				<input type="hidden" id="hidden_uuid" value="">
 				<input type="hidden" id="hidden_record_id">
 			</div>

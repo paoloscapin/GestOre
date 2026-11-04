@@ -1,3 +1,15 @@
+## Version 1.4.16 - 4 nov 2026
+##### Improvements
+- assemblea possibile notifica dirigente
+- assemblea giorni prima da json
+- assemblea attenzione rappresentanti
+- assemblea verbale e email
+- assemblea verbale modificabile se non verbalizzata e visualizzabile se lo e'
+- email completata sezione json e riferimenti
+- @carenze repository invece di email carenze
+##### Bug Fixes
+- rimosso in attivita.php scriptQuadroOreDovute.js 
+
 ## Version 1.4.15 - 29 ott 2026
 ##### Improvements
 - studente classe

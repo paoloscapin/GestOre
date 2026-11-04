@@ -55,15 +55,18 @@ Il rappresentante di classe $studente_nome_cognome
 $anno = date("Y");
 
 // ricava il titolo in modo generale
-$titolo = 'Richeista Assemblea ' . $classe .' - ' . giornoEData($data_assemblea) .' - ' . nomeOra($ora_assemblea) .' - ' . $docente_ora_nome_e_cognome . ' - ' . $anno;
+$titolo = 'Richiesta Assemblea ' . $classe .' - ' . giornoEData($data_assemblea) .' - ' . nomeOra($ora_assemblea) .' - ' . $docente_ora_nome_e_cognome . ' - ' . $anno;
 
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
-// 1: invio della email alla didattica e in copia al docente dell'ora
+// 1: invio della email alla didattica e in copia al docente dell'ora (se richiesto anche la dirigente)
 $mail = new PHPMailer(true);
 $mail->CharSet = 'UTF-8';
 $mail->setFrom($__studente_email, $studente_nome_cognome);
 $mail->addAddress(getRealEmailAddress('@segreteria-didattica'), 'Segreteria Didattica');
 $mail->addCC($docente_ora_email, $docente_ora_nome_e_cognome);
+if (getSettingsValue("richiestaAssemblea", "notifica_dirigente", false)) {
+    $mail->addCC(getRealEmailAddress('@dirigente'), "dirigente");
+}
 
 // subject
 $mail->Subject = $titolo;

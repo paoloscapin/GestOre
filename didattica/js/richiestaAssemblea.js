@@ -109,8 +109,8 @@ function richiestaAssembleaGetDetails(id) {
     } else {
         data_assemblea_pickr.setDate(Date.today().toString('d/M/yyyy'));
 		$("#hidden_uuid").val(generateGuid());
-        $('#ordine_del_giorno').summernote('code', '<p><b>Ordine del giorno</b></p><ul><li><br></li></ul>');
-        $('#verbale').summernote('code', '<p><b>Verbale</b></p>');
+        $('#ordine_del_giorno').summernote('code', '<ul><li><br></li></ul>');
+        $('#verbale').summernote('code', '<p></p>');
         $('#richiedente').val($("#hidden_richiedente").val());
         $('#classe').val($("#hidden_classe").val());
     }
@@ -205,7 +205,11 @@ function richiestaAssembleaVerbale(id) {
         $("#classeverbalero").val(richiesta.classe);
         $("#data_assembleaverbalero").val(dataLeggibile(richiesta.data_assemblea));
         $('#ordine_del_giorno_verbalero').html(richiesta.ordine_del_giorno);
-        $('#verbale_verbalero').html(richiesta.verbale);
+        if (richiesta.verbale == '') {
+            $('#verbale').summernote('code', '<p><b>Verbale</b></p><p></p>');
+        } else {
+            $('#verbale_verbalero').html(richiesta.verbale);
+        }
         $("#verbalero_modal").modal("show");
     });
 }

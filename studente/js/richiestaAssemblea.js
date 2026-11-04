@@ -71,7 +71,7 @@ function richiestaAssembleaGetDetails(id) {
     } else {
         data_assemblea_pickr.setDate(Date.today().toString('d/M/yyyy'));
 		$("#hidden_uuid").val(generateGuid());
-        $('#ordine_del_giorno').summernote('code', '<p><b>Ordine del giorno</b></p><ul><li><br></li></ul>');
+        $('#ordine_del_giorno').summernote('code', '<ul><li><br></li></ul>');
         $('#verbale').summernote('code', '<p><b>Verbale</b></p>');
         $('#richiedente').val($("#hidden_richiedente").val());
         $('#classe').val($("#hidden_classe").val());
@@ -175,7 +175,6 @@ function richiestaAssembleaVerbale(id, mode) {
             $("#classeverbale").val(richiesta.classe);
             $("#data_assembleaverbale").val(dataLeggibile(richiesta.data_assemblea));
             $('#ordine_del_giorno_verbale2').html(richiesta.ordine_del_giorno);
-            $('#ordine_del_giorno_verbale').summernote('code', richiesta.ordine_del_giorno);
             $('#verbale').summernote('code', richiesta.verbale);
             $("#verbale_modal").modal("show");
         }
@@ -193,6 +192,25 @@ function richiestaAssembleaSalvaVerbale() {
         valore: verbale
     },
     function (data, status) {
+        richiestaAssembleaReadRecords();
+    });
+
+    $("#verbale_modal").modal("hide");
+}
+
+function richiestaAssembleaInviaVerbale() {
+    // prima lo salva una ultima volta per sicurezza
+    richiesta_id = $("#hidden_record_id").val();
+    verbale = $('#verbale').summernote('code');
+
+    $.post("../common/recordUpdate.php", {
+        id: richiesta_id,
+        table: 'richiesta_assemblea',
+        nome: 'verbale',
+        valore: verbale
+    },
+    function (data, status) {
+        // cambia lo stato in verbalizzata
         $.post("../common/recordUpdate.php", {
             id: richiesta_id,
             table: 'richiesta_assemblea',
@@ -200,17 +218,23 @@ function richiestaAssembleaSalvaVerbale() {
             valore: 'verbalizzata'
         },
         function (data, status) {
+            // produce il pdf e lo invia via email
+            $.get("../studente/richiestaAssembleaVerbale.php", {
+                id: richiesta_id,
+                email: true
+            },
+            function (data, status) {
+            });
             richiestaAssembleaReadRecords();
         });
     });
-
     $("#verbale_modal").modal("hide");
 }
 
 $(document).ready(function () {
 
     // Calcola la data di oggi + 5 giorni
-    const dataMinima = new Date().fp_incr(5);
+    const dataMinima = new Date().fp_incr($("#hidden_giorni_prima").val());
 
     data_assemblea_pickr = flatpickr("#data_assemblea", {
 		locale: { firstDayOfWeek: 1 },
