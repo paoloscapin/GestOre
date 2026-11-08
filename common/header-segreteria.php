@@ -15,9 +15,10 @@
 	<?php require_once '../common/header-_logo.php'; ?>
 
 		<ul class="nav navbar-nav top-navbar-nav">
+			<a href="<?php echo $__application_base_path; ?>/segreteria/docente.php" class="btn btn-default navbar-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-education"></span>&ensp;Docenti </a>
+
 <?php if(! getSettingsValue('config','modulisticaDocentiSenzaAltro', false)) : ?>
 
-			<a href="<?php echo $__application_base_path; ?>/segreteria/docente.php" class="btn btn-default navbar-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-education"></span>&ensp;Docenti </a>
 			<a href="<?php echo $__application_base_path; ?>/segreteria/oreAssegnate.php" class="btn btn-default navbar-btn btn-lima4" role="button"><span class="glyphicon glyphicon-list-alt"></span>&ensp;Assegnate </a>
 			<a href="<?php echo $__application_base_path; ?>/segreteria/sostituzione.php" class="btn btn-default navbar-btn btn-yellow4" role="button"><span class="glyphicon glyphicon-retweet"></span>&ensp;Sostituzioni </a>
 			<a href="<?php echo $__application_base_path; ?>/segreteria/gruppoGestione.php" class="btn btn-default navbar-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-user"></span>&ensp;Gruppi </a>

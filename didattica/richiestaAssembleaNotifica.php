@@ -54,7 +54,8 @@ $testo = "L'assemblea del giorno ".giornoEData($data_assemblea)." durante la " .
 // 1: invio della email allo studente e in copia al docente dell'ora
 $mail = new PHPMailer(true);
 $mail->CharSet = 'UTF-8';
-$mail->setFrom(getSettingsValue('local', 'emailSegreteriaDidattica', ''), 'Segreteria Didattica');
+$mail->setFrom(getSettingsValue('local', 'emailNoReplyFrom', ''), 'no reply');
+$mail->addReplyTo(getRealEmailAddress('@segreteria-didattica'), str_replace('@', '', '@segreteria-didattica'));
 $mail->addAddress($studente_email, $studente_nome_cognome);
 $mail->addCC($docente_ora_email, $docente_ora_nome_e_cognome);
 

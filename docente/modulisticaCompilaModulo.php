@@ -217,7 +217,7 @@ foreach(dbGetAll("SELECT * FROM modulistica_template_campo WHERE modulistica_tem
 		<span class="glyphicon glyphicon-folder-close"></span>&emsp;<strong><?php echo "$templateNome"; ?></strong>
 	</div>
     <div class="col-md-2 text-center">
-        <button type="button" class="btn btn-xs btn-default btn-yellow4" onclick="aggiorna()" >Aggiorna</button>
+        <button type="button" class="btn btn-lg btn-default btn-yellow4" onclick="aggiorna()" ><?php echoLabel('aggiorna'); ?></button>
     </div>
 	<div class="col-md-5 text-right" id="page_refresh">
     </div>
@@ -229,7 +229,7 @@ foreach(dbGetAll("SELECT * FROM modulistica_template_campo WHERE modulistica_tem
 </div>
 <div class="panel-footer">
 <div class="text-center">
-    <button type="button" class="btn btn-xs btn-default btn-orange4" onclick="invia()" id="inviaBtnId">Invia</button>
+    <button type="button" class="btn btn-lg btn-default btn-orange4" onclick="invia()" id="inviaBtnId">Invia</button>
 </div>
 </div>
 </div>
@@ -245,6 +245,7 @@ foreach(dbGetAll("SELECT * FROM modulistica_template_campo WHERE modulistica_tem
 <input type="hidden" id="hidden_docente_id" value='<?php echo $docente_id; ?>'>
 <input type="hidden" id="hidden_docente_cognome_e_nome" value='<?php echo($__docente_nome.' '.$__docente_cognome); ?>'>
 <input type="hidden" id="hidden_docente_email" value='<?php echo $__docente_email; ?>'>
+<input type="hidden" id="hidden_luogo_istituto" value='<?php echo getSettingsValue('local','luogoIstituto',''); ?>'>
 
 <input type="hidden" id="hidden_lista_campi_id" value='<?php echo(json_encode($listaCampiId)); ?>'>
 <input type="hidden" id="hidden_lista_campi" value='<?php echo(json_encode($listaCampi)); ?>'>

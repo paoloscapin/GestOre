@@ -448,3 +448,24 @@ h6 {
 	border-top: 1px dashed gray;
 	margin-top: -1px;
 }
+
+ul.trattino {
+    list-style-type: none; /* Rimuove il puntino predefinito */
+    padding-left: 20px;    /* 1. Sposta l'intera lista verso destra (rientro) */
+}
+
+ul.trattino li {
+	position: relative;
+	padding-left: 15px;    /* 3. Aumenta lo spazio tra il trattino e il testo */
+    margin-bottom: 8px;   /* 1. Spazio TRA una voce e l'altra */
+    line-height: 1.6;      /* 2. Spazio TRA le righe dello stesso testo se va a capo */
+}
+
+ul.trattino li::before {
+	content: "-";          /* 2. Inserisce il trattino */
+	position: absolute;
+	left: 0;               /* Blocca il trattino sul bordo sinistro del li */
+    top: 0;                /* Allinea il trattino alla prima riga del testo */
+    font-weight: bold;     /* Mette in grassetto SOLO il trattino */
+    font-size: 1.1em;      /* Opzionale: lo ingrandisce leggermente per farlo risaltare */
+}

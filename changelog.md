@@ -1,3 +1,16 @@
+## Version 1.4.17 - 8 nov 2026
+##### Improvements
+- getLabel valore default
+- header segreteria ha sempre docente
+- lettera carenze novembre
+- richiesta assemblea verbale da verbalizzata
+- email docente in agisci come docente
+
+##### Bug Fixes
+- getRealEmailAddress e str_replace per invio email
+- richiesta assemblea verbale salvava corso di recupero
+
+
 ## Version 1.4.16 - 4 nov 2026
 ##### Improvements
 - assemblea possibile notifica dirigente

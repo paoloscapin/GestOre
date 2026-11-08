@@ -137,9 +137,11 @@ if (! $print && ! $email) {
 		$outputPdf = $dompdf->output();
 		
 		$mail = new PHPMailer(true);
-		$mail->setFrom($studenteEmail, $studenteNomeCognome);
+		$mail->setFrom(getSettingsValue('local', 'emailNoReplyFrom', ''), 'no reply');
+		$mail->addReplyTo($studenteEmail, $studenteNomeCognome);
 
    		$mail->addAddress($docente_coordinatore_email, $docente_coordinatore_nome_e_cognome);
+   		$mail->addCC($studenteEmail, $studenteNomeCognome);
 
 		// subject
 		$mail->Subject = 'Verbale assemblea di classe ' . $assemblea['classe'] . ' del '.dataFormattata($assemblea['data_assemblea']);
@@ -158,8 +160,7 @@ if (! $print && ! $email) {
 			echo 'Message could not be sent.';
 			echo 'Mailer Error: ' . $mail->ErrorInfo;
 		} else {
-			// marca che e' stato notificato
-			dbExec("UPDATE studente_per_corso_di_recupero SET voto_settembre_notificato = true WHERE id = $studenteId;");
+			info('email verbale inviata al docente '.$docente_coordinatore_nome_e_cognome.' subject: '.'Verbale assemblea di classe ' . $assemblea['classe'] . ' del '.dataFormattata($assemblea['data_assemblea']));
 			echo "<script>window.close();</script>";
 		}
 	} else if ($print) {

@@ -14,29 +14,16 @@ if (isset($_POST)) {
     // get values
     $docente_id = $_POST['docente_id'];
     debug('docente_id=' . $docente_id);
-    require_once '../common/connect.php';
-    $query = "SELECT * FROM docente WHERE docente.id = '$docente_id'";
-    if (!$result = mysqli_query($con, $query)) {
-        error('query fallita' . $query);
-        exit(mysqli_error($con));
-    }
-    $response = array();
-    if (mysqli_num_rows($result) > 0) {
-        // prende solo la prima ed unica riga
-        $row = mysqli_fetch_assoc($result);
-
-        $session->set('docente_id', $row['id']);
-        $session->set('docente_nome', $row['nome']);
-        $session->set('docente_cognome', $row['cognome']);
-    } else {
-        warning("docente id $docente_id not found!");
-        $response['status'] = 200;
-        $response['message'] = "docente id $docente_id not found!";
-    }
+    $docente = dbGetFirst("SELECT * FROM docente WHERE docente.id = '$docente_id' ;");
+    $session->set('docente_id', $docente['id']);
+    $session->set('docente_nome', $docente['nome']);
+    $session->set('docente_cognome', $docente['cognome']);
+    $session->set('docente_email', $docente['email']);
 
     $__docente_id = $session->get('docente_id');
     $__docente_nome = $session->get('docente_nome');
     $__docente_cognome = $session->get('docente_cognome');
+    $__docente_email = $session->get('docente_email');
     debug('redirect con docente_id=' . $docente_id);
     redirect('/docente/index.php');
 }

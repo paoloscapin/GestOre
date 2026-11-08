@@ -166,10 +166,11 @@ if(!$mail->send()){
 if ( (! $template['approva']) || $email_di_avviso) {
 	$mail = new PHPMailer(true);
 	$mail->CharSet = 'UTF-8';
-	$mail->setFrom($docente_email, $nomeCognomeDocente);
+	$mail->setFrom(getSettingsValue('local', 'emailNoReplyFrom', ''), 'no reply');
+	$mail->addReplyTo($docente_email, $nomeCognomeDocente);
 	// tutti i destinatari separati da virgole
 	foreach(explode(',',$email_to) as $address) {
-		$mail->addAddress(getRealEmailAddress($address), $address);
+		$mail->addAddress(getRealEmailAddress($address), str_replace('@', '', $address));
 	}
 
 	// subject
@@ -219,10 +220,11 @@ if ( (! $template['approva']) || $email_di_avviso) {
 if ($template['approva']) {
 	$mail = new PHPMailer(true);
 	$mail->CharSet = 'UTF-8';
-	$mail->setFrom($docente_email, $nomeCognomeDocente);
+	$mail->setFrom(getSettingsValue('local', 'emailNoReplyFrom', ''), 'no reply');
+	$mail->addReplyTo($docente_email, $nomeCognomeDocente);
 	// tutti i destinatari che possono approvare separati da virgole
 	foreach(explode(',',$email_approva) as $address) {
-		$mail->addAddress(getRealEmailAddress($address), $address);
+		$mail->addAddress(getRealEmailAddress($address), str_replace('@', '', $address));
 	}
 
 	// subject
@@ -261,6 +263,7 @@ if ($template['approva']) {
 		warning('Message could not be sent. ' . 'Mailer Error: ' . $mail->ErrorInfo);
 		echo 'errore: messaggio non inviato.';
 		echo 'Mailer Error: ' . $mail->ErrorInfo;
+
 	} else {
 		info('email inviata per richiesta di approvazione a '.$email_approva.' oggetto: '.$titolo);
 	}

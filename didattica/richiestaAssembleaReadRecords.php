@@ -43,7 +43,9 @@ foreach(dbGetAll("SELECT richiesta_assemblea.id AS richiesta_id, richiesta_assem
 	$ora_assemblea = $richiesta['ora_assemblea'];
 	$giornoSettimanaAssemblea = utf8_encode( strftime("%A", strtotime($richiesta['data_assemblea'])));
 
-	$mostraVerbale = new DateTime('today') >= new DateTime($richiesta['data_assemblea']);
+	if ($stato == 'verbalizzata') {
+		$mostraVerbale = True;
+	}
 
 	$data .= '<tr>
 		<td>'.$richiesta['classe'].'</td>

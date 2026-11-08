@@ -24,7 +24,7 @@ function notifica($to, $toName, $titolo, $stato, $messaggio, $contenutoTabellaCa
 	$mail = new PHPMailer(true);
 	$mail->CharSet = 'UTF-8';
 	$mail->setFrom(getSettingsValue('local', 'emailNoReplyFrom', ''), 'no reply');
-	$mail->addAddress(getRealEmailAddress($to), $toName);
+	$mail->addAddress(getRealEmailAddress($to), str_replace('@', '', $toName));
 
 	// subject
 	$subject =  $titolo . ' [' . $stato . ']'; // stato tra quadre per poter avere le email innestate nella conversazione

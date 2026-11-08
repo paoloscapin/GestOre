@@ -371,7 +371,7 @@ if (! $print && ! $email) {
 		$mail->addAddress($studenteEmail, $studenteNomeCognome);
 
 		// cc to carenze
-		$cc = getSettingsValue('local', 'emailCarenze', '');
+		$cc = getRealEmailAddress("@carenze repository");
 		if ($cc != '') {
 			$mail->AddCC($cc, 'Carenze Repository');
 		}

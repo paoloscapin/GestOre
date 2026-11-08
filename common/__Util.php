@@ -91,17 +91,20 @@ function js_escape($str) {
 }
 
 // ricupera una label se ridefinita nel json
-function getLabel($label) {
+function getLabel($label, $valoreDefault = null) {
     global $__settings;
+    if ($opzionale === null) {
+        $valoreDefault = $label;
+    }
     if (property_exists($__settings->label, $label)) {
         return $__settings->label->$label;
     }
-    return $label;
+    return $valoreDefault;
 }
 
 // scrive una label controllando se nel json viene ridefinita
-function echoLabel($label) {
-    echo getLabel($label);
+function echoLabel($label, $valoreDefault = null) {
+    echo getLabel($label, $valoreDefault);
 }
 
 // ricupera un valore se definito nel json oppure default

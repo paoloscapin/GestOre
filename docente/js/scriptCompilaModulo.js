@@ -154,7 +154,7 @@ function aggiornaContenutoDocumento() {
     // sostituisce tutti i campi standard
     documento = documento.replaceAll('{{docente_nome_e_cognome}}', $("#hidden_docente_cognome_e_nome").val());
     documento = documento.replaceAll('{{docente_email}}', $("#hidden_docente_email").val());
-    documento = documento.replaceAll('{{luogo_documento}}', 'Mezzolombardo');
+    documento = documento.replaceAll('{{luogo_documento}}',  $("#hidden_luogo_istituto").val());
     var data = new Date().toLocaleDateString("it-IT");
     documento = documento.replaceAll('{{data_documento}}', data);
 
