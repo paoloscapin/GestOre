@@ -231,6 +231,14 @@ function richiestaAssembleaInviaVerbale() {
     $("#verbale_modal").modal("hide");
 }
 
+function richiestaAssembleaStampaVerbale() {
+    richiesta_id = $("#hidden_record_id").val();
+
+    var url = '../studente/richiestaAssembleaVerbale.php?id=' + richiesta_id;
+	window.open(url, "_blank");
+    $("#verbalero_modal").modal("hide");
+}
+
 $(document).ready(function () {
 
     // Calcola la data di oggi + 5 giorni

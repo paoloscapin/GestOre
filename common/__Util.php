@@ -93,7 +93,7 @@ function js_escape($str) {
 // ricupera una label se ridefinita nel json
 function getLabel($label, $valoreDefault = null) {
     global $__settings;
-    if ($opzionale === null) {
+    if ($valoreDefault === null) {
         $valoreDefault = $label;
     }
     if (property_exists($__settings->label, $label)) {

@@ -132,6 +132,7 @@
             </div>
 			<div class="panel-footer text-center">
 				<button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
+				<button type="button" class="btn btn-primary" onclick="richiestaAssembleaStampaVerbale()" >Stampa</button>
 			</div>
 			</div>
 			</div>

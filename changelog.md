@@ -1,3 +1,11 @@
+## Version 1.4.18 - 8 nov 2026
+##### Improvements
+- print verbale per studente e didattica
+- intestazione verbale
+
+##### Bug Fixes
+- util getLabel opzionale fix
+
 ## Version 1.4.17 - 8 nov 2026
 ##### Improvements
 - getLabel valore default
@@ -9,7 +17,6 @@
 ##### Bug Fixes
 - getRealEmailAddress e str_replace per invio email
 - richiesta assemblea verbale salvava corso di recupero
-
 
 ## Version 1.4.16 - 4 nov 2026
 ##### Improvements

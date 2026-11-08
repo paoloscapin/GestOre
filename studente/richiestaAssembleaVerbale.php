@@ -65,6 +65,14 @@ $docente_coordinatore_email = $docente_coordinatore['email'];
 $title = $assemblea['classe'] . ": richiesta Assemblea per il giorno  ".giornoEData($assemblea['data_assemblea'])." " . nomeOra($assemblea['ora_assemblea']);
 
 $data .= '
+	<div style="; text-align: center;">
+		<span style="overflow: hidden; display: inline-block; margin: 0.00px 0.00px; border: 0.00px solid #000000; transform: rotate(0.00rad) translateZ(0px); -webkit-transform: rotate(0.00rad) translateZ(0px); width: 642.82px;">
+			<img alt="" src="data:image/png;base64,'.base64_encode(dbGetValue("SELECT src FROM immagine WHERE nome = 'intestazione.png'")).'" style="width: 642.82px; margin-left: 0.00px; margin-top: 0.00px; transform: rotate(0.00rad) translateZ(0px); -webkit-transform: rotate(0.00rad) translateZ(0px);" title="">
+		</span>
+		<hr>
+	</div>';
+
+$data .= '
 <h3 style="text-align: center; "><font color="#003163"><b>Assemblea di Classe - '.$assemblea['classe'].'</b></font></h3>
 <h4 style="text-align: center; "><font color="#003163">'.giornoEData($assemblea['data_assemblea']).' - '.nomeOra($assemblea['ora_assemblea']).'</font></h4><p><br></p>
 <fieldset style="border: 1px solid #003163; border-radius: 4px; padding: 15px; margin-bottom: 25px;"><legend style="padding: 0 10px;">

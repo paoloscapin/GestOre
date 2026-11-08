@@ -45,6 +45,8 @@ foreach(dbGetAll("SELECT richiesta_assemblea.id AS richiesta_id, richiesta_assem
 
 	if ($stato == 'verbalizzata') {
 		$mostraVerbale = True;
+	} else {
+		$mostraVerbale = False;
 	}
 
 	$data .= '<tr>
