@@ -1,3 +1,7 @@
+## Version 1.4.19 - 10 nov 2026
+##### Bug Fixes
+- minor fix notifica assemblea e lettera
+
 ## Version 1.4.18 - 8 nov 2026
 ##### Improvements
 - print verbale per studente e didattica

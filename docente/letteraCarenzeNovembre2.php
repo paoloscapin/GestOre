@@ -176,7 +176,7 @@ $data .= '
   <li>visti gli atti a disposizione dell&#39;Amministrazione relativi a percorsi di recupero e prova di verifica</li>
   <li>visto l&#39;esito della prova di verifica di data '.printableDate($data_voto).'</li>
 </ul>
-<p class="c3">si comunica che nel corso della II sessione di recupero si registra il seguente esito
+<p class="c3">si comunica che nel corso della II sessione di recupero si &egrave; registrato il seguente esito
 </p>
 </br>
 <table class="c31">
@@ -215,15 +215,14 @@ $data .= '
 
 // messaggio se non superata
 if ($voto < 6) {
-	$data .= '<p class="c3">Si segnala che, come previsto dal <a href="https://www.martinomartini.eu/documento/regolamento-di-valutazione/">Regolamento di Valutazione</a>, articolo 9, “[...]
+	$data .= '<p class="c3">Si segnala che, come previsto dal <a href="https://www.martinomartini.eu/documento/regolamento-di-valutazione/">Regolamento di Valutazione</a>, articolo 9, <q style="font-style: italic;">[...]
 	Le carenze formative relative all&#39;anno scolastico precedente e non recuperate costituiscono,
 	per l&#39;anno scolastico in corso, una ulteriore carenza formativa, col voto deliberato dal consiglio di classe in sede di valutazione finale al termine dell&#39;anno scolastico precedente.
 	Le carenze riferite a discipline che si interrompono al termine del biennio sono ugualmente considerate come insufficienza
-	fino al termine della classe terza (questo criterio sarà adottato con decorrenza da a.s. 2021/2022).”
-	
-	
-	
-	</p></br>';
+	fino al termine della classe terza (questo criterio sarà adottato con decorrenza da a.s. 2021/2022).</q>
+	</p></br>
+	<p class="c3">Delucidazioni e chiarimenti possono essere forniti dal coordinatore di classe e/o dal docente che ha somministrato la prova di recupero.</p></br>
+	<p class="c3">Cordiali saluti</p></br>';
 }
 
 $data .= '

@@ -60,7 +60,7 @@ $mail->addAddress($studente_email, $studente_nome_cognome);
 $mail->addCC($docente_ora_email, $docente_ora_nome_e_cognome);
 
 // subject
-$mail->Subject = $titolo;
+$mail->Subject = $oggetto;
 
 $mail->isHTML(TRUE);
 $mail->Body = '<html>'.getEmailHead().'<body>';
@@ -76,6 +76,6 @@ if(!$mail->send()){
     echo 'Mailer Error: ' . $mail->ErrorInfo;
     return;
 } else {
-	info('email inviata a studente e docente '.$docente_ora_nome_e_cognome.', oggetto: '.$titolo);
+	info('email inviata a studente ' . $$studente_nome_cognome . ' e docente '.$docente_ora_nome_e_cognome.', oggetto: '.$oggetto);
 }
 ?>
