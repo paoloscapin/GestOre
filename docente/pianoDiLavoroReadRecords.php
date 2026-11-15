@@ -92,18 +92,18 @@ foreach(dbGetAll($query) as $row) {
 
 	$statoMarker = '';
 	if ($row['stato'] == 'draft') {
-		$statoMarker .= '<span class="label label-warning">draft</span>';
+		$statoMarker .= '<span class="label label-warning">'.getLabel('pianoDiLavoro.draft', 'draft').'</span>';
 	} elseif ($row['stato'] == 'annullato') {
-		$statoMarker .= '<span class="label label-danger">annullato</span>';
+		$statoMarker .= '<span class="label label-danger">'.getLabel('pianoDiLavoro.annullato', 'annullato').'</span>';
 	} elseif ($row['stato'] == 'finale') {
-		$statoMarker .= '<span class="label label-success">finale</span>';
+		$statoMarker .= '<span class="label label-success">'.getLabel('pianoDiLavoro.finale', 'finale').'</span>';
 	} elseif ($row['stato'] == 'pubblicato') {
-		$statoMarker .= '<span class="label label-info">pubblicato</span>';
+		$statoMarker .= '<span class="label label-info">'.getLabel('pianoDiLavoro.pubblicato', 'pubblicato').'</span>';
 	}
 
 	$templateMarker = '';
 	if ($row['template'] == true) {
-		$templateMarker .= '<span class="label label-success">'.getLabel('Template').'</span>';
+		$templateMarker .= '<span class="label label-success">'.getLabel('pianoDiLavoro.template', 'Template').'</span>';
 	}
 
 	$clilMarker = '';

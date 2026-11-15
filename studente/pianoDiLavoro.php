@@ -94,9 +94,9 @@ foreach(dbGetAll($query) as $pianoDiLavoro) {
 
 	$statoMarker = '';
 	if ($stato == 'finale') {
-		$statoMarker .= '<span class="label label-success">finale</span>';
+		$statoMarker .= '<span class="label label-success">'.getLabel('pianoDiLavoro.finale', 'finale').'</span>';
 	} elseif ($stato == 'pubblicato') {
-		$statoMarker .= '<span class="label label-info">pubblicato</span>';
+		$statoMarker .= '<span class="label label-info">'.getLabel('pianoDiLavoro.pubblicato', 'pubblicato').'</span>';
 	}
 
     echo '<tr>';

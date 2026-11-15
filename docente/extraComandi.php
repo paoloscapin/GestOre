@@ -19,7 +19,7 @@ require_once '../common/style.php';
 ruoloRichiesto('studente','docente','segreteria-docenti','segreteria-didattica','dirigente');
 ?>
 
-<title><?php echoLabel('Altro'); ?></title>
+<title><?php echoLabel('menu.Altro', 'Altro'); ?></title>
 
 <?php
 function startsWith($haystack, $needle) {
@@ -80,7 +80,7 @@ require_once '../common/connect.php';
 <div class="panel-heading container-fluid">
 	<div class="row">
 		<div class="col-md-11">
-			<span class="glyphicon glyphicon-option-horizontal"></span>&emsp;<strong><?php echoLabel('Altro'); ?></strong>
+			<span class="glyphicon glyphicon-option-horizontal"></span>&emsp;<strong><?php echoLabel('menu.Altro', 'Altro'); ?></strong>
 		</div>
 		<div class="col-md-1 text-right" id="page_refresh">
 		</div>

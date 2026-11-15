@@ -94,32 +94,28 @@ foreach(dbGetAllValues("SELECT DISTINCT nome_classe, sezione, nome_breve FROM `p
 
 // possibili valori di stato
 $statoFiltroOptionList = '<option value="0">tutti</option>';
-$statoFiltroOptionList .= '<option value="'.'draft'.'" data-content="<span class=\'label label-warning\';\'>'.'draft'.'</span>">'.'draft'.'</option>';
-$statoFiltroOptionList .= '<option value="'.'pubblicato'.'" data-content="<span class=\'label label-info\';\'>'.'pubblicato'.'</span>">'.'pubblicato'.'</option>';
-$statoFiltroOptionList .= '<option value="'.'finale'.'" data-content="<span class=\'label label-success\';\'>'.'finale'.'</span>">'.'finale'.'</option>';
-$statoFiltroOptionList .= '<option value="'.'annullato'.'" data-content="<span class=\'label label-danger\';\'>'.'annullato'.'</span>">'.'annullato'.'</option>';
+$statoFiltroOptionList .= '<option value="'.'draft'.'" data-content="<span class=\'label label-warning\';\'>'.getLabel('pianoDiLavoro.draft', 'draft').'</span>">'.'draftb'.'</option>';
+$statoFiltroOptionList .= '<option value="'.'pubblicato'.'" data-content="<span class=\'label label-info\';\'>'.getLabel('pianoDiLavoro.pubblicato', 'pubblicato').'</span>">'.'pubblicato'.'</option>';
+$statoFiltroOptionList .= '<option value="'.'finale'.'" data-content="<span class=\'label label-success\';\'>'.getLabel('pianoDiLavoro.finale', 'finale').'</span>">'.'finale'.'</option>';
+$statoFiltroOptionList .= '<option value="'.'annullato'.'" data-content="<span class=\'label label-danger\';\'>'.getLabel('pianoDiLavoro.annullato', 'annullato').'</span>">'.'annullato'.'</option>';
 $statoOptionList = '';
-$statoOptionList .= '<option value="'.'draft'.'" data-content="<span class=\'label label-warning\';\'>'.'draft'.'</span>">'.'draft'.'</option>';
-$statoOptionList .= '<option value="'.'pubblicato'.'" data-content="<span class=\'label label-info\';\'>'.'pubblicato'.'</span>">'.'pubblicato'.'</option>';
-$statoOptionList .= '<option value="'.'finale'.'" data-content="<span class=\'label label-success\';\'>'.'finale'.'</span>">'.'finale'.'</option>';
-$statoOptionList .= '<option value="'.'annullato'.'" data-content="<span class=\'label label-danger\';\'>'.'annullato'.'</span>">'.'annullato'.'</option>';
+$statoOptionList .= '<option value="'.'draft'.'" data-content="<span class=\'label label-warning\';\'>'.getLabel('pianoDiLavoro.draft', 'draft').'</span>">'.'draft'.'</option>';
+$statoOptionList .= '<option value="'.'pubblicato'.'" data-content="<span class=\'label label-info\';\'>'.getLabel('pianoDiLavoro.pubblicato', 'pubblicato').'</span>">'.'pubblicato'.'</option>';
+$statoOptionList .= '<option value="'.'finale'.'" data-content="<span class=\'label label-success\';\'>'.getLabel('pianoDiLavoro.finale', 'finale').'</span>">'.'finale'.'</option>';
+$statoOptionList .= '<option value="'.'annullato'.'" data-content="<span class=\'label label-danger\';\'>'.getLabel('pianoDiLavoro.annullato', 'annullato').'</span>">'.'annullato'.'</option>';
 
 // possibili valori di tipo (obiettivi minimi, dipartimento o docente)
-$label = 'Template';
-if (property_exists($__settings->label, $label)) {
-    $template = $__settings->label->$label;
-} else {
-    $template = $label;
-}
+$template = getLabel('pianoDiLavoro.template', 'Template');
+$obiettivi_minimi = getLabel('pianoDiLavoro.obiettivi_minimi', 'Obiettivi Minimi');
 
 $tipoFiltroOptionList = '';
 $tipoFiltroOptionList .= '<option value="'.'docente'.'" data-content="<span class=\'label label-warning\';\'>'.'docente'.'</span>">'.'docente'.'</option>';
 $tipoFiltroOptionList .= '<option value="'.'template'.'" data-content="<span class=\'label label-info\';\'>'. $template .'</span>">'. $template .'</option>';
-$tipoFiltroOptionList .= '<option value="'.'obiettivi minimi'.'" data-content="<span class=\'label label-success\';\'>'.'obiettivi minimi'.'</span>">'.'obiettivi minimi'.'</option>';
+$tipoFiltroOptionList .= '<option value="'.'obiettivi minimi'.'" data-content="<span class=\'label label-success\';\'>'.$obiettivi_minimi.'</span>">'.$obiettivi_minimi.'</option>';
 $tipoOptionList = '';
 $tipoOptionList .= '<option value="'.'docente'.'" data-content="<span class=\'label label-warning\';\'>'.'docente'.'</span>">'.'docente'.'</option>';
 $tipoOptionList .= '<option value="'.'template'.'" data-content="<span class=\'label label-info\';\'>'. $template .'</span>">'. $template .'</option>';
-$tipoOptionList .= '<option value="'.'obiettivi minimi'.'" data-content="<span class=\'label label-success\';\'>'.'obiettivi minimi'.'</span>">'.'obiettivi minimi'.'</option>';
+$tipoOptionList .= '<option value="'.'obiettivi minimi'.'" data-content="<span class=\'label label-success\';\'>'.$obiettivi_minimi.'</span>">'.$obiettivi_minimi.'</option>';
 
 // elenco degli anni scolastici
 $annoFiltroOptionList = '<option value="0">tutti</option>';

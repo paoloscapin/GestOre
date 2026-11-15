@@ -8,5 +8,5 @@
  */
 ?>
 <?php if(getSettingsValue('config','extraComandi', false)) : ?>
-	<a href="<?php echo $__application_base_path; ?>/docente/extraComandi.php" class="btn btn-default navbar-btn btn-yellow4" role="button"><span class="glyphicon glyphicon-option-horizontal"></span>&ensp;<?php echoLabel('Altro'); ?> </a>
+	<a href="<?php echo $__application_base_path; ?>/docente/extraComandi.php" class="btn btn-default navbar-btn btn-yellow4" role="button"><span class="glyphicon glyphicon-option-horizontal"></span>&ensp;<?php echoLabel('menu.Altro', 'Altro'); ?> </a>
 <?php endif; ?>
