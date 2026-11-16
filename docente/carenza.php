@@ -81,18 +81,6 @@ foreach(dbGetAll("SELECT * FROM indirizzo ORDER BY indirizzo.nome_breve ASC ; ")
     $indirizzoOptionList .= '<option value="'.$indirizzo['id'].'" >'.$indirizzo['nome_breve'].'</option> ';
 }
 
-// possibili valori di stato
-$statoFiltroOptionList = '<option value="0">tutti</option>';
-$statoFiltroOptionList .= '<option value="'.'draft'.'" data-content="<span class=\'label label-warning\';\'>'.'draft'.'</span>">'.'draft'.'</option>';
-$statoFiltroOptionList .= '<option value="'.'pubblicato'.'" data-content="<span class=\'label label-info\';\'>'.'pubblicato'.'</span>">'.'pubblicato'.'</option>';
-$statoFiltroOptionList .= '<option value="'.'finale'.'" data-content="<span class=\'label label-success\';\'>'.'finale'.'</span>">'.'finale'.'</option>';
-$statoFiltroOptionList .= '<option value="'.'annullato'.'" data-content="<span class=\'label label-danger\';\'>'.'annullato'.'</span>">'.'annullato'.'</option>';
-$statoOptionList = '';
-$statoOptionList .= '<option value="'.'draft'.'" data-content="<span class=\'label label-warning\';\'>'.'draft'.'</span>">'.'draft'.'</option>';
-$statoOptionList .= '<option value="'.'pubblicato'.'" data-content="<span class=\'label label-info\';\'>'.'pubblicato'.'</span>">'.'pubblicato'.'</option>';
-$statoOptionList .= '<option value="'.'finale'.'" data-content="<span class=\'label label-success\';\'>'.'finale'.'</span>">'.'finale'.'</option>';
-$statoOptionList .= '<option value="'.'annullato'.'" data-content="<span class=\'label label-danger\';\'>'.'annullato'.'</span>">'.'annullato'.'</option>';
-
 // elenco degli anni scolastici
 $annoFiltroOptionList = '<option value="0">tutti</option>';
 $annoOptionList = '';

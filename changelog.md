@@ -1,3 +1,9 @@
+## Version 1.4.20 - 15 nov 2026
+##### Improvements
+- piano di lavoro label per draft, annullato, finzle, pubblicato, template
+- label per Altro in menu extra comandi
+- rimossi filtri e option list per stato in carenza
+
 ## Version 1.4.19 - 10 nov 2026
 ##### Bug Fixes
 - minor fix notifica assemblea e lettera

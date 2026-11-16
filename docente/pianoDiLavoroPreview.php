@@ -81,17 +81,17 @@ $obiettivi_minimi = $pianoDiLavoro['obiettivi_minimi'];
 // controllo lo stato
 $statoMarker = '';
 if ($stato == 'draft') {
-	$statoMarker .= '<span class="label label-warning">draft</span>';
+	$statoMarker .= '<span class="label label-warning">'.getLabel('pianoDiLavoro.draft', 'draft').'</span>';
 } elseif ($stato == 'annullato') {
-	$statoMarker .= '<span class="label label-danger">annullato</span>';
+	$statoMarker .= '<span class="label label-danger">'.getLabel('pianoDiLavoro.annullato', 'annullato').'</span>';
 } elseif ($stato == 'finale') {
-	$statoMarker .= '<span class="label label-success">finale</span>';
+	$statoMarker .= '<span class="label label-success">'.getLabel('pianoDiLavoro.finale', 'finale').'</span>';
 } elseif ($stato == 'pubblicato') {
-	$statoMarker .= '<span class="label label-info">pubblicato</span>';
+	$statoMarker .= '<span class="label label-info">'.getLabel('pianoDiLavoro.pubblicato', 'pubblicato').'</span>';
 }
 
 // controlla se e' un template
-$templateMarker = ($pianoDiLavoro['template'] == true)? '<span class="label label-success">'.getLabel('Template').'</span>' : '';
+$templateMarker = ($pianoDiLavoro['template'] == true)? '<span class="label label-success">'.getLabel('pianoDiLavoro.template', 'Template').'</span>' : '';
 
 // controlla se e' un clil
 $clilMarker = ($pianoDiLavoro['clil'] == true)? '<span class="label label-info">Clil</span>' : '';

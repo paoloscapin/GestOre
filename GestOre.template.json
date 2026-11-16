@@ -144,6 +144,12 @@
     "label": {
         "ore_funzionali": "funzionali",
         "dovute": "pianificate",
-        "Template": "Template"
+        "menu.Altro": "Altro",
+        "pianoDiLavoro.template": "Template",
+        "pianoDiLavoro.obiettivi_minimi": "Obiettivi Minimi",
+        "pianoDiLavoro.annullato": "annullato",
+        "pianoDiLavoro.draft": "bozza",
+        "pianoDiLavoro.finale": "ottobre",
+        "pianoDiLavoro.pubblicato": "maggio/giugno"
     }
 }
