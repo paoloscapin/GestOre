@@ -1,3 +1,10 @@
+## Version 1.4.21 - 18 nov 2026
+##### Improvements
+- buoni pasto gestione selezione docente e intervallo
+- buoni pasto costruzione query
+- buoni pasto export in formato csv
+- buoniPastoExport in GestOre.json
+
 ## Version 1.4.20 - 15 nov 2026
 ##### Improvements
 - piano di lavoro label per draft, annullato, finzle, pubblicato, template

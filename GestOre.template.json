@@ -36,6 +36,7 @@
         "uploadLocation": "GestOre.upload",
         "richiesteStudenti": false,
         "buoniPasto": false,
+        "buoniPastoExport": false,
         "extraComandi": false,
         "sospendiServizioDocenti": false,
         "sospendiServizioStudenti": false
