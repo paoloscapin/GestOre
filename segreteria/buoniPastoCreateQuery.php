@@ -96,6 +96,32 @@ UNION ALL
       AND gruppo_incontro.data >= '".$anno_da."-".$mese_da."-01'
       AND gruppo_incontro.data < '".$anno_a."-".$mese_a."-31'
 )
+UNION ALL
+(
+    SELECT
+        'Corso di Recupero' AS tipo,
+        docente.cognome AS cognomeDocente,
+        docente.nome AS nomeDocente,
+        DATE_FORMAT(lezione_corso_di_recupero.data, '%d/%m/%Y') AS data_attivita,
+        DATE_FORMAT(lezione_corso_di_recupero.orario, '%H:%i') AS ora,
+        lezione_corso_di_recupero.numero_ore AS numero_ore,
+        lezione_corso_di_recupero.argomento AS dettaglio,
+        lezione_corso_di_recupero.data AS ord_data,
+        lezione_corso_di_recupero.orario AS ord_ora
+    FROM lezione_corso_di_recupero
+    INNER JOIN corso_di_recupero ON lezione_corso_di_recupero.corso_di_recupero_id = corso_di_recupero.id
+    INNER JOIN docente ON corso_di_recupero.docente_id = docente.id
+    WHERE corso_di_recupero.anno_scolastico_id = $__anno_scolastico_corrente_id";
+    if ($docente_id > 0) {
+   $query .= " AND docente.id = ".$docente_id." ";
+    }
+    $query .= "
+      AND corso_di_recupero.in_itinere = TRUE
+      AND lezione_corso_di_recupero.firmato = TRUE
+      AND lezione_corso_di_recupero.data >= '".$anno_da."-".$mese_da."-01'
+      AND lezione_corso_di_recupero.data < '".$anno_a."-".$mese_a."-31'
+)
+
 ORDER BY cognomeDocente ASC, nomeDocente ASC, ord_data ASC, ord_ora ASC;
         ";
     return $query;

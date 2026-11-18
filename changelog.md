@@ -1,5 +1,9 @@
 ## Version 1.4.21 - 18 nov 2026
 ##### Improvements
+- buoni pasto aggiunti corsi di recupero in itinere
+
+## Version 1.4.21 - 18 nov 2026
+##### Improvements
 - buoni pasto gestione selezione docente e intervallo
 - buoni pasto costruzione query
 - buoni pasto export in formato csv
